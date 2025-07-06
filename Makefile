@@ -14,11 +14,15 @@ OUT := opengl.exe
 
 # === Targets ===
 
-compile: build run
+compile: test run
+
+test:
+	$(CXX) $(CXXFLAGS) $(INCLUDES) $(SRCS) -o $(OUT) $(LDFLAGS)
 
 build: $(SRCS)
-	$(CXX) $(CXXFLAGS) $(INCLUDES) $(SRCS) -o $(OUT) $(LDFLAGS)
+	$(CXX) -mwindows $(CXXFLAGS) $(INCLUDES) $(SRCS) -o $(OUT) $(LDFLAGS)
 	"C:/Program Files/Git/bin/git.exe" add .
+#	"C:/Program Files/Git/bin/git.exe" restore --staged Makefile
 
 run:
 	./$(OUT)
