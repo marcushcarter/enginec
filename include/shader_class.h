@@ -10,6 +10,7 @@ typedef struct {
     GLuint ID;
 } Shader;
 
+void Shader_compileErrors(unsigned int shader, const char* type);
 char* get_file_contents(const char* filename);
 Shader Shader_Init(const char* vertexFile, const char* fragmentFile);
 void Shader_Activate(Shader* shader);

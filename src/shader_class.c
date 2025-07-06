@@ -1,28 +1,33 @@
 #include "shader_class.h"
+#include <string.h>
+
+void Shader_compileErrors(unsigned int shader, const char* type) {
+    GLint hasCompiled;
+    char infolog[1024];
+    if (strcmp(type, "PROGRAM") != 0) {
+        glGetShaderiv(shader, GL_COMPILE_STATUS, &hasCompiled);
+        if (hasCompiled == GL_FALSE) {
+            glGetShaderInfoLog(shader, 1024, NULL, infolog);
+            printf("SHADER_COMPILATION_ERROR for: %s\n%s\n", type, infolog);
+        }
+    } else {
+        glGetProgramiv(shader, GL_LINK_STATUS, &hasCompiled);
+        if (hasCompiled == GL_FALSE) {
+            glGetProgramInfoLog(shader, 1024, NULL, infolog);
+            printf("SHADER_LINKING_ERROR for: %s\n%s\n", type, infolog);
+        }
+    }
+}
+
 
 char* get_file_contents(const char* filename) {
     FILE* file = fopen(filename, "rb");
-    if (!file) {
-        perror("File open failed");
-        return NULL;
-    }
 
     fseek(file, 0, SEEK_END);
     long length = ftell(file);
     rewind(file);
 
-    if (length < 0) {
-        perror("ftell failed");
-        fclose(file);
-        return NULL;
-    }
-
     char* buffer = malloc(length + 1);
-    if (!buffer) {
-        perror("malloc failed");
-        fclose(file);
-        return NULL;
-    }
 
     fread(buffer, 1, length, file);
     buffer[length] = '\0';
@@ -41,15 +46,18 @@ Shader Shader_Init(const char* vertexFile, const char* fragmentFile) {
     GLuint vertexShader = glCreateShader(GL_VERTEX_SHADER);
     glShaderSource(vertexShader, 1, &vertexSource, NULL);
     glCompileShader(vertexShader);
+    Shader_compileErrors(vertexShader, "VERTEX");
     
     GLuint fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
     glShaderSource(fragmentShader, 1, &fragmentSource, NULL);
     glCompileShader(fragmentShader);
+    Shader_compileErrors(fragmentShader, "FRAGMENT");
 
     shader.ID = glCreateProgram();
     glAttachShader(shader.ID, vertexShader);
     glAttachShader(shader.ID, fragmentShader);
     glLinkProgram(shader.ID);
+    Shader_compileErrors(shader.ID, "PROGRAM");
 
     glDeleteShader(vertexShader);
     glDeleteShader(fragmentShader);

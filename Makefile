@@ -1,7 +1,7 @@
 # === Configuration ===
 # === Compiler ===
 CXX := gcc
-CXXFLAGS := -g
+CXXFLAGS := -g -lm
 
 # === Paths ===
 VULKAN_SDK := C:/VulkanSDK/1.4.313.2
