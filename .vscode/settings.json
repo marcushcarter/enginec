@@ -1,6 +1,10 @@
 {
     "files.associations": {
         "glm.hpp": "c",
-        "glfw3.h": "c"
+        "glfw3.h": "c",
+        "glad.h": "c",
+        "shader_class.h": "c",
+        "vao.h": "c",
+        "ebo.h": "c"
     }
 }

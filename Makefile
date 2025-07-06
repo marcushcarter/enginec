@@ -1,6 +1,6 @@
 # === Configuration ===
 # === Compiler ===
-CXX := g++
+CXX := gcc
 CXXFLAGS := -g
 
 # === Paths ===
@@ -9,7 +9,14 @@ INCLUDES := -Iinclude
 LDFLAGS := -Llib -lglfw3dll
 
 # === Files ===
-SRCS := src/main.c include/stb_image/stb_image.c include/glad/glad.c
+SRCS := src/main.c \
+        include/stb_image/stb_image.c \
+        include/glad/glad.c \
+        src/shader_class.c \
+        src/VAO.c \
+        src/VBO.c \
+        src/EBO.c
+
 OUT := opengl.exe
 
 # === Targets ===
