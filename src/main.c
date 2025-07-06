@@ -8,10 +8,7 @@
 #include <stdio.h>
 #include <math.h>
 
-#include "shader_class.h"
-#include "VAO.h"
-#include "VBO.h"
-#include "EBO.h"
+#include "opengl/opengl.h"
 
 GLfloat vertices[] = {
 //                       COORDINATES                      |        COLORS           //

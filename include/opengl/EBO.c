@@ -1,4 +1,4 @@
-#include "EBO.h"
+#include "opengl/EBO.h"
 
 EBO EBO_Init(GLuint* indices, GLsizeiptr size) {
     EBO ebo;

@@ -2,7 +2,7 @@
 #define VAO_CLASS_H
 
 #include <glad/glad.h>
-#include "VBO.h"
+#include "opengl/VBO.h"
 
 typedef struct {
     GLuint ID;

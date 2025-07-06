@@ -1,4 +1,4 @@
-#include "shader_class.h"
+#include "opengl/shaderClass.h"
 #include <string.h>
 
 void Shader_compileErrors(unsigned int shader, const char* type) {

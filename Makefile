@@ -9,13 +9,8 @@ INCLUDES := -Iinclude
 LDFLAGS := -Llib -lglfw3dll
 
 # === Files ===
-SRCS := src/main.c \
-        include/stb_image/stb_image.c \
-        include/glad/glad.c \
-        src/shader_class.c \
-        src/VAO.c \
-        src/VBO.c \
-        src/EBO.c
+SRCS := src/main.c include/stb_image/stb_image.c include/glad/glad.c \
+        include/opengl/shaderClass.c include/opengl/VAO.c include/opengl/VBO.c include/opengl/EBO.c
 
 OUT := opengl.exe
 

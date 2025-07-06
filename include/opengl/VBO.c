@@ -1,4 +1,4 @@
-#include "VBO.h"
+#include "opengl/VBO.h"
 
 VBO VBO_Init(GLfloat* vertices, GLsizeiptr size) {
     VBO vbo;
