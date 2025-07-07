@@ -9,7 +9,7 @@ typedef struct {
 } VAO;
 
 VAO VAO_Init();
-void VAO_LinkVBO(VAO* vao, VBO vbo, GLuint layout, GLuint numComponents, GLenum type, GLsizeiptr stride, void* offset);
+void VAO_LinkAttrib(VAO* vao, VBO* vbo, GLuint layout, GLuint numComponents, GLenum type, GLsizeiptr stride, void* offset);
 void VAO_Bind(VAO* vao);
 void VAO_Unbind();
 void VAO_Delete(VAO* vao);

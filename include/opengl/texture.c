@@ -26,9 +26,9 @@ Texture Texture_Init(const char* image, GLenum texType, GLenum slot, GLenum form
     return texture;
 }
 
-void Texture_texUnit(Shader shader, const char* uniform, GLuint unit) {
-    GLuint tex0Uni = glGetUniformLocation(shader.ID, uniform);
-    Shader_Activate(&shader);
+void Texture_texUnit(Shader* shader, const char* uniform, GLuint unit) {
+    GLuint tex0Uni = glGetUniformLocation(shader->ID, uniform);
+    Shader_Activate(shader);
     glUniform1i(tex0Uni, unit);
 }
 

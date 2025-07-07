@@ -6,8 +6,8 @@ VAO VAO_Init() {
     return vao;
 }
 
-void VAO_LinkVBO(VAO* vao, VBO vbo, GLuint layout, GLuint numComponents, GLenum type, GLsizeiptr stride, void* offset) {
-    VBO_Bind(&vbo);
+void VAO_LinkAttrib(VAO* vao, VBO* vbo, GLuint layout, GLuint numComponents, GLenum type, GLsizeiptr stride, void* offset) {
+    VBO_Bind(vbo);
     glVertexAttribPointer(layout, numComponents, type, GL_FALSE, stride, offset);
     glEnableVertexAttribArray(layout);
     VBO_Unbind();
