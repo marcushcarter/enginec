@@ -16,21 +16,36 @@ unsigned int width = 1600;
 unsigned int height = 1000;
 
 GLfloat vertices[] = {
-//      COORDINATES    |       COLORS        |     TETXURE  
-    -0.5f,  0.0f,  0.5f,   0.83f,  0.70f,  0.44f,    0.0f,  0.0f,
-    -0.5f,  0.0f, -0.5f,   0.83f,  0.70f,  0.44f,    5.0f,  0.0f,
-     0.5f,  0.0f, -0.5f,   0.83f,  0.70f,  0.44f,    0.0f,  0.0f,
-     0.5f,  0.0f,  0.5f,   0.83f,  0.70f,  0.44f,    5.0f,  0.0f,
-     0.0f,  0.8f,  0.0f,   0.92f,  0.86f,  0.76f,    2.5f,  5.0f,
+//      COORDINATES       |          COLORS          |    TEXTURE     |       NORMALS
+    -0.5f,  0.0f,  0.5f,     0.83f,  0.70f,  0.44f,     0.0f,  0.0f,     0.0f, -1.0f,  0.0f,
+    -0.5f,  0.0f, -0.5f,     0.83f,  0.70f,  0.44f,     0.0f,  5.0f,     0.0f, -1.0f,  0.0f,
+     0.5f,  0.0f, -0.5f,     0.83f,  0.70f,  0.44f,     5.0f,  5.0f,     0.0f, -1.0f,  0.0f,
+     0.5f,  0.0f,  0.5f,     0.83f,  0.70f,  0.44f,     5.0f,  0.0f,     0.0f, -1.0f,  0.0f,
+    
+    -0.5f,  0.0f,  0.5f,     0.83f,  0.70f,  0.44f,     0.0f,  0.0f,    -0.8f,  0.5f,  0.0f,
+    -0.5f,  0.0f, -0.5f,     0.83f,  0.70f,  0.44f,     5.0f,  0.0f,    -0.8f,  0.5f,  0.0f,
+     0.0f,  0.8f,  0.0f,     0.92f,  0.86f,  0.76f,     2.5f,  5.0f,    -0.8f,  0.5f,  0.0f,
+    
+    -0.5f,  0.0f, -0.5f,     0.83f,  0.70f,  0.44f,     5.0f,  0.0f,     0.0f,  0.5f, -0.8f,
+     0.5f,  0.0f, -0.5f,     0.83f,  0.70f,  0.44f,     0.0f,  0.0f,     0.0f,  0.5f, -0.8f,
+     0.0f,  0.8f,  0.0f,     0.92f,  0.86f,  0.76f,     2.5f,  5.0f,     0.0f,  0.5f, -0.8f,
+    
+     0.5f,  0.0f, -0.5f,     0.83f,  0.70f,  0.44f,     0.0f,  0.0f,     0.8f,  0.5f,  0.0f,
+     0.5f,  0.0f,  0.5f,     0.83f,  0.70f,  0.44f,     5.0f,  0.0f,     0.8f,  0.5f,  0.0f,
+     0.0f,  0.8f,  0.0f,     0.92f,  0.86f,  0.76f,     2.5f,  5.0f,     0.8f,  0.5f,  0.0f,
+    
+     0.5f,  0.0f,  0.5f,     0.83f,  0.70f,  0.44f,     5.0f,  0.0f,     0.0f,  0.5f,  0.8f,
+    -0.5f,  0.0f,  0.5f,     0.83f,  0.70f,  0.44f,     0.0f,  0.0f,     0.0f,  0.5f,  0.8f,
+     0.0f,  0.8f,  0.0f,     0.92f,  0.86f,  0.76f,     2.5f,  5.0f,     0.0f,  0.5f,  0.8f,
 };
 
 GLuint indices[] = {
     0, 1, 2,
     0, 2, 3,
-    0, 1, 4,
-    1, 2, 4,
-    2, 3, 4,
-    3, 0, 4,
+    4, 6, 5,
+    7, 9, 8,
+    10, 11, 12,
+    13, 15, 14,
 };
 
 GLfloat lightVertices[] = {
@@ -62,7 +77,7 @@ GLuint lightIndices[] = {
 GLfloat QUADvertices[] = {
 //      COORDINATES      |        RGB        |   TEXTURE
     -1.0f, -1.0f,  1.0f,   0.0f, 0.0f, 1.0f,   0.0f,  0.0f,
-    -1.0f,  1.0f,  1.0f,   1.0f, 0.0f, 0.0f,   0.0f,  1.0f,   
+    -1.0f,  1.0f,  1.0f,   1.0f, 0.0f, 0.0f,   0.0f,  1.0f,
      1.0f,  1.0f,  1.0f,   0.0f, 1.0f, 0.0f,   1.0f,  1.0f,
      1.0f, -1.0f,  1.0f,   1.0f, 1.0f, 1.0f,   1.0f,  0.0f,
 };
@@ -139,6 +154,7 @@ int main() {
     
     Shader glShaderProgram_default3d = Shader_Init("shaders/vert/default3d.vert", "shaders/frag/default3d.frag");
     Shader glShaderProgram_light3d = Shader_Init("shaders/vert/light3d.vert", "shaders/frag/light3d.frag");
+    
     Shader glShaderProgram_default2d = Shader_Init("shaders/vert/default2d.vert", "shaders/frag/default2d.frag");
 
     Shader glShaderProgram_raymarch = Shader_Init("shaders/vert/default2d.vert", "shaders/frag/raymarch.frag");
@@ -153,9 +169,10 @@ int main() {
     VAO_Bind(&VAO1);
     VBO VBO1 = VBO_Init(vertices, sizeof(vertices));
     EBO EBO1 = EBO_Init(indices, sizeof(indices));
-    VAO_LinkAttrib(&VAO1, &VBO1, 0, 3, GL_FLOAT, 8 * sizeof(float), (void*)0);
-    VAO_LinkAttrib(&VAO1, &VBO1, 1, 3, GL_FLOAT, 8 * sizeof(float), (void*)(3 * sizeof(float)));
-    VAO_LinkAttrib(&VAO1, &VBO1, 2, 2, GL_FLOAT, 8 * sizeof(float), (void*)(6 * sizeof(float)));
+    VAO_LinkAttrib(&VAO1, &VBO1, 0, 3, GL_FLOAT, 11 * sizeof(float), (void*)0);
+    VAO_LinkAttrib(&VAO1, &VBO1, 1, 3, GL_FLOAT, 11 * sizeof(float), (void*)(3 * sizeof(float)));
+    VAO_LinkAttrib(&VAO1, &VBO1, 2, 2, GL_FLOAT, 11 * sizeof(float), (void*)(6 * sizeof(float)));
+    VAO_LinkAttrib(&VAO1, &VBO1, 3, 3, GL_FLOAT, 11 * sizeof(float), (void*)(8 * sizeof(float)));
     VAO_Unbind();
     VBO_Unbind();
     EBO_Unbind();
@@ -169,22 +186,28 @@ int main() {
     VBO_Unbind();
     EBO_Unbind();
 
+    vec4 lightColor;
+    glm_vec4_copy((vec4){1.0f, 1.0f, 1.0f, 1.0f}, lightColor);
+
     vec3 lightPos;
     mat4 lightModel;
     glm_vec3_copy((vec3){0.5f, 0.5f, 0.5f}, lightPos);
-    glm_mat4_copy((mat4){1.0f, 1.0f, 1.0f, 1.0f}, lightModel);
+    glm_mat4_identity(lightModel);
     glm_translate(lightModel, lightPos);
 
     vec3 pyramidPos;
     mat4 pyramidModel;
     glm_vec3_copy((vec3){0.0f, 0.0f, 0.0f}, pyramidPos);
-    glm_mat4_copy((mat4){1.0f, 1.0f, 1.0f, 1.0f}, pyramidModel);
+    glm_mat4_identity(pyramidModel);
     glm_translate(pyramidModel, pyramidPos);
 
     Shader_Activate(&glShaderProgram_light3d);
     glUniformMatrix4fv(glGetUniformLocation(glShaderProgram_light3d.ID, "u_model"), 1, GL_FALSE, (float*)lightModel);
+    glUniform4fv(glGetUniformLocation(glShaderProgram_light3d.ID, "u_lightColor"), 1, (float*)lightColor);
     Shader_Activate(&glShaderProgram_default3d);
     glUniformMatrix4fv(glGetUniformLocation(glShaderProgram_default3d.ID, "u_model"), 1, GL_FALSE, (float*)pyramidModel);
+    glUniform4fv(glGetUniformLocation(glShaderProgram_default3d.ID, "u_lightColor"), 1, (float*)lightColor);
+    glUniform3fv(glGetUniformLocation(glShaderProgram_default3d.ID, "u_lightPosition"), 1, (float*)lightPos);
 
     VAO quadVAO = VAO_Init();
     VAO_Bind(&quadVAO);
@@ -209,24 +232,35 @@ int main() {
 
     // GAME LOOP
 
-    Camera camera = Camera_Init(width, height, (vec3){0.0f, 0.0f, 9.0f});
+    Camera camera = Camera_Init(width, height, (vec3){0.0f, 0.0f, 3.0f});
     RaymarchCamera raymarchCamera = RaymarchCamera_Init( (vec3){ 0, 0, 3.0f }, (vec3){ 0.0f, 0.0f, -1.0f } );
+
+    bool shaders = false;
 
     while(!glfwWindowShouldClose(window)) {
         
         dt = get_delta_time();
+
+        if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS) {
+            shaders = !shaders;
+        }
+
+
         
         // glfwGetFramebufferSize(window, &width, &height);
         glfwGetFramebufferSize(window, &pingpongFBO[0].width, &pingpongFBO[0].height);
         glfwGetFramebufferSize(window, &pingpongFBO[1].width, &pingpongFBO[1].height);
         // glViewport(0, 0, width, height);
 
+        Camera_Inputs(&camera, window, dt);
+        Camera_UpdateMatrix(&camera, 45.0f, 0.1f, 100.0f);
+        RaymarchCamera_Inputs(&raymarchCamera, window, dt);
+
         Framebuffer_Bind(&pingpongFBO[ping]);
         glClearColor(0.07f, 0.13f, 0.17f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         // glDisable(GL_DEPTH_TEST);
-        // RaymarchCamera_Inputs(&raymarchCamera, window, dt);
         // Texture_Bind(&sydney);
         // Shader_Activate(&glShaderProgram_raymarch);
         // glUniform1f(glGetUniformLocation(glShaderProgram_raymarch.ID, "u_time"), glfwGetTime());
@@ -236,19 +270,24 @@ int main() {
         // glDrawElements(GL_TRIANGLES, sizeof(QUADindices)/sizeof(int), GL_UNSIGNED_INT, 0);
 
         glEnable(GL_DEPTH_TEST);
+
         Shader_Activate(&glShaderProgram_default3d);
-        Camera_Inputs(&camera, window, dt);
-        Camera_UpdateMatrix(&camera, 45.0f, 0.1f, 100.0f);
+        glUniform3fv(glGetUniformLocation(glShaderProgram_default3d.ID, "u_camPosition"), 1, (float*)camera.Position); 
         Camera_Matrix(&camera, &glShaderProgram_default3d, "u_camMatrix");
         Texture_Bind(&sydney);
         VAO_Bind(&VAO1);
         glDrawElements(GL_TRIANGLES, sizeof(indices)/sizeof(int), GL_UNSIGNED_INT, 0);
 
+        Shader_Activate(&glShaderProgram_light3d);
+        Camera_Matrix(&camera, &glShaderProgram_light3d, "u_camMatrix");
+        VAO_Bind(&lightVAO);
+        glDrawElements(GL_TRIANGLES, sizeof(lightIndices)/sizeof(int), GL_UNSIGNED_INT, 0);
+
         ping = !ping;
         glDisable(GL_DEPTH_TEST);
         
         // PIXELATION PASS
-        if (glfwGetKey(window, GLFW_KEY_1) == GLFW_PRESS) {
+        if (shaders) {
             Framebuffer_Bind(&pingpongFBO[ping]);
             glClear(GL_COLOR_BUFFER_BIT);
             Shader_Activate(&glShaderProgram_post_pixelate);

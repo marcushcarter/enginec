@@ -4,20 +4,27 @@ out vec4 FragColor;
 
 in vec3 v_color;
 in vec2 v_texCoord;
+in vec3 v_normal;
+in vec3 v_currentPosition;
 
 uniform sampler2D u_texture;
+uniform vec4 u_lightColor;
+uniform vec3 u_lightPosition;
+uniform vec3 u_camPosition;
 
 void main() 
 {
+    float ambient = 0.20f;
 
-    float d = length(v_texCoord * 2.0) - 0.5;
+    vec3 normal = normalize(v_normal);
+    vec3 lightDirection = normalize(u_lightPosition - v_currentPosition);
+    float diffuse = max(dot(normal, lightDirection), 0.0f);
 
-    d -= 0.5;
-    d = abs(d);
-    
-    // 3d shader
-    // FragColor = vec4(d, 0.0, 0.0, 1.0f);
-    
-    // 3d texture
-    FragColor = texture(u_texture, v_texCoord);
+    float specularLight = 0.5f;
+    vec3 viewDirection = normalize(u_camPosition - v_currentPosition);
+    vec3 reflectionDirection = reflect(-u_lightPosition, normal);
+    float specAmount = pow(max(dot(viewDirection, reflectionDirection), 0.0f), 8);
+    float specular = specAmount * specularLight;
+
+    FragColor = texture(u_texture, v_texCoord) * u_lightColor * (diffuse + ambient + specular);
 }

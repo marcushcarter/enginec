@@ -13,8 +13,8 @@ Camera Camera_Init(int width, int height, vec3 position) {
     glm_vec3_copy(orientation, camera.Orientation);
     glm_vec3_copy(up, camera.Up);
 
-    camera.speed = 1.0f;
-    camera.sensitivity = 2.0f;
+    camera.speed = 2.5f;
+    camera.sensitivity = 4.0f;
     glm_mat4_copy((mat4){1.0f, 1.0f, 1.0f, 1.0f}, camera.cameraMatrix);
 
     return camera;
