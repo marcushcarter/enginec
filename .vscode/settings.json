@@ -6,7 +6,9 @@
         "shader_class.h": "c",
         "vao.h": "c",
         "ebo.h": "c",
-        "vbo.h": "c"
+        "vbo.h": "c",
+        "cmath": "c",
+        "fbo.h": "c"
     },
     "C_Cpp.errorSquiggles": "disabled"
 }
