@@ -56,11 +56,14 @@ void RaymarchCamera_Inputs(RaymarchCamera* camera, GLFWwindow* window, float dt)
     glm_vec3_zero(v_move);
 
     glm_vec3_copy(camera->Orientation, v_forward);
-    // v_forward[1] = 0.0f;
+    v_forward[1] = 0.0f;
     glm_vec3_normalize(v_forward);
 
     glm_vec3_cross(v_forward, (vec3){0.0f, 1.0f, 0.0f}, v_right);
     glm_vec3_normalize(v_right);
+
+    glm_vec3_cross(v_forward, v_right, v_up);
+    glm_vec3_normalize(v_up);
     
     // DIRECTION VECTORS
 
@@ -88,6 +91,14 @@ void RaymarchCamera_Inputs(RaymarchCamera* camera, GLFWwindow* window, float dt)
     }
     if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) {
         glm_vec3_scale(v_right, -camera->speed*dt, v_vector);
+        glm_vec3_add(v_move, v_vector, v_move);
+    }
+    if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS) {
+        glm_vec3_scale(v_up, -camera->speed*dt, v_vector);
+        glm_vec3_add(v_move, v_vector, v_move);
+    }
+    if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS) {
+        glm_vec3_scale(v_up, camera->speed*dt, v_vector);
         glm_vec3_add(v_move, v_vector, v_move);
     }
 

@@ -1,6 +1,6 @@
 #include "opengl/camera.h"
 
-Camera Camera_Init(int width, int height, vec3 position) {
+Camera Camera_Init(int width, int height, float speed, float sensitivity, vec3 position) {
     Camera camera;
 
     camera.width = width;
@@ -13,8 +13,8 @@ Camera Camera_Init(int width, int height, vec3 position) {
     glm_vec3_copy(orientation, camera.Orientation);
     glm_vec3_copy(up, camera.Up);
 
-    camera.speed = 2.5f;
-    camera.sensitivity = 4.0f;
+    camera.speed = speed;
+    camera.sensitivity = sensitivity;
     glm_mat4_copy((mat4){1.0f, 1.0f, 1.0f, 1.0f}, camera.cameraMatrix);
 
     return camera;
@@ -67,11 +67,14 @@ void Camera_Inputs(Camera* camera, GLFWwindow* window, float dt) {
     glm_vec3_zero(v_move);
 
     glm_vec3_copy(camera->Orientation, v_forward);
-    // v_forward[1] = 0.0f;
+    v_forward[1] = 0.0f;
     glm_vec3_normalize(v_forward);
 
     glm_vec3_cross(v_forward, (vec3){0.0f, 1.0f, 0.0f}, v_right);
     glm_vec3_normalize(v_right);
+
+    glm_vec3_cross(v_forward, v_right, v_up);
+    glm_vec3_normalize(v_up);
     
     // DIRECTION VECTORS
 
@@ -101,23 +104,31 @@ void Camera_Inputs(Camera* camera, GLFWwindow* window, float dt) {
         glm_vec3_scale(v_right, camera->speed*dt, v_vector);
         glm_vec3_add(v_move, v_vector, v_move);
     }
+    if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS) {
+        glm_vec3_scale(v_up, -camera->speed*dt, v_vector);
+        glm_vec3_add(v_move, v_vector, v_move);
+    }
+    if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS) {
+        glm_vec3_scale(v_up, camera->speed*dt, v_vector);
+        glm_vec3_add(v_move, v_vector, v_move);
+    }
 
     // CAMERA ROTATION
 
     if (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS) {
-        rotate_vec3_axis(camera->Orientation, d_up, dt, d_Orientation);
+        rotate_vec3_axis(camera->Orientation, d_up, dt*camera->sensitivity, d_Orientation);
         glm_vec3_normalize_to(d_Orientation, camera->Orientation);
     }
     if (glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS) {
-        rotate_vec3_axis(camera->Orientation, d_up, -dt, d_Orientation);
+        rotate_vec3_axis(camera->Orientation, d_up, -dt*camera->sensitivity, d_Orientation);
         glm_vec3_normalize_to(d_Orientation, camera->Orientation);
     }
     if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS) {
-        rotate_vec3_axis(camera->Orientation, d_right, -dt, d_Orientation);
+        rotate_vec3_axis(camera->Orientation, d_right, -dt*camera->sensitivity, d_Orientation);
         glm_vec3_normalize_to(d_Orientation, camera->Orientation);
     }
     if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS) {
-        rotate_vec3_axis(camera->Orientation, d_right, dt, d_Orientation);
+        rotate_vec3_axis(camera->Orientation, d_right, dt*camera->sensitivity, d_Orientation);
         glm_vec3_normalize_to(d_Orientation, camera->Orientation);
     }
     

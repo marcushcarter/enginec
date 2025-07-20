@@ -8,7 +8,8 @@
         "ebo.h": "c",
         "vbo.h": "c",
         "cmath": "c",
-        "fbo.h": "c"
+        "fbo.h": "c",
+        "joystick.h": "c"
     },
     "C_Cpp.errorSquiggles": "disabled"
 }
