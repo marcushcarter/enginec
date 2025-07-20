@@ -66,7 +66,7 @@ void Camera_Inputs(Camera* camera, GLFWwindow* window, Joystick* js, float dt) {
     // MOVEMENT VECTORS
 
     float speed = camera->speed;
-    if (js->buttons[8]) speed = camera->speed*2;
+    // if (js->buttons[8]) speed = camera->speed*2;
 
     vec3 v_forward, v_right, v_up, v_move;
     glm_vec3_zero(v_move);
@@ -149,7 +149,7 @@ void Camera_Inputs(Camera* camera, GLFWwindow* window, Joystick* js, float dt) {
             glm_vec3_scale(v_right, speed*dt*js->axes[0], v_vector);
             glm_vec3_add(v_move, v_vector, v_move);
         }
-        if (js->buttons[0]) {
+        if (js->buttons[0] || joystickIsHeld(js, 0)) {
             glm_vec3_scale(v_up, -speed*dt, v_vector);
             glm_vec3_add(v_move, v_vector, v_move);
         }

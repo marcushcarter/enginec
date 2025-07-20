@@ -215,8 +215,8 @@ int main() {
     glViewport(0, 0, width, height);
 
     Texture textures[2];
-    textures[0] = Texture_Init("res/textures/sydney.png", "diffuse", 0, GL_RGBA, GL_UNSIGNED_BYTE);
-    // textures[0] = Texture_Init("res/textures/box.png", "diffuse", 0, GL_RGBA, GL_UNSIGNED_BYTE);
+    // textures[0] = Texture_Init("res/textures/sydney.png", "diffuse", 0, GL_RGBA, GL_UNSIGNED_BYTE);
+    textures[0] = Texture_Init("res/textures/box.png", "diffuse", 0, GL_RGBA, GL_UNSIGNED_BYTE);
     textures[1] = Texture_Init("res/textures/box_specular.png", "specular", 1, GL_RED, GL_UNSIGNED_BYTE);
 
     // OTHER SHADERS
@@ -224,9 +224,9 @@ int main() {
     Shader glShaderProgram_post_default = Shader_Init("shaders/vert/default2d.vert", "shaders/post/default.frag");
     Shader glShaderProgram_post_pixelate = Shader_Init("shaders/vert/default2d.vert", "shaders/post/pixelate.frag");
     
-    // Shader glShaderProgram_default2d = Shader_Init("shaders/vert/default2d.vert", "shaders/frag/default2d.frag");
+    Shader glShaderProgram_default2d = Shader_Init("shaders/vert/default2d.vert", "shaders/frag/default2d.frag");
     Shader glShaderProgram_raymarch = Shader_Init("shaders/vert/default2d.vert", "shaders/frag/raymarch.frag");
-    // Shader glShaderProgram_post_crt = Shader_Init("shaders/vert/default2d.vert", "shaders/post/crt.frag");
+    Shader glShaderProgram_post_crt = Shader_Init("shaders/vert/default2d.vert", "shaders/post/crt.frag");
 
     // MESHES
 
@@ -289,9 +289,9 @@ int main() {
     pingpongFBO[1] = Framebuffer_Init(width, height);
     bool ping = 0;
 
-    Camera camera = Camera_Init(width, height, 2.5f, 3.0f,(vec3){0.0f, 0.0f, 3.0f});
+    Camera camera = Camera_Init(width, height, 2.5f, 3.0f,(vec3){0.0f, 1.0f, 3.0f});
 
-    Joystick joystick1 = Joystick_Init(GLFW_JOYSTICK_1);
+    // Joystick joystick1 = Joystick_Init(GLFW_JOYSTICK_1);
     
     // GAME LOOP
 
@@ -301,10 +301,11 @@ int main() {
         
         dt = get_delta_time();
 
-        Joystick_Update(&joystick1);
-        if (joystick1.buttons[7] && joystick1.lbuttons[7] == false) postProcessing = !postProcessing;
+        // Joystick_Update(&joystick1);
+        glfwJoystickEvents();
+        if (joystickIsPressed(&joysticks[0], 7)) postProcessing = !postProcessing;
         
-        Camera_Inputs(&camera, window, &joystick1, dt);
+        Camera_Inputs(&camera, window, &joysticks[0], dt);
         // Camera_ControllerInputs(&joystick1, &camera, dt);
         Camera_UpdateMatrix(&camera, 45.0f, 0.1f, 100.0f);
         

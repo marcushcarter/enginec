@@ -1,51 +1,89 @@
 #include "opengl/joystick.h"
+#include <string.h>
+#include <stdio.h>
 
-Joystick Joystick_Init(int jid) {
-    Joystick js;
+Joystick joysticks[MAX_JOYSTICKS];
+int joystickCount = MAX_JOYSTICKS;
 
-    js.id = jid;
-    js.present = glfwJoystickPresent(jid);
-
-    if (!js.present) {
-        js.axes = NULL;
-        js.buttons = NULL;
-        js.hats = NULL;
-        js.axisCount = 0;
-        js.buttonCount = 0;
-        js.hatCount = 0;
-        
-        return js;
-    }
-
-    js.name = glfwGetJoystickName(jid);
-    js.axes = glfwGetJoystickAxes(jid, &js.axisCount);
-    js.buttons = glfwGetJoystickButtons(jid, &js.buttonCount);
-    js.hats = glfwGetJoystickHats(jid, &js.hatCount);
-
-    js.deadzone = 0.05f;
-
-    return js;
-}
-
-void Joystick_Update(Joystick* js) {
-    for (int i = 0; i < 14; i++) {
-        js->lbuttons[i] = js->buttons[i];
-    }
-
-    if (!glfwJoystickPresent(js->id)) {
-        js->present = 0;
-        js->axes = NULL;
-        js->buttons = NULL;
-        js->hats = NULL;
-        return;
-    }
+void glfwJoystickEvents(void) {
     
-    js->present = 1;
-    js->axes = glfwGetJoystickAxes(js->id, &js->axisCount);
-    js->buttons = glfwGetJoystickButtons(js->id, &js->buttonCount);
-    js->hats = glfwGetJoystickHats(js->id, &js->hatCount);
+    for (int i = 0; i < joystickCount; i++) {
+        Joystick* js = &joysticks[i];
+        if (js->present && js->buttons) {
+            for (int b = 0; b < js->buttonCount && b < 16; b++) {
+                js->lbuttons[b] = js->buttons[b];
+            }
+        }
+    }
+
+    for (int jid = 0; jid <= GLFW_JOYSTICK_LAST; jid++) {
+        if (!glfwJoystickPresent(jid)) continue;
+
+        const unsigned char* buttons;
+        int buttonCount;
+        buttons = glfwGetJoystickButtons(jid, &buttonCount);
+        if (!buttons || buttonCount <= 7 /*|| !buttons[7]*/) continue;
+
+        int alreadyAssigned = 0;
+        for (int i = 0; i < joystickCount; i++) {
+            if (joysticks[i].present && joysticks[i].id == jid) {
+                alreadyAssigned = 1;
+                break;
+            }
+        }
+
+        if (!alreadyAssigned) {
+            for (int i = 0; i < joystickCount; i++) {
+                if (!joysticks[i].present) {
+                    Joystick* js = &joysticks[i];
+
+                    js->id = jid;
+                    js->present = 1;
+                    js->name = glfwGetJoystickName(jid);
+                    js->axes = glfwGetJoystickAxes(jid, &js->axisCount);
+                    js->buttons = buttons;
+                    js->buttonCount = buttonCount;
+                    js->hats = glfwGetJoystickHats(jid, &js->hatCount);
+                    js->deadzone = 0.05f;
+
+                    memset(js->lbuttons, 0, buttonCount);
+
+                    printf("Player %d controller connected\n", js->id+1);
+
+                    break;
+                }
+            }
+        }
+    }
+
+    for (int i = 0; i < joystickCount; i++) {
+        Joystick* js = &joysticks[i];
+        if (!js->present) continue;
+
+        if (!glfwJoystickPresent(js->id)) {
+            printf("Player %d controller disonnected\n", js->id+1);
+            *js = (Joystick){0}; // reset the struct
+            continue;
+        }
+
+        js->axes = glfwGetJoystickAxes(js->id, &js->axisCount);
+        js->buttons = glfwGetJoystickButtons(js->id, &js->buttonCount);
+        js->hats = glfwGetJoystickHats(js->id, &js->hatCount);
+    }
 }
 
-// void Joystick_Delete(Joystick* js) {
-    // js = {0};
-// }
+int joystickIsPressed(Joystick* js, int button) {
+    return js->buttons && js->buttons[button] && !js->lbuttons[button];
+}
+
+int joystickIsReleased(Joystick* js, int button) {
+    return js->buttons && !js->buttons[button] && js->lbuttons[button];
+}
+
+int joystickIsHeld(Joystick* js, int button) {
+    return js->buttons && js->buttons[button];
+}
+
+float joystickGetAxis(Joystick* js, int axis) {
+    return js->axes && js->axes[axis];
+}
