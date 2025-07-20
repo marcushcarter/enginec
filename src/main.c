@@ -16,10 +16,10 @@ unsigned int width = 1600;
 unsigned int height = 1000;
 
 Vertex vertices[] = {
-    { { -1.0f,  0.0f,  1.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 1.0f, 0.0f }, { 0.0f, 0.0f } },
-    { { -1.0f,  0.0f, -1.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 1.0f, 0.0f }, { 0.0f, 1.0f } },
-    { {  1.0f,  0.0f, -1.0f }, { 0.0f, 0.0f, 0.0f }, { 1.0f, 1.0f, 0.0f }, { 1.0f, 1.0f } },
-    { {  1.0f,  0.0f,  1.0f }, { 0.0f, 0.0f, 0.0f }, { 1.0f, 0.0f, 0.0f }, { 1.0f, 0.0f } }
+    { { -1.0f,  0.0f,  1.0f }, { 0.0f, 1.0f, 0.0f }, { 0.0f, 1.0f, 0.0f }, { 0.0f, 0.0f } },
+    { { -1.0f,  0.0f, -1.0f }, { 0.0f, 1.0f, 0.0f }, { 0.0f, 1.0f, 0.0f }, { 0.0f, 1.0f } },
+    { {  1.0f,  0.0f, -1.0f }, { 0.0f, 1.0f, 0.0f }, { 1.0f, 1.0f, 0.0f }, { 1.0f, 1.0f } },
+    { {  1.0f,  0.0f,  1.0f }, { 0.0f, 1.0f, 0.0f }, { 1.0f, 0.0f, 0.0f }, { 1.0f, 0.0f } }
 };
 
 GLuint indices[] = {
@@ -317,10 +317,7 @@ int main() {
         glClearColor(0.07f, 0.13f, 0.17f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        glEnable(GL_DEPTH_TEST);
-        Mesh_Draw(&floor, &glShaderProgram_default3d, &camera);
-        Mesh_Draw(&light, &glShaderProgram_light3d, &camera);
-
+        
         // glDisable(GL_DEPTH_TEST);
         // Texture_Bind(&textures[0]);
         // Shader_Activate(&glShaderProgram_raymarch);
@@ -329,6 +326,11 @@ int main() {
         // glUniform3fv(glGetUniformLocation(glShaderProgram_raymarch.ID, "u_cameraOrientation"), 1, (float*)&camera.Orientation);
         // VAO_Bind(&quadVAO);
         // glDrawElements(GL_TRIANGLES, sizeof(QUADindices)/sizeof(int), GL_UNSIGNED_INT, 0);
+
+        glEnable(GL_DEPTH_TEST);
+        Mesh_Draw(&floor, &glShaderProgram_default3d, &camera);
+        Mesh_Draw(&light, &glShaderProgram_light3d, &camera);
+
 
         ping = !ping;
         glDisable(GL_DEPTH_TEST);
