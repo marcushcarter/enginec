@@ -153,13 +153,16 @@ void control_fps(float target_fps, bool limited) {
 void Camera_ControllerInputs(Joystick* js, Camera* camera, GLFWwindow* window, float dt) {
     if (!js->present) return;
 
+    float speed = camera->speed;
+    if (js->buttons[8]) speed = camera->speed*2;
+
     // MOVEMENT VECTORS
 
     vec3 v_forward, v_right, v_up, v_move;
     glm_vec3_zero(v_move);
 
     glm_vec3_copy(camera->Orientation, v_forward);
-    v_forward[1] = 0.0f;
+    v_forward[1] = 0.0f; 
     glm_vec3_normalize(v_forward);
 
     glm_vec3_cross(v_forward, (vec3){0.0f, 1.0f, 0.0f}, v_right);
@@ -182,20 +185,20 @@ void Camera_ControllerInputs(Joystick* js, Camera* camera, GLFWwindow* window, f
 
     // LSY
     if (fabsf(js->axes[1]) > js->deadzone) {
-        glm_vec3_scale(v_forward, -camera->speed*dt*js->axes[1], v_vector);
+        glm_vec3_scale(v_forward, -speed*dt*js->axes[1], v_vector);
         glm_vec3_add(v_move, v_vector, v_move);
     }
     // LSX
     if (fabsf(js->axes[0]) > js->deadzone) {
-        glm_vec3_scale(v_right, camera->speed*dt*js->axes[0], v_vector);
+        glm_vec3_scale(v_right, speed*dt*js->axes[0], v_vector);
         glm_vec3_add(v_move, v_vector, v_move);
     }
     if (js->buttons[0]) {
-        glm_vec3_scale(v_up, -camera->speed*dt, v_vector);
+        glm_vec3_scale(v_up, -speed*dt, v_vector);
         glm_vec3_add(v_move, v_vector, v_move);
     }
     if (js->buttons[1] || js->buttons[9]) {
-        glm_vec3_scale(v_up, camera->speed*dt, v_vector);
+        glm_vec3_scale(v_up, speed*dt, v_vector);
         glm_vec3_add(v_move, v_vector, v_move);
     }
 
