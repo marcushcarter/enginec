@@ -15,17 +15,50 @@
 unsigned int width = 1600;
 unsigned int height = 1000;
 
+
+
 Vertex vertices[] = {
-    { { -1.0f,  0.0f,  1.0f }, { 0.0f, 1.0f, 0.0f }, { 0.0f, 1.0f, 0.0f }, { 0.0f, 0.0f } },
-    { { -1.0f,  0.0f, -1.0f }, { 0.0f, 1.0f, 0.0f }, { 0.0f, 1.0f, 0.0f }, { 0.0f, 1.0f } },
-    { {  1.0f,  0.0f, -1.0f }, { 0.0f, 1.0f, 0.0f }, { 1.0f, 1.0f, 0.0f }, { 1.0f, 1.0f } },
-    { {  1.0f,  0.0f,  1.0f }, { 0.0f, 1.0f, 0.0f }, { 1.0f, 0.0f, 0.0f }, { 1.0f, 0.0f } }
+    // { { -1.0f,  0.0f,  1.0f }, { 0.0f, 1.0f, 0.0f }, { 0.0f, 1.0f, 0.0f }, { 0.0f, 0.0f } },
+    // { { -1.0f,  0.0f, -1.0f }, { 0.0f, 1.0f, 0.0f }, { 0.0f, 1.0f, 0.0f }, { 0.0f, 1.0f } },
+    // { {  1.0f,  0.0f, -1.0f }, { 0.0f, 1.0f, 0.0f }, { 1.0f, 1.0f, 0.0f }, { 1.0f, 1.0f } },
+    // { {  1.0f,  0.0f,  1.0f }, { 0.0f, 1.0f, 0.0f }, { 1.0f, 0.0f, 0.0f }, { 1.0f, 0.0f } }
+
+    { { -0.5f,  0.0f,  0.5f }, {  0.0f, -1.0f,  0.0f }, { 0.83f, 0.70f, 0.44f }, { 0.0f, 0.0f } },
+    { { -0.5f,  0.0f, -0.5f }, {  0.0f, -1.0f,  0.0f }, { 0.83f, 0.70f, 0.44f }, { 0.0f, 5.0f } },
+    { {  0.5f,  0.0f, -0.5f }, {  0.0f, -1.0f,  0.0f }, { 0.83f, 0.70f, 0.44f }, { 5.0f, 5.0f } },
+    { {  0.5f,  0.0f,  0.5f }, {  0.0f, -1.0f,  0.0f }, { 0.83f, 0.70f, 0.44f }, { 5.0f, 0.0f } },
+
+    { { -0.5f,  0.0f,  0.5f }, { -0.8f,  0.5f,  0.0f }, { 0.83f, 0.70f, 0.44f }, { 0.0f, 0.0f } },
+    { { -0.5f,  0.0f, -0.5f }, { -0.8f,  0.5f,  0.0f }, { 0.83f, 0.70f, 0.44f }, { 5.0f, 0.0f } },
+    { {  0.0f,  0.8f,  0.0f }, { -0.8f,  0.5f,  0.0f }, { 0.92f, 0.86f, 0.76f }, { 2.5f, 5.0f } },
+
+    { { -0.5f,  0.0f, -0.5f }, {  0.0f,  0.5f, -0.8f }, { 0.83f, 0.70f, 0.44f }, { 5.0f, 0.0f } },
+    { {  0.5f,  0.0f, -0.5f }, {  0.0f,  0.5f, -0.8f }, { 0.83f, 0.70f, 0.44f }, { 0.0f, 0.0f } },
+    { {  0.0f,  0.8f,  0.0f }, {  0.0f,  0.5f, -0.8f }, { 0.92f, 0.86f, 0.76f }, { 2.5f, 5.0f } },
+
+    { {  0.5f,  0.0f, -0.5f }, {  0.8f,  0.5f,  0.0f }, { 0.83f, 0.70f, 0.44f }, { 0.0f, 0.0f } },
+    { {  0.5f,  0.0f,  0.5f }, {  0.8f,  0.5f,  0.0f }, { 0.83f, 0.70f, 0.44f }, { 5.0f, 0.0f } },
+    { {  0.0f,  0.8f,  0.0f }, {  0.8f,  0.5f,  0.0f }, { 0.92f, 0.86f, 0.76f }, { 2.5f, 5.0f } },
+
+    { {  0.5f,  0.0f,  0.5f }, {  0.0f,  0.5f,  0.8f }, { 0.83f, 0.70f, 0.44f }, { 5.0f, 0.0f } },
+    { { -0.5f,  0.0f,  0.5f }, {  0.0f,  0.5f,  0.8f }, { 0.83f, 0.70f, 0.44f }, { 0.0f, 0.0f } },
+    { {  0.0f,  0.8f,  0.0f }, {  0.0f,  0.5f,  0.8f }, { 0.92f, 0.86f, 0.76f }, { 2.5f, 5.0f } },
+
 };
 
 GLuint indices[] = {
     0, 1, 2,
     0, 2, 3,
+    4, 6, 5,
+    7, 9, 8,
+    10, 11, 12,
+    13, 15, 14,
 };
+
+// GLuint indices[] = {
+//     0, 1, 2,
+//     0, 2, 3,
+// };
 
 Vertex lightVertices[] = {
     { { -0.1f, -0.1f,  0.1f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f } },
@@ -214,11 +247,6 @@ int main() {
     gladLoadGL();
     glViewport(0, 0, width, height);
 
-    Texture textures[2];
-    // textures[0] = Texture_Init("res/textures/sydney.png", "diffuse", 0, GL_RGBA, GL_UNSIGNED_BYTE);
-    textures[0] = Texture_Init("res/textures/box.png", "diffuse", 0, GL_RGBA, GL_UNSIGNED_BYTE);
-    textures[1] = Texture_Init("res/textures/box_specular.png", "specular", 1, GL_RED, GL_UNSIGNED_BYTE);
-
     // OTHER SHADERS
     
     Shader glShaderProgram_post_default = Shader_Init("shaders/vert/default2d.vert", "shaders/post/default.frag");
@@ -230,6 +258,10 @@ int main() {
 
     // MESHES
 
+    Texture textures[1];
+    textures[0] = Texture_Init("res/textures/sydney.png", "diffuse", 0, GL_RGBA, GL_UNSIGNED_BYTE);
+    // textures[0] = Texture_Init("res/textures/box.png", "diffuse", 0, GL_RGBA, GL_UNSIGNED_BYTE);
+    // textures[1] = Texture_Init("res/textures/box_specular.png", "specular", 1, GL_RED, GL_UNSIGNED_BYTE);
     Shader glShaderProgram_default3d = Shader_Init("shaders/vert/default3d.vert", "shaders/frag/default3d.frag");
     VertexVector verts;
     CopyToVertexVector(vertices, sizeof(vertices) / sizeof(Vertex), &verts);
@@ -251,12 +283,6 @@ int main() {
     vec4 lightColor;
     glm_vec4_copy((vec4){1.0f, 1.0f, 1.0f, 1.0f}, lightColor);
 
-    vec3 lightPos;
-    mat4 lightModel;
-    glm_vec3_copy((vec3){0.5f, 0.5f, 0.5f}, lightPos);
-    glm_mat4_identity(lightModel);
-    glm_translate(lightModel, lightPos);
-
     vec3 pyramidPos;
     mat4 pyramidModel;
     glm_vec3_copy((vec3){0.0f, 0.0f, 0.0f}, pyramidPos);
@@ -264,12 +290,12 @@ int main() {
     glm_translate(pyramidModel, pyramidPos);
 
     Shader_Activate(&glShaderProgram_light3d);
-    glUniformMatrix4fv(glGetUniformLocation(glShaderProgram_light3d.ID, "u_model"), 1, GL_FALSE, (float*)lightModel);
     glUniform4fv(glGetUniformLocation(glShaderProgram_light3d.ID, "u_lightColor"), 1, (float*)lightColor);
     Shader_Activate(&glShaderProgram_default3d);
     glUniformMatrix4fv(glGetUniformLocation(glShaderProgram_default3d.ID, "u_model"), 1, GL_FALSE, (float*)pyramidModel);
     glUniform4fv(glGetUniformLocation(glShaderProgram_default3d.ID, "u_lightColor"), 1, (float*)lightColor);
-    glUniform3fv(glGetUniformLocation(glShaderProgram_default3d.ID, "u_lightPosition"), 1, (float*)lightPos);
+
+    // FRAMEBUFFER QUAD
 
     VAO quadVAO = VAO_Init();
     VAO_Bind(&quadVAO);
@@ -290,8 +316,6 @@ int main() {
     bool ping = 0;
 
     Camera camera = Camera_Init(width, height, 2.5f, 3.0f,(vec3){0.0f, 1.0f, 3.0f});
-
-    // Joystick joystick1 = Joystick_Init(GLFW_JOYSTICK_1);
     
     // GAME LOOP
 
@@ -301,12 +325,10 @@ int main() {
         
         dt = get_delta_time();
 
-        // Joystick_Update(&joystick1);
         glfwJoystickEvents();
         if (joystickIsPressed(&joysticks[0], 7)) postProcessing = !postProcessing;
         
         Camera_Inputs(&camera, window, &joysticks[0], dt);
-        // Camera_ControllerInputs(&joystick1, &camera, dt);
         Camera_UpdateMatrix(&camera, 45.0f, 0.1f, 100.0f);
         
         // glfwGetFramebufferSize(window, &width, &height);
@@ -316,8 +338,18 @@ int main() {
         Framebuffer_Bind(&pingpongFBO[ping]);
         glClearColor(0.07f, 0.13f, 0.17f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
+    
+        vec3 lightPos;
+        mat4 lightModel;
+        glm_vec3_copy((vec3){sin(glfwGetTime()), 0.5f, cos(glfwGetTime())}, lightPos);
+        glm_mat4_identity(lightModel);
+        glm_translate(lightModel, lightPos);
         
+        Shader_Activate(&glShaderProgram_light3d);
+        glUniformMatrix4fv(glGetUniformLocation(glShaderProgram_light3d.ID, "u_model"), 1, GL_FALSE, (float*)lightModel);
+        Shader_Activate(&glShaderProgram_default3d);
+        glUniform3fv(glGetUniformLocation(glShaderProgram_default3d.ID, "u_lightPosition"), 1, (float*)lightPos);
+
         // glDisable(GL_DEPTH_TEST);
         // Texture_Bind(&textures[0]);
         // Shader_Activate(&glShaderProgram_raymarch);
