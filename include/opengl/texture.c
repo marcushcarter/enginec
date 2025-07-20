@@ -1,6 +1,6 @@
 #include "opengl/texture.h"
 
-Texture Texture_Init(const char* image, GLenum texType, GLenum slot, GLenum format, GLenum pixelType) {
+Texture Texture_Init(const char* image, GLenum texType, GLuint slot, GLenum format, GLenum pixelType) {
     Texture texture;
 
     texture.type = texType;
@@ -9,7 +9,8 @@ Texture Texture_Init(const char* image, GLenum texType, GLenum slot, GLenum form
     unsigned char* bytes = stbi_load(image, &widthImg, &heightImg, &numColCh, 0);
 
     glGenTextures(1, &texture.ID);
-    glActiveTexture(slot);
+    glActiveTexture(GL_TEXTURE0 + slot);
+    texture.unit = slot;
     glBindTexture(texType, texture.ID);
 
     glTexParameteri(texType, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
@@ -33,6 +34,7 @@ void Texture_texUnit(Shader* shader, const char* uniform, GLuint unit) {
 }
 
 void Texture_Bind(Texture* texture) {
+    glActiveTexture(GL_TEXTURE0 + texture->unit);
     glBindTexture(texture->type, texture->ID);
 }
 

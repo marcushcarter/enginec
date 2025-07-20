@@ -17,7 +17,27 @@ unsigned int width = 1600;
 unsigned int height = 1000;
 
 GLfloat vertices[] = {
-//      COORDINATES       |          COLORS          |    TEXTURE     |       NORMALS
+//      COORDINATES       |          COLORS       |    TEXTURE     |       NORMALS
+    -1.0f,  0.0f,  1.0f,     0.0f,  0.0f,  0.0f,     0.0f,  0.0f,     0.0f,  1.0f,  0.0f,
+    -1.0f,  0.0f, -1.0f,     0.0f,  0.0f,  0.0f,     0.0f,  1.0f,     0.0f,  1.0f,  0.0f,
+     1.0f,  0.0f, -1.0f,     0.0f,  0.0f,  0.0f,     1.0f,  1.0f,     0.0f,  1.0f,  0.0f,
+     1.0f,  0.0f,  1.0f,     0.0f,  0.0f,  0.0f,     1.0f,  0.0f,     0.0f,  1.0f,  0.0f,
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     -0.5f,  0.0f,  0.5f,     0.83f,  0.70f,  0.44f,     0.0f,  0.0f,     0.0f, -1.0f,  0.0f,
     -0.5f,  0.0f, -0.5f,     0.83f,  0.70f,  0.44f,     0.0f,  5.0f,     0.0f, -1.0f,  0.0f,
      0.5f,  0.0f, -0.5f,     0.83f,  0.70f,  0.44f,     5.0f,  5.0f,     0.0f, -1.0f,  0.0f,
@@ -43,10 +63,6 @@ GLfloat vertices[] = {
 GLuint indices[] = {
     0, 1, 2,
     0, 2, 3,
-    4, 6, 5,
-    7, 9, 8,
-    10, 11, 12,
-    13, 15, 14,
 };
 
 GLfloat lightVertices[] = {
@@ -288,7 +304,11 @@ int main() {
     // TEXTURES
 
     Texture sydney = Texture_Init("res/textures/sydney.png", GL_TEXTURE_2D, GL_TEXTURE0, GL_RGBA, GL_UNSIGNED_BYTE);
-    Texture_texUnit(&glShaderProgram_default3d, "u_texture", 0);
+    Texture_texUnit(&glShaderProgram_default3d, "u_texture0", 0);
+    Texture box = Texture_Init("res/textures/box.png", GL_TEXTURE_2D, GL_TEXTURE0, GL_RGBA, GL_UNSIGNED_BYTE);
+    Texture_texUnit(&glShaderProgram_default3d, "u_texture0", 0);
+    Texture box_specular = Texture_Init("res/textures/box_specular.png", GL_TEXTURE_2D, 1, GL_RED, GL_UNSIGNED_BYTE);
+    Texture_texUnit(&glShaderProgram_default3d, "u_texture1", 0);
 
     Framebuffer pingpongFBO[2];
     pingpongFBO[0] = Framebuffer_Init(width, height);
@@ -327,28 +347,29 @@ int main() {
         glClearColor(0.07f, 0.13f, 0.17f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        glDisable(GL_DEPTH_TEST);
-        Texture_Bind(&sydney);
-        Shader_Activate(&glShaderProgram_raymarch);
-        glUniform1f(glGetUniformLocation(glShaderProgram_raymarch.ID, "u_time"), glfwGetTime());
-        glUniform3fv(glGetUniformLocation(glShaderProgram_raymarch.ID, "u_cameraPosition"), 1, (float*)&raymarchCamera.Position);
-        glUniform3fv(glGetUniformLocation(glShaderProgram_raymarch.ID, "u_cameraOrientation"), 1, (float*)&raymarchCamera.Orientation);
-        VAO_Bind(&quadVAO);
-        glDrawElements(GL_TRIANGLES, sizeof(QUADindices)/sizeof(int), GL_UNSIGNED_INT, 0);
-
-        // glEnable(GL_DEPTH_TEST);
-
-        // Shader_Activate(&glShaderProgram_default3d);
-        // glUniform3fv(glGetUniformLocation(glShaderProgram_default3d.ID, "u_camPosition"), 1, (float*)camera.Position); 
-        // Camera_Matrix(&camera, &glShaderProgram_default3d, "u_camMatrix");
+        // glDisable(GL_DEPTH_TEST);
         // Texture_Bind(&sydney);
-        // VAO_Bind(&VAO1);
-        // glDrawElements(GL_TRIANGLES, sizeof(indices)/sizeof(int), GL_UNSIGNED_INT, 0);
+        // Shader_Activate(&glShaderProgram_raymarch);
+        // glUniform1f(glGetUniformLocation(glShaderProgram_raymarch.ID, "u_time"), glfwGetTime());
+        // glUniform3fv(glGetUniformLocation(glShaderProgram_raymarch.ID, "u_cameraPosition"), 1, (float*)&raymarchCamera.Position);
+        // glUniform3fv(glGetUniformLocation(glShaderProgram_raymarch.ID, "u_cameraOrientation"), 1, (float*)&raymarchCamera.Orientation);
+        // VAO_Bind(&quadVAO);
+        // glDrawElements(GL_TRIANGLES, sizeof(QUADindices)/sizeof(int), GL_UNSIGNED_INT, 0);
 
-        // Shader_Activate(&glShaderProgram_light3d);
-        // Camera_Matrix(&camera, &glShaderProgram_light3d, "u_camMatrix");
-        // VAO_Bind(&lightVAO);
-        // glDrawElements(GL_TRIANGLES, sizeof(lightIndices)/sizeof(int), GL_UNSIGNED_INT, 0);
+        glEnable(GL_DEPTH_TEST);
+
+        Shader_Activate(&glShaderProgram_default3d);
+        glUniform3fv(glGetUniformLocation(glShaderProgram_default3d.ID, "u_camPosition"), 1, (float*)camera.Position); 
+        Camera_Matrix(&camera, &glShaderProgram_default3d, "u_camMatrix");
+        Texture_Bind(&box);
+        Texture_Bind(&box_specular);
+        VAO_Bind(&VAO1);
+        glDrawElements(GL_TRIANGLES, sizeof(indices)/sizeof(int), GL_UNSIGNED_INT, 0);
+
+        Shader_Activate(&glShaderProgram_light3d);
+        Camera_Matrix(&camera, &glShaderProgram_light3d, "u_camMatrix");
+        VAO_Bind(&lightVAO);
+        glDrawElements(GL_TRIANGLES, sizeof(lightIndices)/sizeof(int), GL_UNSIGNED_INT, 0);
 
         ping = !ping;
         glDisable(GL_DEPTH_TEST);

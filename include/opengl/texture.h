@@ -10,6 +10,7 @@
 typedef struct {
     GLuint ID;
     GLenum type;
+    GLuint unit;
 } Texture;
 
 Texture Texture_Init(const char* image, GLenum texType, GLenum slot, GLenum format, GLenum pixelType);
