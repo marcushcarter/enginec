@@ -1,7 +1,7 @@
 # === Configuration ===
 # === Compiler ===
 CXX := gcc
-CXXFLAGS := -g -lm
+CXXFLAGS := -g -lm 
 
 # === Paths ===
 VULKAN_SDK := C:/VulkanSDK/1.4.313.2
@@ -10,8 +10,8 @@ LDFLAGS := -Llib -lglfw3dll
 
 # === Files ===
 SRCS := src/main.c include/stb_image/stb_image.c include/glad/glad.c \
-        include/opengl/shader.c include/opengl/VAO.c include/opengl/VBO.c include/opengl/EBO.c include/opengl/FBO.c include/opengl/texture.c include/opengl/camera.c include/opengl/raymarch_camera.c \
-		include/GLFW/joystick.c
+        include/opengl/shader.c include/opengl/VAO.c include/opengl/VBO.c include/opengl/EBO.c include/opengl/FBO.c include/opengl/texture.c include/opengl/camera.c include/opengl/vector.c include/opengl/mesh.c \
+		include/opengl/joystick.c
 
 OUT := opengl.exe
 

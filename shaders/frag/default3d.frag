@@ -2,13 +2,13 @@
 
 out vec4 FragColor;
 
+in vec3 v_currentPosition;
+in vec3 v_normal;
 in vec3 v_color;
 in vec2 v_texCoord;
-in vec3 v_normal;
-in vec3 v_currentPosition;
 
-uniform sampler2D u_texture0;
-uniform sampler2D u_texture1;
+uniform sampler2D diffuse0;
+uniform sampler2D specular0;
 uniform vec4 u_lightColor;
 uniform vec3 u_lightPosition;
 uniform vec3 u_camPosition;
@@ -32,7 +32,7 @@ vec4 pointLight() {
     float specAmount = pow(max(dot(viewDirection, reflectionDirection), 0.0f), 8);
     float specular = specAmount * specularLight;
 
-    return (texture(u_texture0, v_texCoord) * (diffuse * inten + ambient) + texture(u_texture0, v_texCoord).r * specular * inten) * u_lightColor;
+    return (texture(diffuse0, v_texCoord) * (diffuse * inten + ambient) + texture(diffuse0, v_texCoord).r * specular * inten) * u_lightColor;
 }
 
 vec4 directLight() {
@@ -48,7 +48,7 @@ vec4 directLight() {
     float specAmount = pow(max(dot(viewDirection, reflectionDirection), 0.0f), 8);
     float specular = specAmount * specularLight;
 
-    return (texture(u_texture0, v_texCoord) * (diffuse + ambient) + texture(u_texture0, v_texCoord).r * specular) * u_lightColor;
+    return (texture(diffuse0, v_texCoord) * (diffuse + ambient) + texture(diffuse0, v_texCoord).r * specular) * u_lightColor;
 }
 
 vec4 spotlight() {
@@ -72,7 +72,7 @@ vec4 spotlight() {
     float angle = dot(vec3(0.0f, -1.0f, 0.0f), -lightDirection);
     float inten = clamp((angle - outerCone) / (innerCone - outerCone), 0.0f, 1.0f);
 
-    return (texture(u_texture0, v_texCoord) * (diffuse * inten + ambient) + texture(u_texture0, v_texCoord).r * specular * inten) * u_lightColor;
+    return (texture(diffuse0, v_texCoord) * (diffuse * inten + ambient) + texture(diffuse0, v_texCoord).r * specular * inten) * u_lightColor;
 
 }
 

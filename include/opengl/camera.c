@@ -15,7 +15,9 @@ Camera Camera_Init(int width, int height, float speed, float sensitivity, vec3 p
 
     camera.speed = speed;
     camera.sensitivity = sensitivity;
-    glm_mat4_copy((mat4){1.0f, 1.0f, 1.0f, 1.0f}, camera.cameraMatrix);
+    mat4 mat;
+    glm_mat4_identity(mat);
+    glm_mat4_copy(mat, camera.cameraMatrix);
 
     return camera;
 }
@@ -59,9 +61,12 @@ void rotate_vec3_axis(vec3 in, vec3 axis, float angle_rad, vec3 out) {
     glm_vec3_add(out, term3, out);
 }
 
-void Camera_Inputs(Camera* camera, GLFWwindow* window, float dt) {
+void Camera_Inputs(Camera* camera, GLFWwindow* window, Joystick* js, float dt) {
 
     // MOVEMENT VECTORS
+
+    float speed = camera->speed;
+    if (js->buttons[8]) speed = camera->speed*2;
 
     vec3 v_forward, v_right, v_up, v_move;
     glm_vec3_zero(v_move);
@@ -89,27 +94,27 @@ void Camera_Inputs(Camera* camera, GLFWwindow* window, float dt) {
     vec3 v_vector;
 
     if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
-        glm_vec3_scale(v_forward, camera->speed*dt, v_vector);
+        glm_vec3_scale(v_forward, speed*dt, v_vector);
         glm_vec3_add(v_move, v_vector, v_move);
     }
     if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) {
-        glm_vec3_scale(v_forward, -camera->speed*dt, v_vector);
+        glm_vec3_scale(v_forward, -speed*dt, v_vector);
         glm_vec3_add(v_move, v_vector, v_move);
     }
     if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) {
-        glm_vec3_scale(v_right, -camera->speed*dt, v_vector);
+        glm_vec3_scale(v_right, -speed*dt, v_vector);
         glm_vec3_add(v_move, v_vector, v_move);
     }
     if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) {
-        glm_vec3_scale(v_right, camera->speed*dt, v_vector);
+        glm_vec3_scale(v_right, speed*dt, v_vector);
         glm_vec3_add(v_move, v_vector, v_move);
     }
     if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS) {
-        glm_vec3_scale(v_up, -camera->speed*dt, v_vector);
+        glm_vec3_scale(v_up, -speed*dt, v_vector);
         glm_vec3_add(v_move, v_vector, v_move);
     }
     if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS) {
-        glm_vec3_scale(v_up, camera->speed*dt, v_vector);
+        glm_vec3_scale(v_up, speed*dt, v_vector);
         glm_vec3_add(v_move, v_vector, v_move);
     }
 
@@ -133,5 +138,38 @@ void Camera_Inputs(Camera* camera, GLFWwindow* window, float dt) {
     }
     
     glm_vec3_add(camera->Position, v_move, camera->Position);
+
+    if (js->present && js != NULL) {
+
+        if (fabsf(js->axes[1]) > js->deadzone) {
+            glm_vec3_scale(v_forward, -speed*dt*js->axes[1], v_vector);
+            glm_vec3_add(v_move, v_vector, v_move);
+        }
+        if (fabsf(js->axes[0]) > js->deadzone) {
+            glm_vec3_scale(v_right, speed*dt*js->axes[0], v_vector);
+            glm_vec3_add(v_move, v_vector, v_move);
+        }
+        if (js->buttons[0]) {
+            glm_vec3_scale(v_up, -speed*dt, v_vector);
+            glm_vec3_add(v_move, v_vector, v_move);
+        }
+        if (js->buttons[1] || js->buttons[9]) {
+            glm_vec3_scale(v_up, speed*dt, v_vector);
+            glm_vec3_add(v_move, v_vector, v_move);
+        }
+
+        // CAMERA ROTATION
+
+        if (fabsf(js->axes[2]) > js->deadzone) {
+            rotate_vec3_axis(camera->Orientation, d_up, -dt*camera->sensitivity*js->axes[2], d_Orientation);
+            glm_vec3_normalize_to(d_Orientation, camera->Orientation);
+        }
+        if (fabsf(js->axes[3]) > js->deadzone) {
+            rotate_vec3_axis(camera->Orientation, d_right, dt*camera->sensitivity*js->axes[3], d_Orientation);
+            glm_vec3_normalize_to(d_Orientation, camera->Orientation);
+        }
+        
+        glm_vec3_add(camera->Position, v_move, camera->Position);
+    }
 
 }

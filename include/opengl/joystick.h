@@ -41,7 +41,7 @@ typedef struct {
      * 14 -> 
      * 15 -> 
      */
-    const char *buttons;
+    const unsigned char *buttons;
     bool lbuttons[16];
     int buttonCount;
 
@@ -57,6 +57,6 @@ typedef struct {
 
 Joystick Joystick_Init(int jid);
 void Joystick_Update(Joystick* js);
-void Joystick_Delete(Joystick* js);
+// void Joystick_Delete(Joystick* js);
 
 #endif

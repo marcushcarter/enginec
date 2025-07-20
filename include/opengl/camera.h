@@ -6,6 +6,7 @@
 #include <cglm/cglm.h>
 
 #include "opengl/shader.h"
+#include "opengl/joystick.h"
 
 typedef struct {
     int width, height;
@@ -20,6 +21,6 @@ Camera Camera_Init(int width, int height, float speed, float sensitivity, vec3 p
 void Camera_UpdateMatrix(Camera* camera, float FOVdeg, float nearPlane, float farPlane);
 void Camera_Matrix(Camera* camera, Shader* shader, const char* uniform);
 void rotate_vec3_axis(vec3 in, vec3 axis, float angle_rad, vec3 out);
-void Camera_Inputs(Camera* camera, GLFWwindow* window, float dt);
+void Camera_Inputs(Camera* camera, GLFWwindow* window, Joystick* js, float dt);
 
 #endif

@@ -10,7 +10,22 @@
         "cmath": "c",
         "fbo.h": "c",
         "joystick.h": "c",
-        "stb_image.h": "c"
+        "stb_image.h": "c",
+        "mesh.h": "c",
+        "camera.h": "c",
+        "array": "c",
+        "string_view": "c",
+        "format": "c",
+        "initializer_list": "c",
+        "span": "c",
+        "string": "c",
+        "text_encoding": "c",
+        "typeinfo": "c",
+        "vector.h": "c",
+        "vector": "c",
+        "cstdlib": "c",
+        "stdlib.h": "c",
+        "stddef.h": "c"
     },
     "C_Cpp.errorSquiggles": "disabled"
 }

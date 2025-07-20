@@ -9,14 +9,14 @@
 
 typedef struct {
     GLuint ID;
-    GLenum type;
+    char* type;
     GLuint unit;
 } Texture;
 
-Texture Texture_Init(const char* image, GLenum texType, GLenum slot, GLenum format, GLenum pixelType);
+Texture Texture_Init(const char* image, char* texType, GLenum slot, GLenum format, GLenum pixelType);
 void Texture_texUnit(Shader* shader, const char* uniform, GLuint unit);
 void Texture_Bind(Texture* texture);
-void Texture_Unbind(Texture* texture);
+void Texture_Unbind();
 void Texture_Delete(Texture* texture);
 
 #endif

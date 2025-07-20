@@ -1,4 +1,4 @@
-#include "GLFW/joystick.h"
+#include "opengl/joystick.h"
 
 Joystick Joystick_Init(int jid) {
     Joystick js;
@@ -28,7 +28,7 @@ Joystick Joystick_Init(int jid) {
 }
 
 void Joystick_Update(Joystick* js) {
-    for (int i = 0; i < 16; i++) {
+    for (int i = 0; i < 14; i++) {
         js->lbuttons[i] = js->buttons[i];
     }
 
@@ -46,6 +46,6 @@ void Joystick_Update(Joystick* js) {
     js->hats = glfwGetJoystickHats(js->id, &js->hatCount);
 }
 
-void Joystick_Delete(Joystick* js) {
+// void Joystick_Delete(Joystick* js) {
     // js = {0};
-}
+// }

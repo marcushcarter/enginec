@@ -73,8 +73,8 @@ void main() {
 
     if (abs(dot(forward, worldUp)) > 0.999) { worldUp = vec3(0., 0., 1.); }
 
-    vec3 right = normalize(cross(worldUp, forward));
-    vec3 up = cross(forward, right);
+    vec3 right = normalize(cross(forward, worldUp));
+    vec3 up = cross(right, forward);
 
     vec3 rd = normalize(forward + uv.x * right + uv.y * up);
     vec3 ro = u_cameraPosition;
