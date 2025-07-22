@@ -47,12 +47,12 @@ Vertex vertices[] = {
 };
 
 GLuint indices[] = {
-    0, 1, 2,
-    0, 2, 3,
-    4, 6, 5,
-    7, 9, 8,
+    0, 2, 1,
+    0, 3, 2,
+    4, 5, 6,
+    7, 8, 9,
     10, 11, 12,
-    13, 15, 14,
+    13, 14, 15,
 };
 
 Vertex lightVertices[] = {
@@ -272,6 +272,10 @@ int main() {
 
     bool postProcessing = true;
 
+    glEnable(GL_CULL_FACE);
+    glCullFace(GL_FRONT);
+    glFrontFace(GL_CCW);
+
     while(!glfwWindowShouldClose(window)) {
         
         dt = get_delta_time();
@@ -288,6 +292,7 @@ int main() {
 
         Framebuffer_Bind(&pingpongFBO[ping]);
         glClearColor(0.85f, 0.85f, 0.90f, 1.0f);
+        // glClearColor(0.07f, 0.13f, 0.17f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     
         vec3 lightPos;
