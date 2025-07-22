@@ -88,23 +88,20 @@ Vertex PLANEvertices[] = {
     { {  1.0f,  0.0f,  1.0f }, { 0.0f, 1.0f, 0.0f }, { 1.0f, 0.0f, 0.0f }, { 1.0f, 0.0f } }
 };
 
-
 GLuint PLANEindices[] = {
     0, 1, 2,
     0, 2, 3,
 };
 
-GLfloat QUADvertices[] = {
-//      COORDINATES      |        RGB        |   TEXTURE
-    -1.0f, -1.0f,  1.0f,   0.0f, 0.0f, 1.0f,   0.0f,  0.0f,
-    -1.0f,  1.0f,  1.0f,   1.0f, 0.0f, 0.0f,   0.0f,  1.0f,
-     1.0f,  1.0f,  1.0f,   0.0f, 1.0f, 0.0f,   1.0f,  1.0f,
-     1.0f, -1.0f,  1.0f,   1.0f, 1.0f, 1.0f,   1.0f,  0.0f,
-};
+GLfloat frameBufferVertices[] = {
+    // positions   // texCoords
+    -1.0f,  1.0f,   0.0f, 1.0f,  // top-left
+    -1.0f, -1.0f,   0.0f, 0.0f,  // bottom-left
+     1.0f, -1.0f,   1.0f, 0.0f,  // bottom-right
 
-GLuint QUADindices[] = {
-    0, 1, 2,
-    0, 2, 3,
+    -1.0f,  1.0f,   0.0f, 1.0f,  // top-left
+     1.0f, -1.0f,   1.0f, 0.0f,  // bottom-right
+     1.0f,  1.0f,   1.0f, 1.0f   // top-right
 };
 
 // double get_memory_usage_mb() {
@@ -146,7 +143,10 @@ void control_fps(float target_fps, bool limited) {
 	float elapsed = (float)(now - previous_time) / CLOCKS_PER_SEC;
 	float remaining_time = frame_duration - elapsed;
 	if (remaining_time > 0 && limited) {
-		// usleep((useconds_t)(remaining_time * 1000000.0f));
+    struct timespec req;
+        req.tv_sec = (time_t)remaining_time;
+        req.tv_nsec = (long)((remaining_time - req.tv_sec) * 1e9);
+        nanosleep(&req, NULL);
 	}
 }
 
@@ -190,20 +190,15 @@ int main() {
 
     // OTHER SHADERS
     
-    Shader glShaderProgram_post_default = Shader_Init("shaders/vert/default2d.vert", "shaders/post/default.frag");
-    Shader glShaderProgram_post_pixelate = Shader_Init("shaders/vert/default2d.vert", "shaders/post/pixelate.frag");
+    Shader glShaderProgram_default3d = Shader_Init("shaders/vert/default3d.vert", "shaders/frag/default3d.frag");
+    Shader glShaderProgram_light3d = Shader_Init("shaders/vert/light3d.vert", "shaders/frag/light3d.frag");
     
-    Shader glShaderProgram_default2d = Shader_Init("shaders/vert/default2d.vert", "shaders/frag/default2d.frag");
-    Shader glShaderProgram_raymarch = Shader_Init("shaders/vert/default2d.vert", "shaders/frag/raymarch.frag");
-    Shader glShaderProgram_post_crt = Shader_Init("shaders/vert/default2d.vert", "shaders/post/crt.frag");
-
-    // MESHES
+    Shader postFramebuffer = Shader_Init("shaders/framebuffer/framebuffer.vert", "shaders/framebuffer/framebuffer.frag");
+    Shader pixelate = Shader_Init("shaders/framebuffer/framebuffer.vert", "shaders/framebuffer/pixelate.frag");
+    Shader outline = Shader_Init("shaders/framebuffer/framebuffer.vert", "shaders/framebuffer/outline.frag");
 
     Texture textures[1];
     textures[0] = Texture_Init("res/textures/sydney.png", "diffuse", 0, GL_RGBA, GL_UNSIGNED_BYTE);
-    // textures[0] = Texture_Init("res/textures/box.png", "diffuse", 0, GL_RGBA, GL_UNSIGNED_BYTE);
-    // textures[1] = Texture_Init("res/textures/box_specular.png", "specular", 1, GL_RED, GL_UNSIGNED_BYTE);
-    Shader glShaderProgram_default3d = Shader_Init("shaders/vert/default3d.vert", "shaders/frag/default3d.frag");
     VertexVector verts;
     CopyToVertexVector(vertices, sizeof(vertices) / sizeof(Vertex), &verts);
     GLuintVector ind;
@@ -212,8 +207,9 @@ int main() {
     CopyToTextureVector(textures, sizeof(textures) / sizeof(Texture), &tex);
     Mesh pyramid = Mesh_Init(&verts, &ind, &tex);
 
-    Texture PLANEtextures[1];
+    Texture PLANEtextures[2];
     PLANEtextures[0] = Texture_Init("res/textures/box.png", "diffuse", 0, GL_RGBA, GL_UNSIGNED_BYTE);
+    PLANEtextures[1] = Texture_Init("res/textures/box_specular.png", "specular", 1, GL_RED, GL_UNSIGNED_BYTE);
     VertexVector PLANEverts;
     CopyToVertexVector(PLANEvertices, sizeof(PLANEvertices) / sizeof(Vertex), &PLANEverts);
     GLuintVector PLANEind;
@@ -222,12 +218,24 @@ int main() {
     CopyToTextureVector(PLANEtextures, sizeof(PLANEtextures) / sizeof(Texture), &PLANEtex);
     Mesh floor = Mesh_Init(&PLANEverts, &PLANEind, &PLANEtex);
     
-    Shader glShaderProgram_light3d = Shader_Init("shaders/vert/light3d.vert", "shaders/frag/light3d.frag");
     VertexVector lightVerts;
     CopyToVertexVector(lightVertices, sizeof(lightVertices) / sizeof(Vertex), &lightVerts);
     GLuintVector lightInd;
     CopyToGLuintVector(lightIndices, sizeof(lightIndices) / sizeof(GLuint), &lightInd);
     Mesh light = Mesh_Init(&lightVerts, &lightInd, &tex);
+
+    VAO framebufferVAO = VAO_Init();
+    VAO_Bind(&framebufferVAO);
+    VBO framebufferVBO = VBO_InitRaw(frameBufferVertices, sizeof(frameBufferVertices));
+    VAO_LinkAttrib(&framebufferVBO, 0, 2, GL_FLOAT, 4 * sizeof(float), (void*)0);
+    VAO_LinkAttrib(&framebufferVBO, 1, 2, GL_FLOAT, 4 * sizeof(float), (void*)(2 * sizeof(float)));
+    VAO_Unbind();
+    VBO_Unbind();
+    Framebuffer pingpongFBO[2];
+    pingpongFBO[0] = Framebuffer_Init(width, height);
+    pingpongFBO[1] = Framebuffer_Init(width, height);
+    bool postProcessing = true;
+    int ping = 0;
 
     // LIGHTS AND MODELS
 
@@ -246,31 +254,7 @@ int main() {
     glUniformMatrix4fv(glGetUniformLocation(glShaderProgram_default3d.ID, "u_model"), 1, GL_FALSE, (float*)pyramidModel);
     glUniform4fv(glGetUniformLocation(glShaderProgram_default3d.ID, "u_lightColor"), 1, (float*)lightColor);
 
-    // FRAMEBUFFER QUAD
-
-    VAO quadVAO = VAO_Init();
-    VAO_Bind(&quadVAO);
-    VBO quadVBO = VBO_InitRaw(QUADvertices, sizeof(QUADvertices));
-    EBO quadEBO = EBO_InitRaw(QUADindices, sizeof(QUADindices));
-    VAO_LinkAttrib(&quadVBO, 0, 3, GL_FLOAT, 8 * sizeof(float), (void*)0);
-    VAO_LinkAttrib(&quadVBO, 1, 3, GL_FLOAT, 8 * sizeof(float), (void*)(3 * sizeof(float)));
-    VAO_LinkAttrib(&quadVBO, 2, 2, GL_FLOAT, 8 * sizeof(float), (void*)(6 * sizeof(float)));
-    VAO_Unbind();
-    VBO_Unbind();
-    EBO_Unbind();
-
-    // FRAMEBUFFERS / CAMERAS
-
-    Framebuffer pingpongFBO[2];
-    pingpongFBO[0] = Framebuffer_Init(width, height);
-    pingpongFBO[1] = Framebuffer_Init(width, height);
-    bool ping = 0;
-
     Camera camera = Camera_Init(width, height, 2.5f, 3.0f,(vec3){0.0f, 1.0f, 3.0f});
-    
-    // GAME LOOP
-
-    bool postProcessing = true;
 
     glEnable(GL_CULL_FACE);
     glCullFace(GL_FRONT);
@@ -279,16 +263,15 @@ int main() {
     while(!glfwWindowShouldClose(window)) {
         
         dt = get_delta_time();
+        char buffer[256];
+        snprintf(buffer, sizeof(buffer), "opengl window: %f FPS", fps);
+        glfwSetWindowTitle(window, buffer);
 
         glfwJoystickEvents();
         if (joystickIsPressed(&joysticks[0], 7)) postProcessing = !postProcessing;
         
         Camera_Inputs(&camera, window, &joysticks[0], dt);
         Camera_UpdateMatrix(&camera, 45.0f, 0.1f, 100.0f);
-        
-        // glfwGetFramebufferSize(window, &width, &height);
-        // glfwGetFramebufferSize(window, &pingpongFBO[0].width, &pingpongFBO[0].height);
-        // glfwGetFramebufferSize(window, &pingpongFBO[1].width, &pingpongFBO[1].height);
 
         Framebuffer_Bind(&pingpongFBO[ping]);
         glClearColor(0.85f, 0.85f, 0.90f, 1.0f);
@@ -321,37 +304,45 @@ int main() {
         Mesh_Draw(&floor, &glShaderProgram_default3d, &camera);
         Mesh_Draw(&light, &glShaderProgram_light3d, &camera);
 
+        // POST PROCESSING
 
         ping = !ping;
         glDisable(GL_DEPTH_TEST);
+        glDisable(GL_CULL_FACE);
         
-        // PIXELATION PASS
         if (postProcessing) {
+            // Framebuffer_Bind(&pingpongFBO[ping]);
+            // glClear(GL_COLOR_BUFFER_BIT);
+            // Shader_Activate(&pixelate);
+            // Framebuffer_BindTexture(&pingpongFBO[!ping]);
+            // glUniform1i(glGetUniformLocation(pixelate.ID, "u_texture"), 0);
+            // glUniform2f(glGetUniformLocation(pixelate.ID, "resolution"), pingpongFBO[!ping].width, pingpongFBO[!ping].height);
+            // glUniform1f(glGetUniformLocation(pixelate.ID, "pixelSize"), 4.0f);
+            // VAO_Bind(&framebufferVAO);
+            // glDrawArrays(GL_TRIANGLES, 0, 6);
+            // ping = !ping;
+
             Framebuffer_Bind(&pingpongFBO[ping]);
             glClear(GL_COLOR_BUFFER_BIT);
-            Shader_Activate(&glShaderProgram_post_pixelate);
+            Shader_Activate(&outline);
             Framebuffer_BindTexture(&pingpongFBO[!ping]);
-            glUniform1i(glGetUniformLocation(glShaderProgram_post_pixelate.ID, "u_texture"), 0);
-            glUniform2f(glGetUniformLocation(glShaderProgram_post_pixelate.ID, "resolution"), pingpongFBO[!ping].width, pingpongFBO[!ping].height);
-            glUniform1f(glGetUniformLocation(glShaderProgram_post_pixelate.ID, "pixelSize"), 4.0f);
-            VAO_Bind(&quadVAO);
-            glDrawElements(GL_TRIANGLES, sizeof(QUADindices)/sizeof(int), GL_UNSIGNED_INT, 0);
+            glUniform1i(glGetUniformLocation(pixelate.ID, "u_texture"), 0);
+            VAO_Bind(&framebufferVAO);
+            glDrawArrays(GL_TRIANGLES, 0, 6);
             ping = !ping;
         }
-
-        // FINISHING PASS
+        
         Framebuffer_Unbind();
         glClear(GL_COLOR_BUFFER_BIT);
-        Shader_Activate(&glShaderProgram_post_default);
+        Shader_Activate(&postFramebuffer);
         Framebuffer_BindTexture(&pingpongFBO[!ping]);
-        glUniform1i(glGetUniformLocation(glShaderProgram_post_default.ID, "u_texture"), 0);
-        glUniform2f(glGetUniformLocation(glShaderProgram_post_default.ID, "resolution"), pingpongFBO[!ping].width, pingpongFBO[!ping].height);
-        VAO_Bind(&quadVAO);
-        glDrawElements(GL_TRIANGLES, sizeof(QUADindices)/sizeof(int), GL_UNSIGNED_INT, 0);
+        glUniform1i(glGetUniformLocation(outline.ID, "u_texture"), 0);
+        VAO_Bind(&framebufferVAO);
+        glDrawArrays(GL_TRIANGLES, 0, 6);
 
         glfwSwapBuffers(window);
         glfwPollEvents();
-        control_fps(5.0f, true);
+        // control_fps(120.0f, true);
     }
 
     // VAO_Delete(&VAO1);
