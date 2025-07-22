@@ -55,11 +55,6 @@ GLuint indices[] = {
     13, 15, 14,
 };
 
-// GLuint indices[] = {
-//     0, 1, 2,
-//     0, 2, 3,
-// };
-
 Vertex lightVertices[] = {
     { { -0.1f, -0.1f,  0.1f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f } },
     { { -0.1f, -0.1f, -0.1f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f } },
@@ -84,6 +79,19 @@ GLuint lightIndices[] = {
     1, 4, 0,
     4, 5, 6,
     4, 6, 7
+};
+
+Vertex PLANEvertices[] = {
+    { { -1.0f,  0.0f,  1.0f }, { 0.0f, 1.0f, 0.0f }, { 0.0f, 1.0f, 0.0f }, { 0.0f, 0.0f } },
+    { { -1.0f,  0.0f, -1.0f }, { 0.0f, 1.0f, 0.0f }, { 0.0f, 1.0f, 0.0f }, { 0.0f, 1.0f } },
+    { {  1.0f,  0.0f, -1.0f }, { 0.0f, 1.0f, 0.0f }, { 1.0f, 1.0f, 0.0f }, { 1.0f, 1.0f } },
+    { {  1.0f,  0.0f,  1.0f }, { 0.0f, 1.0f, 0.0f }, { 1.0f, 0.0f, 0.0f }, { 1.0f, 0.0f } }
+};
+
+
+GLuint PLANEindices[] = {
+    0, 1, 2,
+    0, 2, 3,
 };
 
 GLfloat QUADvertices[] = {
@@ -144,73 +152,6 @@ void control_fps(float target_fps, bool limited) {
 
 // -----------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-void Camera_ControllerInputs(Joystick* js, Camera* camera, float dt) {
-    if (js->present) {
-
-        float speed = camera->speed;
-        if (js->buttons[8]) speed = camera->speed*2;
-
-        // MOVEMENT VECTORS
-
-        vec3 v_forward, v_right, v_up, v_move;
-        glm_vec3_zero(v_move);
-
-        glm_vec3_copy(camera->Orientation, v_forward);
-        v_forward[1] = 0.0f; 
-        glm_vec3_normalize(v_forward);
-
-        glm_vec3_cross(v_forward, (vec3){0.0f, 1.0f, 0.0f}, v_right);
-        glm_vec3_normalize(v_right);
-
-        glm_vec3_cross(v_forward, v_right, v_up);
-        glm_vec3_normalize(v_up);
-        
-        // DIRECTION VECTORS
-
-        vec3 d_up = { 0.0f, 1.0f, 0.0f };
-        vec3 d_right, d_Orientation;
-
-        glm_vec3_cross(d_up, camera->Orientation, d_right);
-        glm_vec3_normalize(d_right);
-
-        // MOVEMENT
-
-        vec3 v_vector;
-
-        // LSY
-        if (fabsf(js->axes[1]) > js->deadzone) {
-            glm_vec3_scale(v_forward, -speed*dt*js->axes[1], v_vector);
-            glm_vec3_add(v_move, v_vector, v_move);
-        }
-        // LSX
-        if (fabsf(js->axes[0]) > js->deadzone) {
-            glm_vec3_scale(v_right, speed*dt*js->axes[0], v_vector);
-            glm_vec3_add(v_move, v_vector, v_move);
-        }
-        if (js->buttons[0]) {
-            glm_vec3_scale(v_up, -speed*dt, v_vector);
-            glm_vec3_add(v_move, v_vector, v_move);
-        }
-        if (js->buttons[1] || js->buttons[9]) {
-            glm_vec3_scale(v_up, speed*dt, v_vector);
-            glm_vec3_add(v_move, v_vector, v_move);
-        }
-
-        // CAMERA ROTATION
-
-        if (fabsf(js->axes[2]) > js->deadzone) {
-            rotate_vec3_axis(camera->Orientation, d_up, -dt*camera->sensitivity*js->axes[2], d_Orientation);
-            glm_vec3_normalize_to(d_Orientation, camera->Orientation);
-        }
-        if (fabsf(js->axes[3]) > js->deadzone) {
-            rotate_vec3_axis(camera->Orientation, d_right, dt*camera->sensitivity*js->axes[3], d_Orientation);
-            glm_vec3_normalize_to(d_Orientation, camera->Orientation);
-        }
-        
-        glm_vec3_add(camera->Position, v_move, camera->Position);
-    }
-}
-
 void CopyToVertexVector(Vertex* vertices, size_t count, VertexVector* outVec) {
     VertexVector_Init(outVec);
     for (size_t i = 0; i < count; i++) {
@@ -269,7 +210,17 @@ int main() {
     CopyToGLuintVector(indices, sizeof(indices) / sizeof(GLuint), &ind);
     TextureVector tex;
     CopyToTextureVector(textures, sizeof(textures) / sizeof(Texture), &tex);
-    Mesh floor = Mesh_Init(&verts, &ind, &tex);
+    Mesh pyramid = Mesh_Init(&verts, &ind, &tex);
+
+    Texture PLANEtextures[1];
+    PLANEtextures[0] = Texture_Init("res/textures/box.png", "diffuse", 0, GL_RGBA, GL_UNSIGNED_BYTE);
+    VertexVector PLANEverts;
+    CopyToVertexVector(PLANEvertices, sizeof(PLANEvertices) / sizeof(Vertex), &PLANEverts);
+    GLuintVector PLANEind;
+    CopyToGLuintVector(PLANEindices, sizeof(PLANEindices) / sizeof(GLuint), &PLANEind);
+    TextureVector PLANEtex;
+    CopyToTextureVector(PLANEtextures, sizeof(PLANEtextures) / sizeof(Texture), &PLANEtex);
+    Mesh floor = Mesh_Init(&PLANEverts, &PLANEind, &PLANEtex);
     
     Shader glShaderProgram_light3d = Shader_Init("shaders/vert/light3d.vert", "shaders/frag/light3d.frag");
     VertexVector lightVerts;
@@ -319,7 +270,7 @@ int main() {
     
     // GAME LOOP
 
-    bool postProcessing = false;
+    bool postProcessing = true;
 
     while(!glfwWindowShouldClose(window)) {
         
@@ -336,7 +287,7 @@ int main() {
         // glfwGetFramebufferSize(window, &pingpongFBO[1].width, &pingpongFBO[1].height);
 
         Framebuffer_Bind(&pingpongFBO[ping]);
-        glClearColor(0.07f, 0.13f, 0.17f, 1.0f);
+        glClearColor(0.85f, 0.85f, 0.90f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     
         vec3 lightPos;
@@ -349,6 +300,7 @@ int main() {
         glUniformMatrix4fv(glGetUniformLocation(glShaderProgram_light3d.ID, "u_model"), 1, GL_FALSE, (float*)lightModel);
         Shader_Activate(&glShaderProgram_default3d);
         glUniform3fv(glGetUniformLocation(glShaderProgram_default3d.ID, "u_lightPosition"), 1, (float*)lightPos);
+        glUniform1f(glGetUniformLocation(glShaderProgram_default3d.ID, "u_time"), glfwGetTime());
 
         // glDisable(GL_DEPTH_TEST);
         // Texture_Bind(&textures[0]);
@@ -360,6 +312,7 @@ int main() {
         // glDrawElements(GL_TRIANGLES, sizeof(QUADindices)/sizeof(int), GL_UNSIGNED_INT, 0);
 
         glEnable(GL_DEPTH_TEST);
+        Mesh_Draw(&pyramid, &glShaderProgram_default3d, &camera);
         Mesh_Draw(&floor, &glShaderProgram_default3d, &camera);
         Mesh_Draw(&light, &glShaderProgram_light3d, &camera);
 
