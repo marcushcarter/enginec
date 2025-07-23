@@ -15,6 +15,8 @@
 unsigned int width = 1600;
 unsigned int height = 1000;
 
+unsigned int samples = 8;
+
 Vertex vertices[] = {
     // { { -1.0f,  0.0f,  1.0f }, { 0.0f, 1.0f, 0.0f }, { 0.0f, 1.0f, 0.0f }, { 0.0f, 0.0f } },
     // { { -1.0f,  0.0f, -1.0f }, { 0.0f, 1.0f, 0.0f }, { 0.0f, 1.0f, 0.0f }, { 0.0f, 1.0f } },
@@ -210,10 +212,11 @@ int main() {
     VAO_LinkAttrib(&framebufferVBO, 1, 2, GL_FLOAT, 4 * sizeof(float), (void*)(2 * sizeof(float)));
     VAO_Unbind();
     VBO_Unbind();
-    Framebuffer pingpongFBO[2];
-    pingpongFBO[0] = Framebuffer_Init(width, height);
-    pingpongFBO[1] = Framebuffer_Init(width, height);
-    bool postProcessing = true;
+    
+    Framebuffer postProcessingFBO[2];
+    postProcessingFBO[0] = Framebuffer_Init(width, height);
+    postProcessingFBO[1] = Framebuffer_Init(width, height);
+    bool postProcessing = 0;
     int ping = 0;
 
     // LIGHTS AND MODELS
@@ -248,7 +251,7 @@ int main() {
         Camera_Inputs(&camera, window, &joysticks[0], dt);
         Camera_UpdateMatrix(&camera, 45.0f, 0.1f, 100.0f);
 
-        Framebuffer_Bind(&pingpongFBO[ping]);
+        Framebuffer_Bind(&postProcessingFBO[ping]);
         glClearColor(0.85f, 0.85f, 0.90f, 1.0f);
         // glClearColor(0.07f, 0.13f, 0.17f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -277,8 +280,8 @@ int main() {
         glEnable(GL_CULL_FACE);
         glCullFace(GL_FRONT);
         glFrontFace(GL_CCW);
-
         glEnable(GL_DEPTH_TEST);
+
         Mesh_Draw(&pyramid, &glShaderProgram_default3d, &camera);
         Mesh_Draw(&floor, &glShaderProgram_default3d, &camera);
         Mesh_Draw(&light, &glShaderProgram_light3d, &camera);
@@ -290,21 +293,21 @@ int main() {
         glDisable(GL_CULL_FACE);
         
         if (postProcessing) {
-            Framebuffer_Bind(&pingpongFBO[ping]);
+            Framebuffer_Bind(&postProcessingFBO[ping]);
             glClear(GL_COLOR_BUFFER_BIT);
             Shader_Activate(&pixelate);
-            Framebuffer_BindTexture(&pingpongFBO[!ping]);
+            Framebuffer_BindTexture(&postProcessingFBO[!ping]);
             glUniform1i(glGetUniformLocation(pixelate.ID, "u_texture"), 0);
-            glUniform2f(glGetUniformLocation(pixelate.ID, "resolution"), pingpongFBO[!ping].width, pingpongFBO[!ping].height);
+            glUniform2f(glGetUniformLocation(pixelate.ID, "resolution"), postProcessingFBO[!ping].width, postProcessingFBO[!ping].height);
             glUniform1f(glGetUniformLocation(pixelate.ID, "pixelSize"), 4.0f);
             VAO_Bind(&framebufferVAO);
             glDrawArrays(GL_TRIANGLES, 0, 6);
             ping = !ping;
 
-            // Framebuffer_Bind(&pingpongFBO[ping]);
+            // Framebuffer_Bind(&postProcessingFBO[ping]);
             // glClear(GL_COLOR_BUFFER_BIT);
             // Shader_Activate(&outline);
-            // Framebuffer_BindTexture(&pingpongFBO[!ping]);
+            // Framebuffer_BindTexture(&postProcessingFBO[!ping]);
             // glUniform1i(glGetUniformLocation(pixelate.ID, "u_texture"), 0);
             // VAO_Bind(&framebufferVAO);
             // glDrawArrays(GL_TRIANGLES, 0, 6);
@@ -314,7 +317,7 @@ int main() {
         Framebuffer_Unbind();
         glClear(GL_COLOR_BUFFER_BIT);
         Shader_Activate(&postFramebuffer);
-        Framebuffer_BindTexture(&pingpongFBO[!ping]);
+        Framebuffer_BindTexture(&postProcessingFBO[!ping]);
         glUniform1i(glGetUniformLocation(outline.ID, "u_texture"), 0);
         VAO_Bind(&framebufferVAO);
         glDrawArrays(GL_TRIANGLES, 0, 6);

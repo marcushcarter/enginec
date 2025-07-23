@@ -13,6 +13,7 @@ typedef struct {
 } Framebuffer;
 
 Framebuffer Framebuffer_Init(int width, int height);
+Framebuffer Framebuffer_InitMultiSample(int width, int height, int samples);
 void Framebuffer_Bind(Framebuffer* fb);
 void Framebuffer_BindTexture(Framebuffer* fb);
 void Framebuffer_Unbind();
