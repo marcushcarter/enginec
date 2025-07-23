@@ -35,6 +35,15 @@ void Camera_UpdateMatrix(Camera* camera, float FOVdeg, float nearPlane, float fa
     glm_mat4_mul(projection, view, projView);
 
     glm_mat4_copy(projView, camera->cameraMatrix);
+
+    mat4 viewNoTranslation;
+    glm_mat4_copy(view, viewNoTranslation);
+    viewNoTranslation[3][0] = 0.0f;
+    viewNoTranslation[3][1] = 0.0f;
+    viewNoTranslation[3][2] = 0.0f;
+
+    glm_mat4_mul(projection, viewNoTranslation, projView);
+    glm_mat4_copy(projView, camera->skyboxMatrix);
 }
 
 void Camera_Matrix(Camera* camera, Shader* shader, const char* uniform) {

@@ -19,7 +19,6 @@ void Shader_compileErrors(unsigned int shader, const char* type) {
     }
 }
 
-
 char* get_file_contents(const char* filename) {
     FILE* file = fopen(filename, "rb");
 
@@ -37,11 +36,12 @@ char* get_file_contents(const char* filename) {
 
 }
 
-Shader Shader_Init(const char* vertexFile, const char* fragmentFile) {
+Shader Shader_Init(const char* vertexFile, const char* fragmentFile, const char* geometryFile) {
     Shader shader = {0};
 
     const char* vertexSource = get_file_contents(vertexFile);
     const char* fragmentSource = get_file_contents(fragmentFile);
+    const char* geometrySource = NULL;
 
     GLuint vertexShader = glCreateShader(GL_VERTEX_SHADER);
     glShaderSource(vertexShader, 1, &vertexSource, NULL);
@@ -53,17 +53,29 @@ Shader Shader_Init(const char* vertexFile, const char* fragmentFile) {
     glCompileShader(fragmentShader);
     Shader_compileErrors(fragmentShader, "FRAGMENT");
 
+    GLuint geometryShader = 0;
+    if (geometryFile != NULL) {
+        geometrySource = get_file_contents(geometryFile);
+        geometryShader = glCreateShader(GL_GEOMETRY_SHADER);
+        glShaderSource(geometryShader, 1, &geometrySource, NULL);
+        glCompileShader(geometryShader);
+        Shader_compileErrors(geometryShader, "GEOMETRY");
+    }
+
     shader.ID = glCreateProgram();
     glAttachShader(shader.ID, vertexShader);
     glAttachShader(shader.ID, fragmentShader);
+    if (geometryFile != NULL) glAttachShader(shader.ID, geometryShader);
     glLinkProgram(shader.ID);
     Shader_compileErrors(shader.ID, "PROGRAM");
 
     glDeleteShader(vertexShader);
     glDeleteShader(fragmentShader);
+    if (geometryFile != NULL) glDeleteShader(geometryShader);
 
     free((void*)vertexSource);
     free((void*)fragmentSource);
+    if (geometryFile != NULL) free((void*)geometrySource);
 
     return shader;
 

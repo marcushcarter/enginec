@@ -12,7 +12,7 @@ typedef struct {
 
 void Shader_compileErrors(unsigned int shader, const char* type);
 char* get_file_contents(const char* filename);
-Shader Shader_Init(const char* vertexFile, const char* fragmentFile);
+Shader Shader_Init(const char* vertexFile, const char* fragmentFile, const char* geometryFile);
 void Shader_Activate(Shader* shader);
 void Shader_Delete(Shader* shader);
 

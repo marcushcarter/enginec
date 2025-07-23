@@ -14,6 +14,7 @@ typedef struct {
     vec3 Orientation;
     vec3 Up;
     mat4 cameraMatrix;
+    mat4 skyboxMatrix;
     float speed, sensitivity;
 } Camera;
 

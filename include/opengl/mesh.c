@@ -46,9 +46,9 @@ void Mesh_Draw(Mesh* mesh, Shader* shader, Camera* camera) {
         Texture_texUnit(shader, uniformName, i);
         Texture_Bind(&mesh->textures->data[i]);
     }
-    glUniform3fv(glGetUniformLocation(shader->ID, "u_camPosition"), 1, (float*)camera->Position); 
-    Camera_Matrix(camera, shader, "u_camMatrix");
+    glUniform3fv(glGetUniformLocation(shader->ID, "camPos"), 1, (float*)camera->Position); 
+    Camera_Matrix(camera, shader, "camMatrix");
 
     glDrawElements(GL_TRIANGLES, mesh->indices->size, GL_UNSIGNED_INT, 0);
-    // glUniform3f(glGetUniformLocation(shader.ID, "u_camPosition"))
+    // glUniform3f(glGetUniformLocation(shader.ID, "camPos"))
 }

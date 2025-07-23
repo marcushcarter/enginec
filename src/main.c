@@ -15,8 +15,6 @@
 unsigned int width = 1600;
 unsigned int height = 1000;
 
-
-
 Vertex vertices[] = {
     // { { -1.0f,  0.0f,  1.0f }, { 0.0f, 1.0f, 0.0f }, { 0.0f, 1.0f, 0.0f }, { 0.0f, 0.0f } },
     // { { -1.0f,  0.0f, -1.0f }, { 0.0f, 1.0f, 0.0f }, { 0.0f, 1.0f, 0.0f }, { 0.0f, 1.0f } },
@@ -104,12 +102,6 @@ GLfloat frameBufferVertices[] = {
      1.0f,  1.0f,   1.0f, 1.0f   // top-right
 };
 
-// double get_memory_usage_mb() {
-//     PROCESS_MEMORY_COUNTERS memInfo;
-//     GetProcessMemoryInfo(GetCurrentProcess(), &memInfo, sizeof(memInfo));
-//     return memInfo.WorkingSetSize / (1024.0 * 1024.0); // Convert to MB
-// }
-
 // -----------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 clock_t previous_time = 0;
@@ -135,19 +127,6 @@ float get_delta_time() {
     }
 
     return delta_time;
-}
-
-void control_fps(float target_fps, bool limited) {
-	float frame_duration = 1.0f / target_fps;
-	clock_t now = clock();
-	float elapsed = (float)(now - previous_time) / CLOCKS_PER_SEC;
-	float remaining_time = frame_duration - elapsed;
-	if (remaining_time > 0 && limited) {
-    struct timespec req;
-        req.tv_sec = (time_t)remaining_time;
-        req.tv_nsec = (long)((remaining_time - req.tv_sec) * 1e9);
-        nanosleep(&req, NULL);
-	}
 }
 
 // -----------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -190,12 +169,12 @@ int main() {
 
     // OTHER SHADERS
     
-    Shader glShaderProgram_default3d = Shader_Init("shaders/vert/default3d.vert", "shaders/frag/default3d.frag");
-    Shader glShaderProgram_light3d = Shader_Init("shaders/vert/light3d.vert", "shaders/frag/light3d.frag");
+    Shader glShaderProgram_default3d = Shader_Init("shaders/vert/default3d.vert", "shaders/frag/default3d.frag", NULL);
+    Shader glShaderProgram_light3d = Shader_Init("shaders/vert/light3d.vert", "shaders/frag/light3d.frag", NULL);
     
-    Shader postFramebuffer = Shader_Init("shaders/framebuffer/framebuffer.vert", "shaders/framebuffer/framebuffer.frag");
-    Shader pixelate = Shader_Init("shaders/framebuffer/framebuffer.vert", "shaders/framebuffer/pixelate.frag");
-    Shader outline = Shader_Init("shaders/framebuffer/framebuffer.vert", "shaders/framebuffer/outline.frag");
+    Shader postFramebuffer = Shader_Init("shaders/framebuffer/framebuffer.vert", "shaders/framebuffer/framebuffer.frag", NULL);
+    Shader pixelate = Shader_Init("shaders/framebuffer/framebuffer.vert", "shaders/framebuffer/pixelate.frag", NULL);
+    Shader outline = Shader_Init("shaders/framebuffer/framebuffer.vert", "shaders/framebuffer/outline.frag", NULL);
 
     Texture textures[1];
     textures[0] = Texture_Init("res/textures/sydney.png", "diffuse", 0, GL_RGBA, GL_UNSIGNED_BYTE);
@@ -249,16 +228,12 @@ int main() {
     glm_translate(pyramidModel, pyramidPos);
 
     Shader_Activate(&glShaderProgram_light3d);
-    glUniform4fv(glGetUniformLocation(glShaderProgram_light3d.ID, "u_lightColor"), 1, (float*)lightColor);
+    glUniform4fv(glGetUniformLocation(glShaderProgram_light3d.ID, "lightColor"), 1, (float*)lightColor);
     Shader_Activate(&glShaderProgram_default3d);
-    glUniformMatrix4fv(glGetUniformLocation(glShaderProgram_default3d.ID, "u_model"), 1, GL_FALSE, (float*)pyramidModel);
-    glUniform4fv(glGetUniformLocation(glShaderProgram_default3d.ID, "u_lightColor"), 1, (float*)lightColor);
+    glUniformMatrix4fv(glGetUniformLocation(glShaderProgram_default3d.ID, "model"), 1, GL_FALSE, (float*)pyramidModel);
+    glUniform4fv(glGetUniformLocation(glShaderProgram_default3d.ID, "lightColor"), 1, (float*)lightColor);
 
     Camera camera = Camera_Init(width, height, 2.5f, 3.0f,(vec3){0.0f, 1.0f, 3.0f});
-
-    glEnable(GL_CULL_FACE);
-    glCullFace(GL_FRONT);
-    glFrontFace(GL_CCW);
 
     while(!glfwWindowShouldClose(window)) {
         
@@ -277,7 +252,7 @@ int main() {
         glClearColor(0.85f, 0.85f, 0.90f, 1.0f);
         // glClearColor(0.07f, 0.13f, 0.17f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    
+
         vec3 lightPos;
         mat4 lightModel;
         glm_vec3_copy((vec3){sin(glfwGetTime()), 0.5f, cos(glfwGetTime())}, lightPos);
@@ -285,19 +260,23 @@ int main() {
         glm_translate(lightModel, lightPos);
         
         Shader_Activate(&glShaderProgram_light3d);
-        glUniformMatrix4fv(glGetUniformLocation(glShaderProgram_light3d.ID, "u_model"), 1, GL_FALSE, (float*)lightModel);
+        glUniformMatrix4fv(glGetUniformLocation(glShaderProgram_light3d.ID, "model"), 1, GL_FALSE, (float*)lightModel);
         Shader_Activate(&glShaderProgram_default3d);
-        glUniform3fv(glGetUniformLocation(glShaderProgram_default3d.ID, "u_lightPosition"), 1, (float*)lightPos);
-        glUniform1f(glGetUniformLocation(glShaderProgram_default3d.ID, "u_time"), glfwGetTime());
+        glUniform3fv(glGetUniformLocation(glShaderProgram_default3d.ID, "lightPos"), 1, (float*)lightPos);
+        glUniform1f(glGetUniformLocation(glShaderProgram_default3d.ID, "time"), glfwGetTime());
 
         // glDisable(GL_DEPTH_TEST);
         // Texture_Bind(&textures[0]);
         // Shader_Activate(&glShaderProgram_raymarch);
-        // glUniform1f(glGetUniformLocation(glShaderProgram_raymarch.ID, "u_time"), glfwGetTime());
-        // glUniform3fv(glGetUniformLocation(glShaderProgram_raymarch.ID, "u_cameraPosition"), 1, (float*)&camera.Position);
+        // glUniform1f(glGetUniformLocation(glShaderProgram_raymarch.ID, "time"), glfwGetTime());
+        // glUniform3fv(glGetUniformLocation(glShaderProgram_raymarch.ID, "camPos"), 1, (float*)&camera.Position);
         // glUniform3fv(glGetUniformLocation(glShaderProgram_raymarch.ID, "u_cameraOrientation"), 1, (float*)&camera.Orientation);
         // VAO_Bind(&quadVAO);
         // glDrawElements(GL_TRIANGLES, sizeof(QUADindices)/sizeof(int), GL_UNSIGNED_INT, 0);
+
+        glEnable(GL_CULL_FACE);
+        glCullFace(GL_FRONT);
+        glFrontFace(GL_CCW);
 
         glEnable(GL_DEPTH_TEST);
         Mesh_Draw(&pyramid, &glShaderProgram_default3d, &camera);
@@ -311,25 +290,25 @@ int main() {
         glDisable(GL_CULL_FACE);
         
         if (postProcessing) {
-            // Framebuffer_Bind(&pingpongFBO[ping]);
-            // glClear(GL_COLOR_BUFFER_BIT);
-            // Shader_Activate(&pixelate);
-            // Framebuffer_BindTexture(&pingpongFBO[!ping]);
-            // glUniform1i(glGetUniformLocation(pixelate.ID, "u_texture"), 0);
-            // glUniform2f(glGetUniformLocation(pixelate.ID, "resolution"), pingpongFBO[!ping].width, pingpongFBO[!ping].height);
-            // glUniform1f(glGetUniformLocation(pixelate.ID, "pixelSize"), 4.0f);
-            // VAO_Bind(&framebufferVAO);
-            // glDrawArrays(GL_TRIANGLES, 0, 6);
-            // ping = !ping;
-
             Framebuffer_Bind(&pingpongFBO[ping]);
             glClear(GL_COLOR_BUFFER_BIT);
-            Shader_Activate(&outline);
+            Shader_Activate(&pixelate);
             Framebuffer_BindTexture(&pingpongFBO[!ping]);
             glUniform1i(glGetUniformLocation(pixelate.ID, "u_texture"), 0);
+            glUniform2f(glGetUniformLocation(pixelate.ID, "resolution"), pingpongFBO[!ping].width, pingpongFBO[!ping].height);
+            glUniform1f(glGetUniformLocation(pixelate.ID, "pixelSize"), 4.0f);
             VAO_Bind(&framebufferVAO);
             glDrawArrays(GL_TRIANGLES, 0, 6);
             ping = !ping;
+
+            // Framebuffer_Bind(&pingpongFBO[ping]);
+            // glClear(GL_COLOR_BUFFER_BIT);
+            // Shader_Activate(&outline);
+            // Framebuffer_BindTexture(&pingpongFBO[!ping]);
+            // glUniform1i(glGetUniformLocation(pixelate.ID, "u_texture"), 0);
+            // VAO_Bind(&framebufferVAO);
+            // glDrawArrays(GL_TRIANGLES, 0, 6);
+            // ping = !ping;
         }
         
         Framebuffer_Unbind();
@@ -342,7 +321,6 @@ int main() {
 
         glfwSwapBuffers(window);
         glfwPollEvents();
-        // control_fps(120.0f, true);
     }
 
     // VAO_Delete(&VAO1);

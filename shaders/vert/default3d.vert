@@ -1,23 +1,23 @@
 #version 460 core
 
-layout (location = 0) in vec3 a_position;
-layout (location = 1) in vec3 a_normal;
-layout (location = 2) in vec3 a_color;
-layout (location = 3) in vec2 a_texCoord;
+layout (location = 0) in vec3 aPos;
+layout (location = 1) in vec3 aNormal;
+layout (location = 2) in vec3 aColor;
+layout (location = 3) in vec2 aTex;
 
-out vec3 v_color;
-out vec2 v_texCoord;
-out vec3 v_normal;
-out vec3 v_currentPosition;
+out vec3 color;
+out vec2 texCoord;
+out vec3 Normal;
+out vec3 crntPos;
 
-uniform mat4 u_model;
-uniform mat4 u_camMatrix;
+uniform mat4 model;
+uniform mat4 camMatrix;
 
 void main() 
 {
-   v_currentPosition = vec3(u_model * vec4(a_position, 1.0f));
-   gl_Position = u_camMatrix * vec4(v_currentPosition, 1.0f);
-   v_normal = a_normal;
-   v_color = a_color;
-   v_texCoord = a_texCoord;
+   crntPos = vec3(model * vec4(aPos, 1.0f));
+   gl_Position = camMatrix * vec4(crntPos, 1.0f);
+   Normal = aNormal;
+   color = aColor;
+   texCoord = aTex;
 }

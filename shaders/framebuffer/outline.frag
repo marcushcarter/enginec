@@ -1,7 +1,7 @@
 #version 460 core
 
 out vec4 FragColor;
-in vec2 v_texCoord;
+in vec2 f_texCoord;
 
 uniform sampler2D u_texture;
 
@@ -22,6 +22,6 @@ float kernel[9] = float[] (
 
 void main() {
     vec3 color = vec3(0.0f);
-    for (int i = 0; i < 9; i++) color += vec3(texture(u_texture, v_texCoord.st + offsets[i])) * kernel[i];
+    for (int i = 0; i < 9; i++) color += vec3(texture(u_texture, f_texCoord.st + offsets[i])) * kernel[i];
     FragColor = vec4(color, 1.0f);
 }

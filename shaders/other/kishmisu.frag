@@ -3,7 +3,7 @@
 in vec4 v_color;
 in vec2 v_texCoord;
 
-uniform float u_time;
+uniform float time;
 uniform sampler2D u_texture;
 
 out vec4 FragColor;
@@ -32,9 +32,9 @@ void main()
 
         float d = length(uv) * exp(-length(uv0));
 
-        vec3 col = palette(length(uv0) + i*.4 + u_time*.4);
+        vec3 col = palette(length(uv0) + i*.4 + time*.4);
 
-        d = sin(d*8. + u_time)/8.;
+        d = sin(d*8. + time)/8.;
         d = abs(d);
 
         d = pow(0.01 / d, 1.2);
