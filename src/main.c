@@ -173,6 +173,7 @@ int main() {
     
     Shader glShaderProgram_default3d = Shader_Init("shaders/vert/default3d.vert", "shaders/frag/default3d.frag", NULL);
     Shader glShaderProgram_light3d = Shader_Init("shaders/vert/light3d.vert", "shaders/frag/light3d.frag", NULL);
+    Shader glShaderProgram_shadowMap = Shader_Init("shaders/vert/shadowMap.vert", "shaders/frag/shadowMap.frag", NULL);
     
     Shader postFramebuffer = Shader_Init("shaders/framebuffer/framebuffer.vert", "shaders/framebuffer/framebuffer.frag", NULL);
     Shader pixelate = Shader_Init("shaders/framebuffer/framebuffer.vert", "shaders/framebuffer/pixelate.frag", NULL);
@@ -219,6 +220,9 @@ int main() {
     bool postProcessing = 0;
     int ping = 0;
 
+    float clampColor[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
+    Framebuffer shadowMapFBO = Framebuffer_InitShadowMap(2048, 2048, clampColor);
+
     // LIGHTS AND MODELS
 
     vec4 lightColor;
@@ -247,26 +251,63 @@ int main() {
 
         glfwJoystickEvents();
         if (joystickIsPressed(&joysticks[0], 7)) postProcessing = !postProcessing;
-        
+
+
+
+
+
+
+
         Camera_Inputs(&camera, window, &joysticks[0], dt);
         Camera_UpdateMatrix(&camera, 45.0f, 0.1f, 100.0f);
-
-        Framebuffer_Bind(&postProcessingFBO[ping]);
-        glClearColor(0.85f, 0.85f, 0.90f, 1.0f);
-        // glClearColor(0.07f, 0.13f, 0.17f, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         vec3 lightPos;
         mat4 lightModel;
         glm_vec3_copy((vec3){sin(glfwGetTime()), 0.5f, cos(glfwGetTime())}, lightPos);
         glm_mat4_identity(lightModel);
         glm_translate(lightModel, lightPos);
-        
+
+        mat4 orthogonalProjection;
+        glm_ortho(-35.0f, 35.0f, -35.0f, 35.0f, 0.1f, 75.0f, orthogonalProjection);
+        mat4 lightView;
+        vec3 lightPos2;
+        glm_vec3_scale(lightPos, 20.0f, lightPos2);
+        glm_lookat(lightPos2, (vec3){0.0f, 0.0f, 0.0f}, (vec3){0.0f, 1.0f, 0.0f}, lightView);
+        mat4 lightProjection;
+        glm_mat4_mul(orthogonalProjection, lightView, lightProjection);
+
+        Shader_Activate(&glShaderProgram_shadowMap);
+        glUniformMatrix4fv(glGetUniformLocation(glShaderProgram_shadowMap.ID, "lightProjection"), 1, GL_FALSE, (float*)lightProjection);
         Shader_Activate(&glShaderProgram_light3d);
         glUniformMatrix4fv(glGetUniformLocation(glShaderProgram_light3d.ID, "model"), 1, GL_FALSE, (float*)lightModel);
         Shader_Activate(&glShaderProgram_default3d);
         glUniform3fv(glGetUniformLocation(glShaderProgram_default3d.ID, "lightPos"), 1, (float*)lightPos);
         glUniform1f(glGetUniformLocation(glShaderProgram_default3d.ID, "time"), glfwGetTime());
+
+
+
+
+
+
+
+
+
+        glEnable(GL_DEPTH_TEST);
+        glViewport(0, 0, shadowMapFBO.width, shadowMapFBO.height);
+        Framebuffer_Bind(&shadowMapFBO);
+        glClear(GL_DEPTH_BUFFER_BIT);
+        Mesh_Draw(&pyramid, &glShaderProgram_shadowMap, &camera);
+        Mesh_Draw(&floor, &glShaderProgram_shadowMap, &camera);
+        Mesh_Draw(&light, &glShaderProgram_shadowMap, &camera);
+        Framebuffer_Unbind();
+
+
+
+        glViewport(0, 0, width, height);
+        Framebuffer_Bind(&postProcessingFBO[ping]);
+        glClearColor(0.85f, 0.85f, 0.90f, 1.0f);
+        // glClearColor(0.07f, 0.13f, 0.17f, 1.0f);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         // glDisable(GL_DEPTH_TEST);
         // Texture_Bind(&textures[0]);
@@ -282,6 +323,12 @@ int main() {
         glFrontFace(GL_CCW);
         glEnable(GL_DEPTH_TEST);
 
+        Shader_Activate(&glShaderProgram_default3d);
+        glUniformMatrix4fv(glGetUniformLocation(glShaderProgram_default3d.ID, "lightProjection"), 1, GL_FALSE, (float*)lightProjection);
+        glActiveTexture(GL_TEXTURE0 + 2);
+        glBindTexture(GL_TEXTURE_2D, shadowMapFBO.texture);
+        glUniform1f(glGetUniformLocation(glShaderProgram_default3d.ID, "shadowMap"), 2);
+        
         Mesh_Draw(&pyramid, &glShaderProgram_default3d, &camera);
         Mesh_Draw(&floor, &glShaderProgram_default3d, &camera);
         Mesh_Draw(&light, &glShaderProgram_light3d, &camera);

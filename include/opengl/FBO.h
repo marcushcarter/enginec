@@ -14,6 +14,7 @@ typedef struct {
 
 Framebuffer Framebuffer_Init(int width, int height);
 Framebuffer Framebuffer_InitMultiSample(int width, int height, int samples);
+Framebuffer Framebuffer_InitShadowMap(int width, int height, float clampColor[4]);
 void Framebuffer_Bind(Framebuffer* fb);
 void Framebuffer_BindTexture(Framebuffer* fb);
 void Framebuffer_Unbind();

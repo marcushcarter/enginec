@@ -9,9 +9,11 @@ out vec3 color;
 out vec2 texCoord;
 out vec3 Normal;
 out vec3 crntPos;
+out vec4 fragPosLight;
 
 uniform mat4 model;
 uniform mat4 camMatrix;
+uniform mat4 lightProjection;
 
 void main() 
 {
@@ -20,4 +22,5 @@ void main()
    Normal = aNormal;
    color = aColor;
    texCoord = aTex;
+   fragPosLight = lightProjection * vec4(crntPos, 1.0);
 }
