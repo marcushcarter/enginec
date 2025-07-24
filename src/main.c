@@ -7,10 +7,10 @@
 #include <stdio.h>
 #include <math.h>
 #include <time.h>
-#include "opengl/joystick.h"
 
 #include "opengl/mesh.h"
 #include "opengl/FBO.h"
+#include "opengl/joystick.h"
 
 unsigned int width = 1600;
 unsigned int height = 1000;
@@ -22,25 +22,25 @@ Vertex vertices[] = {
     // { {  1.0f,  0.0f,  1.0f }, { 0.0f, 1.0f, 0.0f }, { 1.0f, 0.0f, 0.0f }, { 1.0f, 0.0f } }
 
     { { -0.5f,  0.0f,  0.5f }, {  0.0f, -1.0f,  0.0f }, { 0.83f, 0.70f, 0.44f }, { 0.0f, 0.0f } },
-    { { -0.5f,  0.0f, -0.5f }, {  0.0f, -1.0f,  0.0f }, { 0.83f, 0.70f, 0.44f }, { 0.0f, 5.0f } },
-    { {  0.5f,  0.0f, -0.5f }, {  0.0f, -1.0f,  0.0f }, { 0.83f, 0.70f, 0.44f }, { 5.0f, 5.0f } },
-    { {  0.5f,  0.0f,  0.5f }, {  0.0f, -1.0f,  0.0f }, { 0.83f, 0.70f, 0.44f }, { 5.0f, 0.0f } },
+    { { -0.5f,  0.0f, -0.5f }, {  0.0f, -1.0f,  0.0f }, { 0.83f, 0.70f, 0.44f }, { 0.0f, 1.0f } },
+    { {  0.5f,  0.0f, -0.5f }, {  0.0f, -1.0f,  0.0f }, { 0.83f, 0.70f, 0.44f }, { 1.0f, 1.0f } },
+    { {  0.5f,  0.0f,  0.5f }, {  0.0f, -1.0f,  0.0f }, { 0.83f, 0.70f, 0.44f }, { 1.0f, 0.0f } },
 
     { { -0.5f,  0.0f,  0.5f }, { -0.8f,  0.5f,  0.0f }, { 0.83f, 0.70f, 0.44f }, { 0.0f, 0.0f } },
-    { { -0.5f,  0.0f, -0.5f }, { -0.8f,  0.5f,  0.0f }, { 0.83f, 0.70f, 0.44f }, { 5.0f, 0.0f } },
-    { {  0.0f,  0.8f,  0.0f }, { -0.8f,  0.5f,  0.0f }, { 0.92f, 0.86f, 0.76f }, { 2.5f, 5.0f } },
+    { { -0.5f,  0.0f, -0.5f }, { -0.8f,  0.5f,  0.0f }, { 0.83f, 0.70f, 0.44f }, { 1.0f, 0.0f } },
+    { {  0.0f,  0.8f,  0.0f }, { -0.8f,  0.5f,  0.0f }, { 0.92f, 0.86f, 0.76f }, { 0.5f, 1.0f } },
 
-    { { -0.5f,  0.0f, -0.5f }, {  0.0f,  0.5f, -0.8f }, { 0.83f, 0.70f, 0.44f }, { 5.0f, 0.0f } },
+    { { -0.5f,  0.0f, -0.5f }, {  0.0f,  0.5f, -0.8f }, { 0.83f, 0.70f, 0.44f }, { 1.0f, 0.0f } },
     { {  0.5f,  0.0f, -0.5f }, {  0.0f,  0.5f, -0.8f }, { 0.83f, 0.70f, 0.44f }, { 0.0f, 0.0f } },
-    { {  0.0f,  0.8f,  0.0f }, {  0.0f,  0.5f, -0.8f }, { 0.92f, 0.86f, 0.76f }, { 2.5f, 5.0f } },
+    { {  0.0f,  0.8f,  0.0f }, {  0.0f,  0.5f, -0.8f }, { 0.92f, 0.86f, 0.76f }, { 0.5f, 1.0f } },
 
     { {  0.5f,  0.0f, -0.5f }, {  0.8f,  0.5f,  0.0f }, { 0.83f, 0.70f, 0.44f }, { 0.0f, 0.0f } },
-    { {  0.5f,  0.0f,  0.5f }, {  0.8f,  0.5f,  0.0f }, { 0.83f, 0.70f, 0.44f }, { 5.0f, 0.0f } },
-    { {  0.0f,  0.8f,  0.0f }, {  0.8f,  0.5f,  0.0f }, { 0.92f, 0.86f, 0.76f }, { 2.5f, 5.0f } },
+    { {  0.5f,  0.0f,  0.5f }, {  0.8f,  0.5f,  0.0f }, { 0.83f, 0.70f, 0.44f }, { 1.0f, 0.0f } },
+    { {  0.0f,  0.8f,  0.0f }, {  0.8f,  0.5f,  0.0f }, { 0.92f, 0.86f, 0.76f }, { 0.5f, 1.0f } },
 
-    { {  0.5f,  0.0f,  0.5f }, {  0.0f,  0.5f,  0.8f }, { 0.83f, 0.70f, 0.44f }, { 5.0f, 0.0f } },
+    { {  0.5f,  0.0f,  0.5f }, {  0.0f,  0.5f,  0.8f }, { 0.83f, 0.70f, 0.44f }, { 1.0f, 0.0f } },
     { { -0.5f,  0.0f,  0.5f }, {  0.0f,  0.5f,  0.8f }, { 0.83f, 0.70f, 0.44f }, { 0.0f, 0.0f } },
-    { {  0.0f,  0.8f,  0.0f }, {  0.0f,  0.5f,  0.8f }, { 0.92f, 0.86f, 0.76f }, { 2.5f, 5.0f } },
+    { {  0.0f,  0.8f,  0.0f }, {  0.0f,  0.5f,  0.8f }, { 0.92f, 0.86f, 0.76f }, { 0.5f, 1.0f } },
 
 };
 
@@ -172,12 +172,12 @@ int main() {
     Shader glShaderProgram_default3d = Shader_Init("shaders/vert/default3d.vert", "shaders/frag/default3d.frag", NULL);
     Shader glShaderProgram_light3d = Shader_Init("shaders/vert/light3d.vert", "shaders/frag/light3d.frag", NULL);
     
-    Shader postFramebuffer = Shader_Init("shaders/framebuffer/framebuffer.vert", "shaders/framebuffer/framebuffer.frag", NULL);
+    Shader postFBO = Shader_Init("shaders/framebuffer/framebuffer.vert", "shaders/framebuffer/framebuffer.frag", NULL);
     Shader pixelate = Shader_Init("shaders/framebuffer/framebuffer.vert", "shaders/framebuffer/pixelate.frag", NULL);
     Shader outline = Shader_Init("shaders/framebuffer/framebuffer.vert", "shaders/framebuffer/outline.frag", NULL);
 
     Texture textures[1];
-    textures[0] = Texture_Init("res/textures/sydney.png", "diffuse", 0, GL_RGBA, GL_UNSIGNED_BYTE);
+    textures[0] = Texture_Init("res/textures/brick.jpg", "diffuse", 0);
     VertexVector verts;
     CopyToVertexVector(vertices, sizeof(vertices) / sizeof(Vertex), &verts);
     GLuintVector ind;
@@ -187,8 +187,8 @@ int main() {
     Mesh pyramid = Mesh_Init(&verts, &ind, &tex);
 
     Texture PLANEtextures[2];
-    PLANEtextures[0] = Texture_Init("res/textures/box.png", "diffuse", 0, GL_RGBA, GL_UNSIGNED_BYTE);
-    PLANEtextures[1] = Texture_Init("res/textures/box_specular.png", "specular", 1, GL_RED, GL_UNSIGNED_BYTE);
+    PLANEtextures[0] = Texture_Init("res/textures/box.png", "diffuse", 0);
+    PLANEtextures[1] = Texture_Init("res/textures/box_specular.png", "specular", 1);
     VertexVector PLANEverts;
     CopyToVertexVector(PLANEvertices, sizeof(PLANEvertices) / sizeof(Vertex), &PLANEverts);
     GLuintVector PLANEind;
@@ -211,28 +211,13 @@ int main() {
     VAO_Unbind();
     VBO_Unbind();
     
-    Framebuffer postProcessingFBO[2];
-    postProcessingFBO[0] = Framebuffer_Init(width, height);
-    postProcessingFBO[1] = Framebuffer_Init(width, height);
-    bool postProcessing = 0;
+    FBO postProcessingFBO[2];
+    postProcessingFBO[0] = FBO_Init(width, height);
+    postProcessingFBO[1] = FBO_Init(width, height);
+    bool postProcessing = false;
     int ping = 0;
 
     // LIGHTS AND MODELS
-
-    vec4 lightColor;
-    glm_vec4_copy((vec4){1.0f, 1.0f, 1.0f, 1.0f}, lightColor);
-
-    vec3 pyramidPos;
-    mat4 pyramidModel;
-    glm_vec3_copy((vec3){0.0f, 0.0f, 0.0f}, pyramidPos);
-    glm_mat4_identity(pyramidModel);
-    glm_translate(pyramidModel, pyramidPos);
-
-    Shader_Activate(&glShaderProgram_light3d);
-    glUniform4fv(glGetUniformLocation(glShaderProgram_light3d.ID, "lightColor"), 1, (float*)lightColor);
-    Shader_Activate(&glShaderProgram_default3d);
-    glUniformMatrix4fv(glGetUniformLocation(glShaderProgram_default3d.ID, "model"), 1, GL_FALSE, (float*)pyramidModel);
-    glUniform4fv(glGetUniformLocation(glShaderProgram_default3d.ID, "lightColor"), 1, (float*)lightColor);
 
     Camera camera = Camera_Init(width, height, 2.5f, 3.0f,(vec3){0.0f, 1.0f, 3.0f});
 
@@ -249,10 +234,25 @@ int main() {
         Camera_Inputs(&camera, window, &joysticks[0], dt);
         Camera_UpdateMatrix(&camera, 45.0f, 0.1f, 100.0f);
 
-        Framebuffer_Bind(&postProcessingFBO[ping]);
-        glClearColor(0.85f, 0.85f, 0.90f, 1.0f);
-        // glClearColor(0.07f, 0.13f, 0.17f, 1.0f);
+        FBO_Bind(&postProcessingFBO[ping]);
+        // glClearColor(0.85f, 0.85f, 0.90f, 1.0f);
+        glClearColor(0.07f, 0.13f, 0.17f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+        vec4 lightColor;
+        glm_vec4_copy((vec4){1.0f, 1.0f, 1.0f, 1.0f}, lightColor);
+
+        vec3 pyramidPos;
+        mat4 pyramidModel;
+        glm_vec3_copy((vec3){0.0f, 0.0f, 0.0f}, pyramidPos);
+        glm_mat4_identity(pyramidModel);
+        glm_translate(pyramidModel, pyramidPos);
+
+        Shader_Activate(&glShaderProgram_light3d);
+        glUniform4fv(glGetUniformLocation(glShaderProgram_light3d.ID, "lightColor"), 1, (float*)lightColor);
+        Shader_Activate(&glShaderProgram_default3d);
+        glUniformMatrix4fv(glGetUniformLocation(glShaderProgram_default3d.ID, "model"), 1, GL_FALSE, (float*)pyramidModel);
+        glUniform4fv(glGetUniformLocation(glShaderProgram_default3d.ID, "lightColor"), 1, (float*)lightColor);
 
         vec3 lightPos;
         mat4 lightModel;
@@ -280,9 +280,29 @@ int main() {
         glFrontFace(GL_CCW);
         glEnable(GL_DEPTH_TEST);
 
+        Shader_Activate(&glShaderProgram_default3d);
+        glUniform1f(glGetUniformLocation(glShaderProgram_default3d.ID, "ambient"), 0.0f);
+
+        // glUniform3f(glGetUniformLocation(glShaderProgram_default3d.ID, "directlight.direction"), 1.0f, -0.5f, 0.5f);
+        // glUniform4f(glGetUniformLocation(glShaderProgram_default3d.ID, "directlight.color"), 1.0f, 0.8f, 0.8f, 1.0f);
+        // glUniform1f(glGetUniformLocation(glShaderProgram_default3d.ID, "directlight.specular"), 0.5f);
+        
+        glUniform3f(glGetUniformLocation(glShaderProgram_default3d.ID, "pointlights[0].position"), sin(glfwGetTime()), 0.5f, cos(glfwGetTime()));
+        glUniform4f(glGetUniformLocation(glShaderProgram_default3d.ID, "pointlights[0].color"), 1.0f, 1.0f, 1.0f, 1.0f);
+        glUniform1f(glGetUniformLocation(glShaderProgram_default3d.ID, "pointlights[0].a"), 1.0f);
+        glUniform1f(glGetUniformLocation(glShaderProgram_default3d.ID, "pointlights[0].b"), 0.04f);
+        glUniform1f(glGetUniformLocation(glShaderProgram_default3d.ID, "pointlights[0].specular"), sin(glfwGetTime()));
+        
+        glUniform3fv(glGetUniformLocation(glShaderProgram_default3d.ID, "spotlights[0].position"), 1, (float*)&camera.Position);
+        glUniform3fv(glGetUniformLocation(glShaderProgram_default3d.ID, "spotlights[0].direction"), 1, (float*)&camera.Orientation);
+        glUniform4f(glGetUniformLocation(glShaderProgram_default3d.ID, "spotlights[0].color"), 1.0f, 1.0f, 1.0f, 1.0f);
+        glUniform1f(glGetUniformLocation(glShaderProgram_default3d.ID, "spotlights[0].innerCone"), 0.90f);
+        glUniform1f(glGetUniformLocation(glShaderProgram_default3d.ID, "spotlights[0].outerCone"), 0.95f);
+        glUniform1f(glGetUniformLocation(glShaderProgram_default3d.ID, "spotlights[0].specular"), 0.5f);
+
         Mesh_Draw(&pyramid, &glShaderProgram_default3d, &camera);
         Mesh_Draw(&floor, &glShaderProgram_default3d, &camera);
-        Mesh_Draw(&light, &glShaderProgram_light3d, &camera);
+        // Mesh_Draw(&light, &glShaderProgram_light3d, &camera);
 
         // POST PROCESSING
 
@@ -291,10 +311,10 @@ int main() {
         glDisable(GL_CULL_FACE);
         
         if (postProcessing) {
-            Framebuffer_Bind(&postProcessingFBO[ping]);
+            FBO_Bind(&postProcessingFBO[ping]);
             glClear(GL_COLOR_BUFFER_BIT);
             Shader_Activate(&pixelate);
-            Framebuffer_BindTexture(&postProcessingFBO[!ping]);
+            FBO_BindTexture(&postProcessingFBO[!ping]);
             glUniform1i(glGetUniformLocation(pixelate.ID, "u_texture"), 0);
             glUniform2f(glGetUniformLocation(pixelate.ID, "resolution"), postProcessingFBO[!ping].width, postProcessingFBO[!ping].height);
             glUniform1f(glGetUniformLocation(pixelate.ID, "pixelSize"), 4.0f);
@@ -302,20 +322,20 @@ int main() {
             glDrawArrays(GL_TRIANGLES, 0, 6);
             ping = !ping;
 
-            // Framebuffer_Bind(&postProcessingFBO[ping]);
+            // FBO_Bind(&postProcessingFBO[ping]);
             // glClear(GL_COLOR_BUFFER_BIT);
             // Shader_Activate(&outline);
-            // Framebuffer_BindTexture(&postProcessingFBO[!ping]);
+            // FBO_BindTexture(&postProcessingFBO[!ping]);
             // glUniform1i(glGetUniformLocation(pixelate.ID, "u_texture"), 0);
             // VAO_Bind(&framebufferVAO);
             // glDrawArrays(GL_TRIANGLES, 0, 6);
             // ping = !ping;
         }
         
-        Framebuffer_Unbind();
+        FBO_Unbind();
         glClear(GL_COLOR_BUFFER_BIT);
-        Shader_Activate(&postFramebuffer);
-        Framebuffer_BindTexture(&postProcessingFBO[!ping]);
+        Shader_Activate(&postFBO);
+        FBO_BindTexture(&postProcessingFBO[!ping]);
         glUniform1i(glGetUniformLocation(outline.ID, "u_texture"), 0);
         VAO_Bind(&framebufferVAO);
         glDrawArrays(GL_TRIANGLES, 0, 6);

@@ -10,14 +10,14 @@ typedef struct {
     GLuint texture;
     GLuint rbo;
     int width, height;
-} Framebuffer;
+} FBO;
 
-Framebuffer Framebuffer_Init(int width, int height);
-Framebuffer Framebuffer_InitMultiSample(int width, int height, int samples);
-Framebuffer Framebuffer_InitShadowMap(int width, int height, float clampColor[4]);
-void Framebuffer_Bind(Framebuffer* fb);
-void Framebuffer_BindTexture(Framebuffer* fb);
-void Framebuffer_Unbind();
-void Framebuffer_Delete(Framebuffer* fb);
+FBO FBO_Init(int width, int height);
+FBO FBO_InitMultiSample(int width, int height, int samples);
+FBO FBO_InitShadowMap(int width, int height, float clampColor[4]);
+void FBO_Bind(FBO* fb);
+void FBO_BindTexture(FBO* fb);
+void FBO_Unbind();
+void FBO_Delete(FBO* fb);
 
 #endif

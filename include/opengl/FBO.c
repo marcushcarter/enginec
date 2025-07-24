@@ -1,7 +1,7 @@
 #include "opengl/FBO.h"
 
-Framebuffer Framebuffer_Init(int width, int height) {
-    Framebuffer fb;
+FBO FBO_Init(int width, int height) {
+    FBO fb;
     fb.width = width;
     fb.height = height;
 
@@ -30,8 +30,8 @@ Framebuffer Framebuffer_Init(int width, int height) {
     return fb;
 }
 
-Framebuffer Framebuffer_InitMultiSample(int width, int height, int samples) {
-    Framebuffer fb;
+FBO FBO_InitMultiSample(int width, int height, int samples) {
+    FBO fb;
     fb.width = width;
     fb.height = height;
 
@@ -60,8 +60,8 @@ Framebuffer Framebuffer_InitMultiSample(int width, int height, int samples) {
     return fb;
 }
 
-Framebuffer Framebuffer_InitShadowMap(int width, int height, float clampColor[4]) {
-    Framebuffer fb;
+FBO FBO_InitShadowMap(int width, int height, float clampColor[4]) {
+    FBO fb;
     fb.width = width;
     fb.height = height;
 
@@ -95,22 +95,22 @@ Framebuffer Framebuffer_InitShadowMap(int width, int height, float clampColor[4]
     return fb;
 }
 
-void Framebuffer_Bind(Framebuffer* fb) {
+void FBO_Bind(FBO* fb) {
     glBindFramebuffer(GL_FRAMEBUFFER, fb->fbo);
 }
 
-void Framebuffer_BindTexture(Framebuffer* fb) {
+void FBO_BindTexture(FBO* fb) {
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, fb->texture);
 }
 
-void Framebuffer_Unbind() {
+void FBO_Unbind() {
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
-void Framebuffer_Delete(Framebuffer* fb) {
+void FBO_Delete(FBO* fb) {
     glDeleteFramebuffers(1, &fb->fbo);
     glDeleteTextures(1, &fb->texture);
     glDeleteRenderbuffers(1, &fb->rbo);
-    *fb = (Framebuffer){0};
+    *fb = (FBO){0};
 }
