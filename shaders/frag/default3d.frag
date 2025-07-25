@@ -6,11 +6,9 @@ in vec3 crntPos;
 in vec3 Normal;
 in vec3 color;
 in vec2 texCoord;
-in vec4 fragPosLight;
 
 uniform sampler2D diffuse0;
 uniform sampler2D specular0;
-uniform sampler2D shadowMap;
 uniform vec3 camPos;
 uniform float ambient;
 
@@ -20,6 +18,7 @@ struct DirectLight {
     float specular;
 
     sampler2D shadowMap;
+    mat4 lightProjection;
 };
 
 struct PointLight {
@@ -60,20 +59,22 @@ vec3 calcDirectLight(DirectLight light, vec3 normal, vec3 viewDirection) {
 		specular = specAmount * specularLight;
     };
 
+    vec4 fragPosLight = light.lightProjection * vec4(crntPos, 1.0);
+
     float shadow = 0.0f;
     vec3 lightCoords = fragPosLight.xyz / fragPosLight.w;
     if(lightCoords.z <= 1.0f) {
         lightCoords = (lightCoords + 1.0f) / 2.0f;
 
-        float closestDepth = texture(shadowMap, lightCoords.xy).r;
+        float closestDepth = texture(light.shadowMap, lightCoords.xy).r;
         float currentDepth = lightCoords.z;
         float bias = max(0.025f * (1.0f - dot(normal, lightDirection)), 0.0005f);
 
         int sampleRadius = 2;
-        vec2 pixelSize = 1.0 / textureSize(shadowMap, 0);
+        vec2 pixelSize = 1.0 / textureSize(light.shadowMap, 0);
         for (int y = -sampleRadius; y <= sampleRadius; y++) {
             for (int x = -sampleRadius; x <= sampleRadius; x++) {
-                float closestDepth = texture(shadowMap, lightCoords.xy + vec2(x, y) * pixelSize).r;
+                float closestDepth = texture(light.shadowMap, lightCoords.xy + vec2(x, y) * pixelSize).r;
                 if (currentDepth > closestDepth + bias) {
                     shadow += 1.0f;
                 }

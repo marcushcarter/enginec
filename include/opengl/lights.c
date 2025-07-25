@@ -32,6 +32,7 @@ LightSystem LightSystem_Init(float ambient) {
     lightSystem.ambient = ambient;
     lightSystem.numPointLights = 0;
     lightSystem.numSpotLights = 0;
+
     return lightSystem;
 }
 
@@ -39,6 +40,15 @@ void LightSystem_SetDirectLight(LightSystem* lightSystem, vec3 direction, vec4 c
     glm_vec3_copy(direction, lightSystem->directlight.direction);
     glm_vec4_copy(color, lightSystem->directlight.color);
     lightSystem->directlight.specular = specular;
+
+    mat4 lightProjection, lightView;
+    glm_ortho(-20.0f, 20.0f, -20.0f, 20.0f, 1.0f, 100.0f, lightProjection);
+
+    vec3 lightPos;
+    glm_vec3_scale(direction, -30.0f, lightPos);
+    glm_lookat(lightPos, (vec3){0.0f, 0.0f, 0.0f}, (vec3){0.0f, 1.0f, 0.0f}, lightView);
+
+    glm_mat4_mul(lightProjection, lightView, lightSystem->directlight.lightSpaceMatrix);
 }
 
 void LightSystem_AddPointLight(LightSystem* lightSystem, vec3 position, vec4 color, float a, float b, float specular) {
@@ -74,12 +84,18 @@ void LightSystem_SetUniforms(Shader* shader, LightSystem* lightSystem) {
 
     glUniform1i(glGetUniformLocation(shader->ID, "NR_POINT_LIGHTS"), lightSystem->numPointLights);
     glUniform1i(glGetUniformLocation(shader->ID, "NR_SPOT_LIGHTS"), lightSystem->numSpotLights);
+
     
     char uniformName[128];
 
     glUniform3fv(glGetUniformLocation(shader->ID, "directlight.direction"), 1, (float*)lightSystem->directlight.direction);
     glUniform4fv(glGetUniformLocation(shader->ID, "directlight.color"), 1, (float*)lightSystem->directlight.color);
     glUniform1f(glGetUniformLocation(shader->ID, "directlight.specular"), lightSystem->directlight.specular);
+    glUniformMatrix4fv(glGetUniformLocation(shader->ID, "directlight.lightProjection"), 1, GL_FALSE, (float*)lightSystem->directlight.lightSpaceMatrix);
+
+    glActiveTexture(GL_TEXTURE0 + 2);
+    glBindTexture(GL_TEXTURE_2D, lightSystem->directlight.shadowFBO.depthTexture);
+    glUniform1i(glGetUniformLocation(shader->ID, "directlight.shadowMap"), 2);
 
     for (int i = 0; i < lightSystem->numPointLights; i++) {
         glUniform3fv(glGetUniformLocation(shader->ID, fmt("pointlights[%d].position", i)), 1, (float*)lightSystem->pointlights[i].position);
@@ -98,6 +114,22 @@ void LightSystem_SetUniforms(Shader* shader, LightSystem* lightSystem) {
         glUniform1f(glGetUniformLocation(shader->ID, fmt("spotlights[%d].specular", i)), lightSystem->spotlights[i].specular);
     }
 
+}
+
+// typedef void (*ShadowRenderFunc)(Shader* shader, Camera* camera);
+
+void LightSystem_MakeShadowMaps(LightSystem* lightSystem, Shader* lightShader, Camera* camera, ShadowRenderFunc renderFunc) {
+    
+    Shader_Activate(lightShader);
+    glUniformMatrix4fv(glGetUniformLocation(lightShader->ID, "lightProjection"), 1, GL_FALSE, (float*)lightSystem->directlight.lightSpaceMatrix);
+
+    glEnable(GL_DEPTH_TEST);
+
+    ShadowMapFBO_Bind(&lightSystem->directlight.shadowFBO);
+
+    renderFunc(lightShader, camera);
+
+    FBO_Unbind(); 
 }
 
 void LightSystem_DrawLights(LightSystem* lightSystem, Mesh* mesh, Shader* shader, Camera* camera) {

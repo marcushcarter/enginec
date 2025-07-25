@@ -4,17 +4,17 @@
 #include <cglm/cglm.h>
 // #include "opengl/shader.h"
 #include "opengl/mesh.h"
+#include "opengl/shadowMapFBO.h"
 
-#define MAX_POINT_LIGHTS 4
-#define MAX_SPOT_LIGHTS 4
-#define MAX_DIRECT_LIGHTS 2
+#define MAX_POINT_LIGHTS 100
+#define MAX_SPOT_LIGHTS 100
 
 typedef struct {
     vec3 direction;
     vec4 color;
     float specular;
 
-    GLuint shadowMap;
+    ShadowMapFBO shadowFBO;
     mat4 lightSpaceMatrix;
 } DirectLight;
 
@@ -51,10 +51,13 @@ typedef struct {
     // mat4 lightSpaceMatrix;
 } LightSystem;
 
+typedef void (*ShadowRenderFunc)(Shader* shader, Camera* camera);
+
 char* fmt(const char* fmt, ...);
 
 LightSystem LightSystem_Init(float ambient);
 void LightSystem_SetUniforms(Shader* shader, LightSystem* lightSystem);
+void LightSystem_MakeShadowMaps(LightSystem* lightSystem, Shader* lightShader, Camera* camera, ShadowRenderFunc renderFunc);
 void LightSystem_Merge(LightSystem* dest, LightSystem* a, LightSystem* b);
 
 void LightSystem_SetDirectLight(LightSystem* lightSystem, vec3 direction, vec4 color, float specular);

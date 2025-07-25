@@ -135,6 +135,8 @@ float get_delta_time() {
 
 // -----------------------------------------------------------------------------------------------------------------------------------------------------------------
 
+Mesh ground, pyramid, light;
+
 void make_model_matrix(vec3 translation, vec3 rotation, vec3 scale, mat4 dest) {
     mat4 trans, rotX, rotY, rotZ, rot, scl;
 
@@ -152,6 +154,24 @@ void make_model_matrix(vec3 translation, vec3 rotation, vec3 scale, mat4 dest) {
     mat4 rs;
     glm_mat4_mul(rot, scl, rs);       // RS = R * S
     glm_mat4_mul(trans, rs, dest);    // M = T * (R * S)
+}
+
+void draw_stuff(Shader* shader, Camera* camera) {
+    mat4 model;
+
+    make_model_matrix((vec3){0.0f, 0.5f, 0.0f}, (vec3){0.0f, 0.0f, 0.0f}, (vec3){1.0f, 1.0f, 1.0f}, model);
+    glUniformMatrix4fv(glGetUniformLocation(shader->ID, "model"), 1, GL_FALSE, (float*)model);
+    Mesh_Draw(&pyramid, shader, camera);
+    
+    make_model_matrix((vec3){0.0f, 0.0f, 0.0f}, (vec3){0.0f, 0.0f, 0.0f}, (vec3){1.0f, 1.0f, 1.0f}, model);
+    glUniformMatrix4fv(glGetUniformLocation(shader->ID, "model"), 1, GL_FALSE, (float*)model);
+    Mesh_Draw(&ground, shader, camera);
+
+    // PLAYER
+
+    make_model_matrix(camera->Position, (vec3){0.0f, 0.0f, 0.0f}, (vec3){0.2f, 0.2f, 0.2f}, model);
+    glUniformMatrix4fv(glGetUniformLocation(shader->ID, "model"), 1, GL_FALSE, (float*)model);
+    Mesh_Draw(&pyramid, shader, camera);
 }
 
 int main() {
@@ -189,7 +209,7 @@ int main() {
     GLuintVector_Copy(pyramidIndices, sizeof(pyramidIndices) / sizeof(GLuint), &ind);
     TextureVector tex;
     TextureVector_Copy(textures, sizeof(textures) / sizeof(Texture), &tex);
-    Mesh pyramid = Mesh_Init(&verts, &ind, &tex);
+    pyramid = Mesh_Init(&verts, &ind, &tex);
 
     Texture PLANEtextures[2];
     PLANEtextures[0] = Texture_Init("res/textures/box.png", "diffuse", 0);
@@ -200,13 +220,13 @@ int main() {
     GLuintVector_Copy(planeIndices, sizeof(planeIndices) / sizeof(GLuint), &PLANEind);
     TextureVector PLANEtex;
     TextureVector_Copy(PLANEtextures, sizeof(PLANEtextures) / sizeof(Texture), &PLANEtex);
-    Mesh floor = Mesh_Init(&PLANEverts, &PLANEind, &PLANEtex);
+    ground = Mesh_Init(&PLANEverts, &PLANEind, &PLANEtex);
     
     VertexVector lightVerts;
     VertexVector_Copy(cubeVertices, sizeof(cubeVertices) / sizeof(Vertex), &lightVerts);
     GLuintVector lightInd;
     GLuintVector_Copy(cubeIndices, sizeof(cubeIndices) / sizeof(GLuint), &lightInd);
-    Mesh light = Mesh_Init(&lightVerts, &lightInd, &tex);
+    light = Mesh_Init(&lightVerts, &lightInd, &tex);
 
     // FRAMEBUFFER
 
@@ -224,14 +244,12 @@ int main() {
     bool postProcessing = false;
     int ping = 0;
 
-    unsigned int shadowMapFBO;
-    glGenFramebuffers(1, &shadowMapFBO);
-
     ShadowMapFBO shadowFBO = ShadowMapFBO_Init(4096, 4096);
 
     Camera camera = Camera_Init(width, height, 2.5f, 3.0f,(vec3){0.0f, 1.0f, 3.0f});
 
     LightSystem staticLights = LightSystem_Init(0.0f);
+    staticLights.directlight.shadowFBO = ShadowMapFBO_Init(1000, 1000);
     
     while(!glfwWindowShouldClose(window)) {
 
@@ -247,62 +265,16 @@ int main() {
         Camera_UpdateMatrix(&camera, 45.0f, 0.1f, 100.0f);
         
         LightSystem dynamicLights = LightSystem_Init(0.0f);
-        // LightSystem_AddPointLight(&dynamicLights, (vec3){sin(glfwGetTime()), 0.5f, cos(glfwGetTime())}, (vec4){1.0f, 0.1f, 0.05f, 1.0f}, 1.0f, 0.04f, 0.5f);
-        // LightSystem_AddPointLight(&dynamicLights, (vec3){-sin(glfwGetTime()), 0.5f, -cos(glfwGetTime())}, (vec4){0.2f, 1.0f, 0.2f, 1.0f}, 1.0f, 0.04f, 0.5f);
+        // LightSystem_AddPointLight(&dynamicLights, (vec3){sin(glfwGetTime()), 1.0f, cos(glfwGetTime())}, (vec4){1.0f, 0.1f, 0.05f, 1.0f}, 1.0f, 0.04f, 0.5f);
+        // LightSystem_AddPointLight(&dynamicLights, (vec3){-sin(glfwGetTime()), 1.0f, -cos(glfwGetTime())}, (vec4){0.2f, 1.0f, 0.2f, 1.0f}, 1.0f, 0.04f, 0.5f);
         // LightSystem_AddSpotLight(&dynamicLights, (camera.Position), (camera.Orientation), (vec4){1.0f, 1.0f, 1.0f, 1.0f}, 0.90f, 0.95f, 0.5f);
         LightSystem_SetDirectLight(&staticLights, (vec3){sin(glfwGetTime()), -0.5f, cos(glfwGetTime())}, (vec4){1.0f, 1.0f, 1.0f, 1.0f}, 0.5f);
+        // LightSystem_SetDirectLight(&staticLights, (vec3){1.0f, -0.5f, 1.0f}, (vec4){1.0f, 1.0f, 1.0f, 1.0f}, 0.5f);
 
         LightSystem mergedLights = LightSystem_Init(0.0f);
         LightSystem_Merge(&mergedLights, &staticLights, &dynamicLights);
-        LightSystem_SetUniforms(&glShaderProgram_default3d, &mergedLights);
 
-        mat4 orthographicProjection;
-        glm_ortho(-35.0f, 35.0f, -35.0f, 35.0f, 0.1f, 75.0f, orthographicProjection);
-        vec3 lightPos;
-        glm_vec3_mul(mergedLights.directlight.direction, (vec3){-1.0f, -1.0f, -1.0f}, lightPos);
-        mat4 lightView;
-        glm_lookat(lightPos, (vec3){0.0f, 0.0f, 0.0f}, (vec3){0.0f, 1.0f, 0.0f}, lightView);
-        mat4 lightProjection;
-        glm_mat4_mul(orthographicProjection, lightView, lightProjection);
-
-        Shader_Activate(&shadowMapProgram);
-        glUniformMatrix4fv(glGetUniformLocation(shadowMapProgram.ID, "lightProjection"), 1, GL_FALSE, (float*)lightProjection);
-
-
-
-        glEnable(GL_DEPTH_TEST);
-
-        ShadowMapFBO_Bind(&shadowFBO);
-
-        mat4 model2;
-
-        make_model_matrix((vec3){0.0f, 0.5f, 0.0f}, (vec3){0.0f, 0.0f, 0.0f}, (vec3){1.0f, 1.0f, 1.0f}, model2);
-        glUniformMatrix4fv(glGetUniformLocation(shadowMapProgram.ID, "model"), 1, GL_FALSE, (float*)model2);
-        Mesh_Draw(&pyramid, &shadowMapProgram, &camera);
-        
-        make_model_matrix((vec3){0.0f, 0.0f, 0.0f}, (vec3){0.0f, 0.0f, 0.0f}, (vec3){1.0f, 1.0f, 1.0f}, model2);
-        glUniformMatrix4fv(glGetUniformLocation(shadowMapProgram.ID, "model"), 1, GL_FALSE, (float*)model2);
-        Mesh_Draw(&floor, &shadowMapProgram, &camera);
-
-        FBO_Unbind();
-
-        glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+        LightSystem_MakeShadowMaps(&mergedLights, &shadowMapProgram, &camera, draw_stuff);
 
         glViewport(0, 0, width, height);
         FBO_Bind(&postProcessingFBO[ping]);
@@ -323,23 +295,9 @@ int main() {
         glFrontFace(GL_CCW);
         glEnable(GL_DEPTH_TEST);
 
-        Shader_Activate(&glShaderProgram_default3d);
-        glUniformMatrix4fv(glGetUniformLocation(glShaderProgram_default3d.ID, "lightProjection"), 1, GL_FALSE, (float*)lightProjection);
+        LightSystem_SetUniforms(&glShaderProgram_default3d, &mergedLights);
 
-        glActiveTexture(GL_TEXTURE0 + 2);
-        glBindTexture(GL_TEXTURE_2D, shadowFBO.depthTexture);
-        glUniform1i(glGetUniformLocation(glShaderProgram_default3d.ID, "shadowMap"), 2);
-
-        
-        mat4 model;
-
-        make_model_matrix((vec3){0.0f, 0.5f, 0.0f}, (vec3){0.0f, 0.0f, 0.0f}, (vec3){1.0f, 1.0f, 1.0f}, model);
-        glUniformMatrix4fv(glGetUniformLocation(glShaderProgram_default3d.ID, "model"), 1, GL_FALSE, (float*)model);
-        Mesh_Draw(&pyramid, &glShaderProgram_default3d, &camera);
-        
-        make_model_matrix((vec3){0.0f, 0.0f, 0.0f}, (vec3){0.0f, 0.0f, 0.0f}, (vec3){1.0f, 1.0f, 1.0f}, model);
-        glUniformMatrix4fv(glGetUniformLocation(glShaderProgram_default3d.ID, "model"), 1, GL_FALSE, (float*)model);
-        Mesh_Draw(&floor, &glShaderProgram_default3d, &camera);
+        draw_stuff(&glShaderProgram_default3d, &camera);
         
         LightSystem_DrawLights(&mergedLights, &light, &glShaderProgram_light3d, &camera);
 
