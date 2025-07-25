@@ -30,20 +30,15 @@ char* fmt(const char* fmt, ...) {
 LightSystem LightSystem_Init(float ambient) {
     LightSystem lightSystem;
     lightSystem.ambient = ambient;
-    lightSystem.numDirectLights = 0;
     lightSystem.numPointLights = 0;
     lightSystem.numSpotLights = 0;
     return lightSystem;
 }
 
-void LightSystem_AddDirectLight(LightSystem* lightSystem, vec3 direction, vec4 color, float specular) {
-    if (lightSystem->numDirectLights >= MAX_DIRECT_LIGHTS) return;
-    
-    DirectLight light;
-    glm_vec3_copy(direction, light.direction);
-    glm_vec4_copy(color, light.color);
-    light.specular = specular;
-    lightSystem->directlights[lightSystem->numDirectLights++] = light;
+void LightSystem_SetDirectLight(LightSystem* lightSystem, vec3 direction, vec4 color, float specular) {
+    glm_vec3_copy(direction, lightSystem->directlight.direction);
+    glm_vec4_copy(color, lightSystem->directlight.color);
+    lightSystem->directlight.specular = specular;
 }
 
 void LightSystem_AddPointLight(LightSystem* lightSystem, vec3 position, vec4 color, float a, float b, float specular) {
@@ -79,15 +74,12 @@ void LightSystem_SetUniforms(Shader* shader, LightSystem* lightSystem) {
 
     glUniform1i(glGetUniformLocation(shader->ID, "NR_POINT_LIGHTS"), lightSystem->numPointLights);
     glUniform1i(glGetUniformLocation(shader->ID, "NR_SPOT_LIGHTS"), lightSystem->numSpotLights);
-    glUniform1i(glGetUniformLocation(shader->ID, "NR_DIRECT_LIGHTS"), lightSystem->numDirectLights);
     
     char uniformName[128];
 
-    for (int i = 0; i < lightSystem->numDirectLights; i++) {
-        glUniform3fv(glGetUniformLocation(shader->ID, fmt("directlights[%d].direction", i)), 1, (float*)lightSystem->directlights[i].direction);
-        glUniform4fv(glGetUniformLocation(shader->ID, fmt("directlights[%d].color", i)), 1, (float*)lightSystem->directlights[i].color);
-        glUniform1f(glGetUniformLocation(shader->ID, fmt("directlights[%d].specular", i)), lightSystem->directlights[i].specular);     
-    }
+    glUniform3fv(glGetUniformLocation(shader->ID, "directlight.direction"), 1, (float*)lightSystem->directlight.direction);
+    glUniform4fv(glGetUniformLocation(shader->ID, "directlight.color"), 1, (float*)lightSystem->directlight.color);
+    glUniform1f(glGetUniformLocation(shader->ID, "directlight.specular"), lightSystem->directlight.specular);
 
     for (int i = 0; i < lightSystem->numPointLights; i++) {
         glUniform3fv(glGetUniformLocation(shader->ID, fmt("pointlights[%d].position", i)), 1, (float*)lightSystem->pointlights[i].position);
@@ -110,7 +102,25 @@ void LightSystem_SetUniforms(Shader* shader, LightSystem* lightSystem) {
 
 void LightSystem_DrawLights(LightSystem* lightSystem, Mesh* mesh, Shader* shader, Camera* camera) {
 
-    vec3 lightScale = { 0.1f, 0.1f, 0.1f };
+    vec3 lightScale = { 1.0f, 1.0f, 1.0f };
+
+    // for (int i = 0; i < lightSystem->numDirectLights; i++) {
+    //     mat4 lightModel;
+    //     glm_mat4_identity(lightModel);
+    //     vec3 lightPos;
+    //     glm_vec3_mul(lightSystem->directlights[i].direction, (vec3){ 50.0f, 50.0f, 50.0f}, lightPos);
+    //     glm_vec3_sub(camera->Position, lightPos, lightPos);
+    //     glm_translate(lightModel, lightPos);
+    //     glm_scale(lightModel, lightScale);
+    //     Shader_Activate(shader);
+    //     glUniformMatrix4fv(glGetUniformLocation(shader->ID, "model"), 1, GL_FALSE, (float*)lightModel);
+    //     glUniform4fv(glGetUniformLocation(shader->ID, "lightColor"), 1, (float*)lightSystem->directlights[i].color);   
+    //     Mesh_Draw(mesh, shader, camera); 
+    // }
+
+    glm_vec3_copy((vec3){ 0.1f, 0.1f, 0.1f }, lightScale);
+    
+    // lightScale = (vec3){ 0.1f, 0.1f, 0.1f };
 
     for (int i = 0; i < lightSystem->numPointLights; i++) {
         mat4 lightModel;
@@ -135,32 +145,41 @@ void LightSystem_DrawLights(LightSystem* lightSystem, Mesh* mesh, Shader* shader
     }
 }
 
-void LightSystem_Merge(LightSystem* dest, LightSystem* src1, LightSystem* src2) {
-    dest->ambient = src1->ambient;
+void LightSystem_Merge(LightSystem* dest, LightSystem* a, LightSystem* b) {
+    dest->ambient = a->ambient;
 
-    // dest->ambient = (src1->ambient + src2->ambient) * 0.5f;
-    
-    dest->numDirectLights = 0;
-    for (int i = 0; i < src1->numDirectLights && dest->numDirectLights < MAX_POINT_LIGHTS; i++) {
-        dest->directlights[dest->numDirectLights++] = src1->directlights[i];
-    }
-    for (int i = 0; i < src2->numDirectLights && dest->numDirectLights < MAX_POINT_LIGHTS; i++) {
-        dest->directlights[dest->numDirectLights++] = src2->directlights[i];
-    }
+    // dest->ambient = (a->ambient + b->ambient) * 0.5f;
+
+    dest->directlight = a->directlight;
 
     dest->numPointLights = 0;
-    for (int i = 0; i < src1->numPointLights && dest->numPointLights < MAX_POINT_LIGHTS; i++) {
-        dest->pointlights[dest->numPointLights++] = src1->pointlights[i];
+    for (int i = 0; i < a->numPointLights && dest->numPointLights < MAX_POINT_LIGHTS; i++) {
+        dest->pointlights[dest->numPointLights++] = a->pointlights[i];
     }
-    for (int i = 0; i < src2->numPointLights && dest->numPointLights < MAX_POINT_LIGHTS; i++) {
-        dest->pointlights[dest->numPointLights++] = src2->pointlights[i];
+    for (int i = 0; i < b->numPointLights && dest->numPointLights < MAX_POINT_LIGHTS; i++) {
+        dest->pointlights[dest->numPointLights++] = b->pointlights[i];
     }
 
     dest->numSpotLights = 0;
-    for (int i = 0; i < src1->numSpotLights && dest->numSpotLights < MAX_SPOT_LIGHTS; i++) {
-        dest->spotlights[dest->numSpotLights++] = src1->spotlights[i];
+    for (int i = 0; i < a->numSpotLights && dest->numSpotLights < MAX_SPOT_LIGHTS; i++) {
+        dest->spotlights[dest->numSpotLights++] = a->spotlights[i];
     }
-    for (int i = 0; i < src2->numSpotLights && dest->numSpotLights < MAX_SPOT_LIGHTS; i++) {
-        dest->spotlights[dest->numSpotLights++] = src2->spotlights[i];
+    for (int i = 0; i < b->numSpotLights && dest->numSpotLights < MAX_SPOT_LIGHTS; i++) {
+        dest->spotlights[dest->numSpotLights++] = b->spotlights[i];
     }
 }
+
+// GLuint Light_CreateShadowMap2D(int width, int height) {
+//     GLuint shadowMap;
+//     glGenTextures(1, &shadowMap);
+//     glBindTexture(GL_TEXTURE_2D, shadowMap);
+//     glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, width, height, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
+//     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+//     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+//     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+//     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+
+
+// }
+
+// GLuint Light_CreateShadowMapCube(int size);

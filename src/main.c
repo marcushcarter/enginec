@@ -134,6 +134,25 @@ float get_delta_time() {
 
 // -----------------------------------------------------------------------------------------------------------------------------------------------------------------
 
+void make_model_matrix(vec3 translation, vec3 rotation, vec3 scale, mat4 dest) {
+    mat4 trans, rotX, rotY, rotZ, rot, scl;
+
+    glm_translate_make(trans, translation);
+
+    glm_rotate_make(rotX, rotation[0], (vec3){1.0f, 0.0f, 0.0f});
+    glm_rotate_make(rotY, rotation[1], (vec3){0.0f, 1.0f, 0.0f});
+    glm_rotate_make(rotZ, rotation[2], (vec3){0.0f, 0.0f, 1.0f});
+
+    glm_mat4_mul(rotY, rotX, rot);    // R = Ry * Rx
+    glm_mat4_mul(rotZ, rot, rot);     // R = Rz * (Ry * Rx)
+
+    glm_scale_make(scl, scale);
+
+    mat4 rs;
+    glm_mat4_mul(rot, scl, rs);       // RS = R * S
+    glm_mat4_mul(trans, rs, dest);    // M = T * (R * S)
+}
+
 int main() {
     glfwInit();
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
@@ -155,6 +174,7 @@ int main() {
     
     Shader glShaderProgram_default3d = Shader_Init("shaders/vert/default3d.vert", "shaders/frag/default3d.frag", NULL);
     Shader glShaderProgram_light3d = Shader_Init("shaders/vert/light3d.vert", "shaders/frag/light3d.frag", NULL);
+    Shader shadowMapProgram = Shader_Init("shaders/vert/shadowMap.vert", "shaders/frag/shadowMap.frag", NULL);
     
     Shader postFBO = Shader_Init("shaders/framebuffer/framebuffer.vert", "shaders/framebuffer/framebuffer.frag", NULL);
     Shader pixelate = Shader_Init("shaders/framebuffer/framebuffer.vert", "shaders/framebuffer/pixelate.frag", NULL);
@@ -203,10 +223,30 @@ int main() {
     bool postProcessing = false;
     int ping = 0;
 
+    unsigned int shadowMapFBO;
+    glGenFramebuffers(1, &shadowMapFBO);
+
+    unsigned int shadowMapWidth = 4096, shadowMapHeight = 4096;
+    unsigned int shadowMap;
+    glGenTextures(1, &shadowMap);
+    glBindTexture(GL_TEXTURE_2D, shadowMap);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, shadowMapWidth, shadowMapHeight, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+    float clampColor[] = { 1.0f, 1.0f, 1.0f, 1.0f };
+    glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, clampColor);
+
+    glBindFramebuffer(GL_FRAMEBUFFER, shadowMapFBO);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, shadowMap, 0);
+    glDrawBuffer(GL_NONE);
+    glReadBuffer(GL_NONE);
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
     Camera camera = Camera_Init(width, height, 2.5f, 3.0f,(vec3){0.0f, 1.0f, 3.0f});
 
-    LightSystem staticLights = LightSystem_Init(0.2f);
-    LightSystem_AddDirectLight(&staticLights, (vec3){1.0f, -0.5f, 0.5f}, (vec4){0.0f, 0.2f, 1.0f, 1.0f}, 0.5f);
+    LightSystem staticLights = LightSystem_Init(0.0f);
     
     while(!glfwWindowShouldClose(window)) {
 
@@ -220,18 +260,69 @@ int main() {
         
         Camera_Inputs(&camera, window, &joysticks[0], dt);
         Camera_UpdateMatrix(&camera, 45.0f, 0.1f, 100.0f);
+        
+        LightSystem dynamicLights = LightSystem_Init(0.0f);
+        // LightSystem_AddPointLight(&dynamicLights, (vec3){sin(glfwGetTime()), 0.5f, cos(glfwGetTime())}, (vec4){1.0f, 0.1f, 0.05f, 1.0f}, 1.0f, 0.04f, 0.5f);
+        // LightSystem_AddPointLight(&dynamicLights, (vec3){-sin(glfwGetTime()), 0.5f, -cos(glfwGetTime())}, (vec4){0.2f, 1.0f, 0.2f, 1.0f}, 1.0f, 0.04f, 0.5f);
+        // LightSystem_AddSpotLight(&dynamicLights, (camera.Position), (camera.Orientation), (vec4){1.0f, 1.0f, 1.0f, 1.0f}, 0.90f, 0.95f, 0.5f);
+        LightSystem_SetDirectLight(&staticLights, (vec3){sin(glfwGetTime()), -0.5f, cos(glfwGetTime())}, (vec4){1.0f, 1.0f, 1.0f, 1.0f}, 0.5f);
 
+        LightSystem mergedLights = LightSystem_Init(0.0f);
+        LightSystem_Merge(&mergedLights, &staticLights, &dynamicLights);
+        LightSystem_SetUniforms(&glShaderProgram_default3d, &mergedLights);
+
+        mat4 orthographicProjection;
+        glm_ortho(-35.0f, 35.0f, -35.0f, 35.0f, 0.1f, 75.0f, orthographicProjection);
+        vec3 lightPos;
+        glm_vec3_mul(mergedLights.directlight.direction, (vec3){-1.0f, -1.0f, -1.0f}, lightPos);
+        mat4 lightView;
+        glm_lookat(lightPos, (vec3){0.0f, 0.0f, 0.0f}, (vec3){0.0f, 1.0f, 0.0f}, lightView);
+        mat4 lightProjection;
+        glm_mat4_mul(orthographicProjection, lightView, lightProjection);
+
+        Shader_Activate(&shadowMapProgram);
+        glUniformMatrix4fv(glGetUniformLocation(shadowMapProgram.ID, "lightProjection"), 1, GL_FALSE, (float*)lightProjection);
+
+
+
+        glEnable(GL_DEPTH_TEST);
+
+        glViewport(0, 0, shadowMapWidth, shadowMapHeight);
+        glBindFramebuffer(GL_FRAMEBUFFER, shadowMapFBO);
+        glClear(GL_DEPTH_BUFFER_BIT);
+
+        mat4 model2;
+
+        make_model_matrix((vec3){0.0f, 0.5f, 0.0f}, (vec3){0.0f, 0.0f, 0.0f}, (vec3){1.0f, 1.0f, 1.0f}, model2);
+        glUniformMatrix4fv(glGetUniformLocation(shadowMapProgram.ID, "model"), 1, GL_FALSE, (float*)model2);
+        Mesh_Draw(&pyramid, &shadowMapProgram, &camera);
+        
+        make_model_matrix((vec3){0.0f, 0.0f, 0.0f}, (vec3){0.0f, 0.0f, 0.0f}, (vec3){1.0f, 1.0f, 1.0f}, model2);
+        glUniformMatrix4fv(glGetUniformLocation(shadowMapProgram.ID, "model"), 1, GL_FALSE, (float*)model2);
+        Mesh_Draw(&floor, &shadowMapProgram, &camera);
+
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        glViewport(0, 0, width, height);
         FBO_Bind(&postProcessingFBO[ping]);
         glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-        vec3 pyramidPos;
-        mat4 pyramidModel;
-        glm_vec3_copy((vec3){0.0f, 0.0f, 0.0f}, pyramidPos);
-        glm_mat4_identity(pyramidModel);
-        glm_translate(pyramidModel, pyramidPos);
-        Shader_Activate(&glShaderProgram_default3d);
-        glUniformMatrix4fv(glGetUniformLocation(glShaderProgram_default3d.ID, "model"), 1, GL_FALSE, (float*)pyramidModel); 
 
         // glDisable(GL_DEPTH_TEST);
         // Texture_Bind(&textures[0]);
@@ -242,25 +333,30 @@ int main() {
         // VAO_Bind(&quadVAO);
         // glDrawElements(GL_TRIANGLES, sizeof(QUADindices)/sizeof(int), GL_UNSIGNED_INT, 0);
 
-        LightSystem dynamicLights = LightSystem_Init(0.2f);
-        LightSystem_AddPointLight(&dynamicLights, (vec3){sin(glfwGetTime()), 0.5f, cos(glfwGetTime())}, (vec4){1.0f, 0.1f, 0.05f, 1.0f}, 1.0f, 0.04f, 0.5f);
-        LightSystem_AddPointLight(&dynamicLights, (vec3){-sin(glfwGetTime()), 0.5f, -cos(glfwGetTime())}, (vec4){0.2f, 1.0f, 0.2f, 1.0f}, 1.0f, 0.04f, 0.5f);
-        // LightSystem_AddSpotLight(&dynamicLights, (camera.Position), (camera.Orientation), (vec4){1.0f, 1.0f, 1.0f, 1.0f}, 0.90f, 0.95f, 0.5f);
-
-        LightSystem mergedLights = LightSystem_Init(0.2f);
-        LightSystem_Merge(&mergedLights, &staticLights, &dynamicLights);
-        LightSystem_SetUniforms(&glShaderProgram_default3d, &mergedLights);
-
         glEnable(GL_CULL_FACE);
         glCullFace(GL_FRONT);
         glFrontFace(GL_CCW);
         glEnable(GL_DEPTH_TEST);
 
-        Mesh_Draw(&pyramid, &glShaderProgram_default3d, &camera);
-        Mesh_Draw(&floor, &glShaderProgram_default3d, &camera);
+        Shader_Activate(&glShaderProgram_default3d);
+        glUniformMatrix4fv(glGetUniformLocation(glShaderProgram_default3d.ID, "lightProjection"), 1, GL_FALSE, (float*)lightProjection);
 
+        glActiveTexture(GL_TEXTURE0+2);
+        glBindTexture(GL_TEXTURE_2D, shadowMap);
+        glUniform1i(glGetUniformLocation(glShaderProgram_default3d.ID, "shadowMap"), 2);
+
+        
+        mat4 model;
+
+        make_model_matrix((vec3){0.0f, 0.5f, 0.0f}, (vec3){0.0f, 0.0f, 0.0f}, (vec3){1.0f, 1.0f, 1.0f}, model);
+        glUniformMatrix4fv(glGetUniformLocation(glShaderProgram_default3d.ID, "model"), 1, GL_FALSE, (float*)model);
+        Mesh_Draw(&pyramid, &glShaderProgram_default3d, &camera);
+        
+        make_model_matrix((vec3){0.0f, 0.0f, 0.0f}, (vec3){0.0f, 0.0f, 0.0f}, (vec3){1.0f, 1.0f, 1.0f}, model);
+        glUniformMatrix4fv(glGetUniformLocation(glShaderProgram_default3d.ID, "model"), 1, GL_FALSE, (float*)model);
+        Mesh_Draw(&floor, &glShaderProgram_default3d, &camera);
+        
         LightSystem_DrawLights(&mergedLights, &light, &glShaderProgram_light3d, &camera);
-        // Mesh_Draw(&light, &glShaderProgram_light3d, &camera);
 
         // POST PROCESSING
 
