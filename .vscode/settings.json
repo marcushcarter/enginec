@@ -29,7 +29,8 @@
         "shader.h": "c",
         "lights.h": "c",
         "cglm.h": "c",
-        "stdio.h": "c"
+        "stdio.h": "c",
+        "shadowmapfbo.h": "c"
     },
     "C_Cpp.errorSquiggles": "disabled"
 }
