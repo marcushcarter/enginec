@@ -8,14 +8,17 @@
 #include <math.h>
 #include <time.h>
 
+#include "opengl/vector.h"
+
 #include "opengl/mesh.h"
 #include "opengl/FBO.h"
 #include "opengl/joystick.h"
+#include "opengl/lights.h"
 
 unsigned int width = 1600;
 unsigned int height = 1000;
 
-Vertex vertices[] = {
+Vertex pyramidVertices[] = {
     // { { -1.0f,  0.0f,  1.0f }, { 0.0f, 1.0f, 0.0f }, { 0.0f, 1.0f, 0.0f }, { 0.0f, 0.0f } },
     // { { -1.0f,  0.0f, -1.0f }, { 0.0f, 1.0f, 0.0f }, { 0.0f, 1.0f, 0.0f }, { 0.0f, 1.0f } },
     // { {  1.0f,  0.0f, -1.0f }, { 0.0f, 1.0f, 0.0f }, { 1.0f, 1.0f, 0.0f }, { 1.0f, 1.0f } },
@@ -44,7 +47,7 @@ Vertex vertices[] = {
 
 };
 
-GLuint indices[] = {
+GLuint pyramidIndices[] = {
     0, 2, 1,
     0, 3, 2,
     4, 5, 6,
@@ -53,20 +56,20 @@ GLuint indices[] = {
     13, 14, 15,
 };
 
-Vertex lightVertices[] = {
-    { { -0.1f, -0.1f,  0.1f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f } },
-    { { -0.1f, -0.1f, -0.1f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f } },
-    { {  0.1f, -0.1f, -0.1f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f } },
-    { {  0.1f, -0.1f,  0.1f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f } },
-    { { -0.1f,  0.1f,  0.1f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f } },
-    { { -0.1f,  0.1f, -0.1f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f } },
-    { {  0.1f,  0.1f, -0.1f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f } },
-    { {  0.1f,  0.1f,  0.1f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f } }
+Vertex cubeVertices[] = {
+    { { -1.0f, -1.0f,  1.0f }, {  0.0f, -1.0f,  0.0f }, { 1.0f, 0.0f, 0.0f }, { 0.0f, 0.0f } },
+    { { -1.0f, -1.0f, -1.0f }, {  0.0f, -1.0f,  0.0f }, { 0.0f, 1.0f, 0.0f }, { 0.0f, 1.0f } },
+    { {  1.0f, -1.0f, -1.0f }, {  0.0f, -1.0f,  0.0f }, { 0.0f, 0.0f, 1.0f }, { 1.0f, 1.0f } },
+    { {  1.0f, -1.0f,  1.0f }, {  0.0f, -1.0f,  0.0f }, { 1.0f, 1.0f, 0.0f }, { 1.0f, 0.0f } },
+    { { -1.0f,  1.0f,  1.0f }, {  0.0f,  1.0f,  0.0f }, { 1.0f, 0.0f, 1.0f }, { 0.0f, 0.0f } },
+    { { -1.0f,  1.0f, -1.0f }, {  0.0f,  1.0f,  0.0f }, { 0.0f, 1.0f, 1.0f }, { 0.0f, 1.0f } },
+    { {  1.0f,  1.0f, -1.0f }, {  0.0f,  1.0f,  0.0f }, { 1.0f, 1.0f, 1.0f }, { 1.0f, 1.0f } },
+    { {  1.0f,  1.0f,  1.0f }, {  0.0f,  1.0f,  0.0f }, { 0.5f, 0.5f, 0.5f }, { 1.0f, 0.0f } }
 };
 
-GLuint lightIndices[] = {
-    0, 1, 2,
-    0, 2, 3,
+GLuint cubeIndices[] = {
+    0, 2, 1,
+    0, 3, 2,
     0, 4, 7,
     0, 7, 3,
     3, 7, 6,
@@ -79,14 +82,14 @@ GLuint lightIndices[] = {
     4, 6, 7
 };
 
-Vertex PLANEvertices[] = {
+Vertex planeVertices[] = {
     { { -1.0f,  0.0f,  1.0f }, { 0.0f, 1.0f, 0.0f }, { 0.0f, 1.0f, 0.0f }, { 0.0f, 0.0f } },
     { { -1.0f,  0.0f, -1.0f }, { 0.0f, 1.0f, 0.0f }, { 0.0f, 1.0f, 0.0f }, { 0.0f, 1.0f } },
     { {  1.0f,  0.0f, -1.0f }, { 0.0f, 1.0f, 0.0f }, { 1.0f, 1.0f, 0.0f }, { 1.0f, 1.0f } },
     { {  1.0f,  0.0f,  1.0f }, { 0.0f, 1.0f, 0.0f }, { 1.0f, 0.0f, 0.0f }, { 1.0f, 0.0f } }
 };
 
-GLuint PLANEindices[] = {
+GLuint planeIndices[] = {
     0, 1, 2,
     0, 2, 3,
 };
@@ -131,25 +134,6 @@ float get_delta_time() {
 
 // -----------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-void CopyToVertexVector(Vertex* vertices, size_t count, VertexVector* outVec) {
-    VertexVector_Init(outVec);
-    for (size_t i = 0; i < count; i++) {
-        VertexVector_Push(outVec, vertices[i]);
-    }
-}
-void CopyToGLuintVector(GLuint* data, size_t count, GLuintVector* outVec) {
-    GLuintVector_Init(outVec);
-    for (size_t i = 0; i < count; i++) {
-        GLuintVector_Push(outVec, data[i]);
-    }
-}
-void CopyToTextureVector(Texture* textures, size_t count, TextureVector* outVec) {
-    TextureVector_Init(outVec);
-    for (size_t i = 0; i < count; i++) {
-        TextureVector_Push(outVec, textures[i]);
-    }
-}
-
 int main() {
     glfwInit();
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
@@ -179,29 +163,31 @@ int main() {
     Texture textures[1];
     textures[0] = Texture_Init("res/textures/brick.jpg", "diffuse", 0);
     VertexVector verts;
-    CopyToVertexVector(vertices, sizeof(vertices) / sizeof(Vertex), &verts);
+    VertexVector_Copy(pyramidVertices, sizeof(pyramidVertices) / sizeof(Vertex), &verts);
     GLuintVector ind;
-    CopyToGLuintVector(indices, sizeof(indices) / sizeof(GLuint), &ind);
+    GLuintVector_Copy(pyramidIndices, sizeof(pyramidIndices) / sizeof(GLuint), &ind);
     TextureVector tex;
-    CopyToTextureVector(textures, sizeof(textures) / sizeof(Texture), &tex);
+    TextureVector_Copy(textures, sizeof(textures) / sizeof(Texture), &tex);
     Mesh pyramid = Mesh_Init(&verts, &ind, &tex);
 
     Texture PLANEtextures[2];
     PLANEtextures[0] = Texture_Init("res/textures/box.png", "diffuse", 0);
     PLANEtextures[1] = Texture_Init("res/textures/box_specular.png", "specular", 1);
     VertexVector PLANEverts;
-    CopyToVertexVector(PLANEvertices, sizeof(PLANEvertices) / sizeof(Vertex), &PLANEverts);
+    VertexVector_Copy(planeVertices, sizeof(planeVertices) / sizeof(Vertex), &PLANEverts);
     GLuintVector PLANEind;
-    CopyToGLuintVector(PLANEindices, sizeof(PLANEindices) / sizeof(GLuint), &PLANEind);
+    GLuintVector_Copy(planeIndices, sizeof(planeIndices) / sizeof(GLuint), &PLANEind);
     TextureVector PLANEtex;
-    CopyToTextureVector(PLANEtextures, sizeof(PLANEtextures) / sizeof(Texture), &PLANEtex);
+    TextureVector_Copy(PLANEtextures, sizeof(PLANEtextures) / sizeof(Texture), &PLANEtex);
     Mesh floor = Mesh_Init(&PLANEverts, &PLANEind, &PLANEtex);
     
     VertexVector lightVerts;
-    CopyToVertexVector(lightVertices, sizeof(lightVertices) / sizeof(Vertex), &lightVerts);
+    VertexVector_Copy(cubeVertices, sizeof(cubeVertices) / sizeof(Vertex), &lightVerts);
     GLuintVector lightInd;
-    CopyToGLuintVector(lightIndices, sizeof(lightIndices) / sizeof(GLuint), &lightInd);
+    GLuintVector_Copy(cubeIndices, sizeof(cubeIndices) / sizeof(GLuint), &lightInd);
     Mesh light = Mesh_Init(&lightVerts, &lightInd, &tex);
+
+    // FRAMEBUFFER
 
     VAO framebufferVAO = VAO_Init();
     VAO_Bind(&framebufferVAO);
@@ -217,12 +203,13 @@ int main() {
     bool postProcessing = false;
     int ping = 0;
 
-    // LIGHTS AND MODELS
-
     Camera camera = Camera_Init(width, height, 2.5f, 3.0f,(vec3){0.0f, 1.0f, 3.0f});
 
+    LightSystem staticLights = LightSystem_Init(0.2f);
+    LightSystem_AddDirectLight(&staticLights, (vec3){1.0f, -0.5f, 0.5f}, (vec4){0.0f, 0.2f, 1.0f, 1.0f}, 0.5f);
+    
     while(!glfwWindowShouldClose(window)) {
-        
+
         dt = get_delta_time();
         char buffer[256];
         snprintf(buffer, sizeof(buffer), "opengl window: %f FPS", fps);
@@ -235,36 +222,16 @@ int main() {
         Camera_UpdateMatrix(&camera, 45.0f, 0.1f, 100.0f);
 
         FBO_Bind(&postProcessingFBO[ping]);
-        // glClearColor(0.85f, 0.85f, 0.90f, 1.0f);
-        glClearColor(0.07f, 0.13f, 0.17f, 1.0f);
+        glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-        vec4 lightColor;
-        glm_vec4_copy((vec4){1.0f, 1.0f, 1.0f, 1.0f}, lightColor);
 
         vec3 pyramidPos;
         mat4 pyramidModel;
         glm_vec3_copy((vec3){0.0f, 0.0f, 0.0f}, pyramidPos);
         glm_mat4_identity(pyramidModel);
         glm_translate(pyramidModel, pyramidPos);
-
-        Shader_Activate(&glShaderProgram_light3d);
-        glUniform4fv(glGetUniformLocation(glShaderProgram_light3d.ID, "lightColor"), 1, (float*)lightColor);
         Shader_Activate(&glShaderProgram_default3d);
-        glUniformMatrix4fv(glGetUniformLocation(glShaderProgram_default3d.ID, "model"), 1, GL_FALSE, (float*)pyramidModel);
-        glUniform4fv(glGetUniformLocation(glShaderProgram_default3d.ID, "lightColor"), 1, (float*)lightColor);
-
-        vec3 lightPos;
-        mat4 lightModel;
-        glm_vec3_copy((vec3){sin(glfwGetTime()), 0.5f, cos(glfwGetTime())}, lightPos);
-        glm_mat4_identity(lightModel);
-        glm_translate(lightModel, lightPos);
-        
-        Shader_Activate(&glShaderProgram_light3d);
-        glUniformMatrix4fv(glGetUniformLocation(glShaderProgram_light3d.ID, "model"), 1, GL_FALSE, (float*)lightModel);
-        Shader_Activate(&glShaderProgram_default3d);
-        glUniform3fv(glGetUniformLocation(glShaderProgram_default3d.ID, "lightPos"), 1, (float*)lightPos);
-        glUniform1f(glGetUniformLocation(glShaderProgram_default3d.ID, "time"), glfwGetTime());
+        glUniformMatrix4fv(glGetUniformLocation(glShaderProgram_default3d.ID, "model"), 1, GL_FALSE, (float*)pyramidModel); 
 
         // glDisable(GL_DEPTH_TEST);
         // Texture_Bind(&textures[0]);
@@ -275,33 +242,24 @@ int main() {
         // VAO_Bind(&quadVAO);
         // glDrawElements(GL_TRIANGLES, sizeof(QUADindices)/sizeof(int), GL_UNSIGNED_INT, 0);
 
+        LightSystem dynamicLights = LightSystem_Init(0.2f);
+        LightSystem_AddPointLight(&dynamicLights, (vec3){sin(glfwGetTime()), 0.5f, cos(glfwGetTime())}, (vec4){1.0f, 0.1f, 0.05f, 1.0f}, 1.0f, 0.04f, 0.5f);
+        LightSystem_AddPointLight(&dynamicLights, (vec3){-sin(glfwGetTime()), 0.5f, -cos(glfwGetTime())}, (vec4){0.2f, 1.0f, 0.2f, 1.0f}, 1.0f, 0.04f, 0.5f);
+        // LightSystem_AddSpotLight(&dynamicLights, (camera.Position), (camera.Orientation), (vec4){1.0f, 1.0f, 1.0f, 1.0f}, 0.90f, 0.95f, 0.5f);
+
+        LightSystem mergedLights = LightSystem_Init(0.2f);
+        LightSystem_Merge(&mergedLights, &staticLights, &dynamicLights);
+        LightSystem_SetUniforms(&glShaderProgram_default3d, &mergedLights);
+
         glEnable(GL_CULL_FACE);
         glCullFace(GL_FRONT);
         glFrontFace(GL_CCW);
         glEnable(GL_DEPTH_TEST);
 
-        Shader_Activate(&glShaderProgram_default3d);
-        glUniform1f(glGetUniformLocation(glShaderProgram_default3d.ID, "ambient"), 0.0f);
-
-        // glUniform3f(glGetUniformLocation(glShaderProgram_default3d.ID, "directlight.direction"), 1.0f, -0.5f, 0.5f);
-        // glUniform4f(glGetUniformLocation(glShaderProgram_default3d.ID, "directlight.color"), 1.0f, 0.8f, 0.8f, 1.0f);
-        // glUniform1f(glGetUniformLocation(glShaderProgram_default3d.ID, "directlight.specular"), 0.5f);
-        
-        glUniform3f(glGetUniformLocation(glShaderProgram_default3d.ID, "pointlights[0].position"), sin(glfwGetTime()), 0.5f, cos(glfwGetTime()));
-        glUniform4f(glGetUniformLocation(glShaderProgram_default3d.ID, "pointlights[0].color"), 1.0f, 1.0f, 1.0f, 1.0f);
-        glUniform1f(glGetUniformLocation(glShaderProgram_default3d.ID, "pointlights[0].a"), 1.0f);
-        glUniform1f(glGetUniformLocation(glShaderProgram_default3d.ID, "pointlights[0].b"), 0.04f);
-        glUniform1f(glGetUniformLocation(glShaderProgram_default3d.ID, "pointlights[0].specular"), sin(glfwGetTime()));
-        
-        glUniform3fv(glGetUniformLocation(glShaderProgram_default3d.ID, "spotlights[0].position"), 1, (float*)&camera.Position);
-        glUniform3fv(glGetUniformLocation(glShaderProgram_default3d.ID, "spotlights[0].direction"), 1, (float*)&camera.Orientation);
-        glUniform4f(glGetUniformLocation(glShaderProgram_default3d.ID, "spotlights[0].color"), 1.0f, 1.0f, 1.0f, 1.0f);
-        glUniform1f(glGetUniformLocation(glShaderProgram_default3d.ID, "spotlights[0].innerCone"), 0.90f);
-        glUniform1f(glGetUniformLocation(glShaderProgram_default3d.ID, "spotlights[0].outerCone"), 0.95f);
-        glUniform1f(glGetUniformLocation(glShaderProgram_default3d.ID, "spotlights[0].specular"), 0.5f);
-
         Mesh_Draw(&pyramid, &glShaderProgram_default3d, &camera);
         Mesh_Draw(&floor, &glShaderProgram_default3d, &camera);
+
+        LightSystem_DrawLights(&mergedLights, &light, &glShaderProgram_light3d, &camera);
         // Mesh_Draw(&light, &glShaderProgram_light3d, &camera);
 
         // POST PROCESSING

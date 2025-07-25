@@ -22,6 +22,7 @@ typedef struct {
 void VertexVector_Init(VertexVector* vec);
 void VertexVector_Push(VertexVector* vec, Vertex value);
 void VertexVector_Free(VertexVector* vec);
+void VertexVector_Copy(Vertex* vertices, size_t count, VertexVector* outVec);
 
 typedef struct {
     GLuint* data;
@@ -32,6 +33,7 @@ typedef struct {
 void GLuintVector_Init(GLuintVector* vec);
 void GLuintVector_Push(GLuintVector* vec, GLuint value);
 void GLuintVector_Free(GLuintVector* vec);
+void GLuintVector_Copy(GLuint* data, size_t count, GLuintVector* outVec);
 
 typedef struct {
     Texture* data;
@@ -42,6 +44,7 @@ typedef struct {
 void TextureVector_Init(TextureVector* vec);
 void TextureVector_Push(TextureVector* vec, Texture value);
 void TextureVector_Free(TextureVector* vec);
+void TextureVector_Copy(Texture* textures, size_t count, TextureVector* outVec);
 
 
 #endif

@@ -26,7 +26,10 @@
         "cstdlib": "c",
         "stdlib.h": "c",
         "stddef.h": "c",
-        "shader.h": "c"
+        "shader.h": "c",
+        "lights.h": "c",
+        "cglm.h": "c",
+        "stdio.h": "c"
     },
     "C_Cpp.errorSquiggles": "disabled"
 }

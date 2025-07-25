@@ -31,6 +31,13 @@ void VertexVector_Free(VertexVector* vec) {
     vec->capacity = 0;
 }
 
+void VertexVector_Copy(Vertex* vertices, size_t count, VertexVector* outVec) {
+    VertexVector_Init(outVec);
+    for (size_t i = 0; i < count; i++) {
+        VertexVector_Push(outVec, vertices[i]);
+    }
+}
+
 // ==============================
 // GLuintVector
 // ==============================
@@ -56,6 +63,13 @@ void GLuintVector_Free(GLuintVector* vec) {
     vec->capacity = 0;
 }
 
+void GLuintVector_Copy(GLuint* data, size_t count, GLuintVector* outVec) {
+    GLuintVector_Init(outVec);
+    for (size_t i = 0; i < count; i++) {
+        GLuintVector_Push(outVec, data[i]);
+    }
+}
+
 // ==============================
 // TextureVector
 // ==============================
@@ -79,4 +93,11 @@ void TextureVector_Free(TextureVector* vec) {
     vec->data = NULL;
     vec->size = 0;
     vec->capacity = 0;
+}
+
+void TextureVector_Copy(Texture* textures, size_t count, TextureVector* outVec) {
+    TextureVector_Init(outVec);
+    for (size_t i = 0; i < count; i++) {
+        TextureVector_Push(outVec, textures[i]);
+    }
 }

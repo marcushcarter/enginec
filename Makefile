@@ -11,7 +11,7 @@ LDFLAGS := -Llib -lglfw3dll
 # === Files ===
 SRCS := src/main.c include/stb_image/stb_image.c include/glad/glad.c \
         include/opengl/shader.c include/opengl/VAO.c include/opengl/VBO.c include/opengl/EBO.c include/opengl/FBO.c include/opengl/texture.c include/opengl/camera.c include/opengl/vector.c include/opengl/mesh.c \
-		include/opengl/joystick.c
+		include/opengl/joystick.c include/opengl/lights.c
 
 OUT := opengl.exe
 

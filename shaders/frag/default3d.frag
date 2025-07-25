@@ -36,12 +36,12 @@ struct SpotLight {
     float specular;
 };
 
-#define NUM_POINT_LIGHTS 1
-#define NUM_SPOT_LIGHTS 1
-
-uniform DirectLight directlight;
-uniform PointLight pointlights[NUM_POINT_LIGHTS];
-uniform SpotLight spotlights[NUM_SPOT_LIGHTS];
+uniform int NR_DIRECT_LIGHTS;
+uniform int NR_SPOT_LIGHTS;
+uniform int NR_POINT_LIGHTS;
+uniform DirectLight directlights[100];
+uniform PointLight pointlights[100];
+uniform SpotLight spotlights[100];
 
 vec3 calcDirectLight(DirectLight light, vec3 normal, vec3 viewDirection) {
 
@@ -99,21 +99,38 @@ vec3 calcSpotLight(SpotLight light, vec3 normal, vec3 viewDirection) {
     return (texture(diffuse0, texCoord) * (diffuse * inten) + texture(diffuse0, texCoord).r * specular * inten) * light.color;
 }
 
+float near = 0.1f;
+float far = 100.0f;
+
+float linearizeDepth(float depth) {
+    return (2.0 * near * far) / (far + near - (depth * 2.0 - 1.0) * (far - near));
+}
+
+float logisticDepth(float depth) {
+    float steepness = 0.5f;
+    float offset = 5.0f;
+    float zVal = linearizeDepth(depth);
+    return (1/ (1 + exp(-steepness * (zVal - offset))));
+}
+
 void main() {
     vec3 normal = normalize(Normal);
     vec3 viewDir = normalize(camPos - crntPos);
 
     vec3 result = texture(diffuse0, texCoord).rgb * ambient;
-
-    result += calcDirectLight(directlight, normal, viewDir);
     
-    for (int i = 0; i < NUM_POINT_LIGHTS; i++) {
+    for (int i = 0; i < NR_DIRECT_LIGHTS; i++) {
+        result += calcDirectLight(directlights[i], normal, viewDir);
+    }
+    
+    for (int i = 0; i < NR_POINT_LIGHTS; i++) {
         result += calcPointLight(pointlights[i], normal, viewDir);
     }
     
-    for (int i = 0; i < NUM_SPOT_LIGHTS; i++) {
+    for (int i = 0; i < NR_SPOT_LIGHTS; i++) {
         result += calcSpotLight(spotlights[i], normal, viewDir);
     }
 
+    // FragColor = vec4(result, 1.0) * (1.0f - logisticDepth(gl_FragCoord.z)) + vec4(logisticDepth(gl_FragCoord.z) * vec3(0.1f, 0.1f, 0.1f), 1.0f);
     FragColor = vec4(result, 1.0);
 }
