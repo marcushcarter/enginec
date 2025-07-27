@@ -7,26 +7,6 @@
 
 #include <stdio.h>
 
-char* fmt(const char* fmt, ...) {
-    va_list args;
-    va_start(args, fmt);
-
-    int length = vsnprintf(NULL, 0, fmt, args);
-    va_end(args);
-
-    if (length < 0) return NULL;
-
-    char* buffer = malloc(length + 1);
-    if (!buffer) return NULL;
-
-    // Now write to buffer
-    va_start(args, fmt);
-    vsnprintf(buffer, length + 1, fmt, args);
-    va_end(args);
-
-    return buffer;
-}
-
 LightSystem LightSystem_Init(float ambient) {
     LightSystem lightSystem;
     lightSystem.ambient = ambient;
@@ -150,14 +130,32 @@ void LightSystem_SetUniforms(Shader* shader, LightSystem* lightSystem) {
     //     glUniform1f(glGetUniformLocation(shader->ID, fmt("pointlights[%d].specular", i)), lightSystem->pointlights[i].specular);  
     // }
     
+    char buffer[256];
+
+    snprintf(buffer, sizeof(buffer), "", 0);
+
     for (int i = 0; i < lightSystem->numSpotLights; i++) {
-        glUniform3fv(glGetUniformLocation(shader->ID, fmt("spotlights[%d].position", i)), 1, (float*)lightSystem->spotlights[i].position);
-        glUniform3fv(glGetUniformLocation(shader->ID, fmt("spotlights[%d].direction", i)), 1, (float*)lightSystem->spotlights[i].direction);
-        glUniform4fv(glGetUniformLocation(shader->ID, fmt("spotlights[%d].color", i)), 1, (float*)lightSystem->spotlights[i].color);
-        glUniform1f(glGetUniformLocation(shader->ID, fmt("spotlights[%d].innerCone", i)), lightSystem->spotlights[i].innerCone);
-        glUniform1f(glGetUniformLocation(shader->ID, fmt("spotlights[%d].outerCone", i)), lightSystem->spotlights[i].outerCone);
-        glUniform1f(glGetUniformLocation(shader->ID, fmt("spotlights[%d].specular", i)), lightSystem->spotlights[i].specular); 
-        glUniformMatrix4fv(glGetUniformLocation(shader->ID, fmt("spotlights[%d].lightSpaceMatrix", i)), 1, GL_FALSE, (float*)lightSystem->spotlights[i].lightSpaceMatrix);
+        snprintf(buffer, sizeof(buffer), "spotlights[%d].position", i);
+        glUniform3fv(glGetUniformLocation(shader->ID, buffer), 1, (float*)lightSystem->spotlights[i].position);
+
+        snprintf(buffer, sizeof(buffer), "spotlights[%d].direction", i);
+        glUniform3fv(glGetUniformLocation(shader->ID, buffer), 1, (float*)lightSystem->spotlights[i].direction);
+
+        snprintf(buffer, sizeof(buffer), "spotlights[%d].color", i);
+        glUniform4fv(glGetUniformLocation(shader->ID, buffer), 1, (float*)lightSystem->spotlights[i].color);
+
+        snprintf(buffer, sizeof(buffer), "spotlights[%d].innerCone", i);
+        glUniform1f(glGetUniformLocation(shader->ID, buffer), lightSystem->spotlights[i].innerCone);
+
+        snprintf(buffer, sizeof(buffer), "spotlights[%d].outerCone", i);
+        glUniform1f(glGetUniformLocation(shader->ID, buffer), lightSystem->spotlights[i].outerCone);
+
+        snprintf(buffer, sizeof(buffer), "spotlights[%d].specular", i);
+        glUniform1f(glGetUniformLocation(shader->ID, buffer), lightSystem->spotlights[i].specular); 
+
+        snprintf(buffer, sizeof(buffer), "spotlights[%d].lightSpaceMatrix", i);
+        glUniformMatrix4fv(glGetUniformLocation(shader->ID, buffer), 1, GL_FALSE, (float*)lightSystem->spotlights[i].lightSpaceMatrix);
+
     }
     
     glActiveTexture(GL_TEXTURE0 + 5);

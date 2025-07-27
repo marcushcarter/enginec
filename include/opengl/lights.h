@@ -35,7 +35,6 @@ typedef struct {
     float outerCone;
     float specular;
 
-    // ShadowMapFBO shadowFBO;
     mat4 lightSpaceMatrix;
 } SpotLight;
 
@@ -58,8 +57,6 @@ typedef struct {
 } LightSystem;
 
 typedef void (*ShadowRenderFunc)(Shader* shader, Camera* camera);
-
-char* fmt(const char* fmt, ...);
 
 LightSystem LightSystem_Init(float ambient);
 void LightSystem_Clear(LightSystem* lightSystem);
