@@ -6,13 +6,14 @@
 
 typedef struct {
     GLuint fbo;
-    GLuint depthTexture;
+    GLuint depthTextureArray;
     int width;
     int height;
+    int layers;
 } ShadowMapFBO;
 
-ShadowMapFBO ShadowMapFBO_Init(int width, int height);
-void ShadowMapFBO_Bind(ShadowMapFBO* smfbo);
+ShadowMapFBO ShadowMapFBO_Init(int width, int height, int layers);
+void ShadowMapFBO_BindLayer(ShadowMapFBO* smfbo, int layer);
 void ShadowMapFBO_Unbind(void);
 void ShadowMapFBO_Delete(ShadowMapFBO* smfbo);
 

@@ -6,15 +6,14 @@
 #include "opengl/mesh.h"
 #include "opengl/shadowMapFBO.h"
 
-#define MAX_POINT_LIGHTS 100
-#define MAX_SPOT_LIGHTS 100
+#define MAX_POINT_LIGHTS 8
+#define MAX_SPOT_LIGHTS 8
 
 typedef struct {
     vec3 direction;
     vec4 color;
     float specular;
 
-    ShadowMapFBO shadowFBO;
     mat4 lightSpaceMatrix;
 } DirectLight;
 
@@ -24,9 +23,7 @@ typedef struct {
     float a;
     float b;
     float specular;
-
-    GLuint shadowCubeMap;
-    float farPlane;
+    
 } PointLight;
 
 typedef struct {
@@ -37,18 +34,27 @@ typedef struct {
     float innerCone;
     float outerCone;
     float specular;
+
+    ShadowMapFBO shadowFBO;
+    mat4 lightSpaceMatrix;
 } SpotLight;
 
 typedef struct {
     DirectLight directlight;
     PointLight pointlights[MAX_POINT_LIGHTS];
     SpotLight spotlights[MAX_SPOT_LIGHTS];
+
     int numPointLights;
     int numSpotLights;
+
+    ShadowMapFBO directShadowFBO;
+    ShadowMapFBO pointShadowFBO;
+    ShadowMapFBO spotShadowFBO;
+    
     float ambient;
 
-    // GLuint shadowMap;
-    // mat4 lightSpaceMatrix;
+    GLuint shadowMap;
+    mat4 lightSpaceMatrix;
 } LightSystem;
 
 typedef void (*ShadowRenderFunc)(Shader* shader, Camera* camera);
@@ -56,6 +62,7 @@ typedef void (*ShadowRenderFunc)(Shader* shader, Camera* camera);
 char* fmt(const char* fmt, ...);
 
 LightSystem LightSystem_Init(float ambient);
+void LightSystem_Clear(LightSystem* lightSystem);
 void LightSystem_SetUniforms(Shader* shader, LightSystem* lightSystem);
 void LightSystem_MakeShadowMaps(LightSystem* lightSystem, Shader* lightShader, Camera* camera, ShadowRenderFunc renderFunc);
 void LightSystem_Merge(LightSystem* dest, LightSystem* a, LightSystem* b);

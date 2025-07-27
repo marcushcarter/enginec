@@ -244,12 +244,15 @@ int main() {
     bool postProcessing = false;
     int ping = 0;
 
-    ShadowMapFBO shadowFBO = ShadowMapFBO_Init(4096, 4096);
-
     Camera camera = Camera_Init(width, height, 2.5f, 3.0f,(vec3){0.0f, 1.0f, 3.0f});
+    
+    GLint maxTexUnits;
+    glGetIntegerv(GL_MAX_TEXTURE_IMAGE_UNITS, &maxTexUnits);
+    printf("Max texture units: %d\n", maxTexUnits);
 
-    LightSystem staticLights = LightSystem_Init(0.0f);
-    staticLights.directlight.shadowFBO = ShadowMapFBO_Init(1000, 1000);
+    LightSystem staticLights = LightSystem_Init(0.2f);
+    LightSystem dynamicLights = LightSystem_Init(0.2f);
+    LightSystem mergedLights = LightSystem_Init(0.2f);
     
     while(!glfwWindowShouldClose(window)) {
 
@@ -264,16 +267,18 @@ int main() {
         Camera_Inputs(&camera, window, &joysticks[0], dt);
         Camera_UpdateMatrix(&camera, 45.0f, 0.1f, 100.0f);
         
-        LightSystem dynamicLights = LightSystem_Init(0.0f);
+        LightSystem_Clear(&dynamicLights);
+        LightSystem_Clear(&mergedLights);
+
         // LightSystem_AddPointLight(&dynamicLights, (vec3){sin(glfwGetTime()), 1.0f, cos(glfwGetTime())}, (vec4){1.0f, 0.1f, 0.05f, 1.0f}, 1.0f, 0.04f, 0.5f);
         // LightSystem_AddPointLight(&dynamicLights, (vec3){-sin(glfwGetTime()), 1.0f, -cos(glfwGetTime())}, (vec4){0.2f, 1.0f, 0.2f, 1.0f}, 1.0f, 0.04f, 0.5f);
-        // LightSystem_AddSpotLight(&dynamicLights, (camera.Position), (camera.Orientation), (vec4){1.0f, 1.0f, 1.0f, 1.0f}, 0.90f, 0.95f, 0.5f);
-        LightSystem_SetDirectLight(&staticLights, (vec3){sin(glfwGetTime()), -0.5f, cos(glfwGetTime())}, (vec4){1.0f, 1.0f, 1.0f, 1.0f}, 0.5f);
+        // LightSystem_AddSpotLight(&dynamicLights, (vec3){0.0f, 2.5f, 0.0f}, (vec3){0.1f, -1.0f, 0.0f}, (vec4){1.0f, 1.0f, 1.0f, 1.0f}, 0.90f, 0.95f, 0.5f);
+        // LightSystem_SetDirectLight(&dynamicLights, (vec3){sin(glfwGetTime()), -0.5f, cos(glfwGetTime())}, (vec4){1.0f, 1.0f, 1.0f, 1.0f}, 0.5f);
         // LightSystem_SetDirectLight(&staticLights, (vec3){1.0f, -0.5f, 1.0f}, (vec4){1.0f, 1.0f, 1.0f, 1.0f}, 0.5f);
 
-        LightSystem mergedLights = LightSystem_Init(0.0f);
-        LightSystem_Merge(&mergedLights, &staticLights, &dynamicLights);
-
+        // LightSystem_Merge(&mergedLights, &staticLights, &dynamicLights);
+        LightSystem_SetDirectLight(&mergedLights, (vec3){sin(glfwGetTime()), -0.5f, cos(glfwGetTime())}, (vec4){1.0f, 1.0f, 1.0f, 1.0f}, 0.5f);
+        // LightSystem_AddSpotLight(&mergedLights, (vec3){0.0f, 2.5f, 0.0f}, (vec3){0.1f, -1.0f, 0.0f}, (vec4){1.0f, 1.0f, 1.0f, 1.0f}, 0.90f, 0.95f, 0.5f);
         LightSystem_MakeShadowMaps(&mergedLights, &shadowMapProgram, &camera, draw_stuff);
 
         glViewport(0, 0, width, height);
