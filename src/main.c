@@ -344,7 +344,7 @@ int main() {
             glClear(GL_COLOR_BUFFER_BIT);
             Shader_Activate(&pixelate);
             FBO_BindTexture(&postProcessingFBO[!ping]);
-            glUniform1i(glGetUniformLocation(pixelate.ID, "u_texture"), 0);
+            glUniform1i(glGetUniformLocation(pixelate.ID, "screenTexture"), 0);
             glUniform2f(glGetUniformLocation(pixelate.ID, "resolution"), postProcessingFBO[!ping].width, postProcessingFBO[!ping].height);
             glUniform1f(glGetUniformLocation(pixelate.ID, "pixelSize"), 4.0f);
             VAO_Bind(&framebufferVAO);
@@ -355,7 +355,7 @@ int main() {
             // glClear(GL_COLOR_BUFFER_BIT);
             // Shader_Activate(&outline);
             // FBO_BindTexture(&postProcessingFBO[!ping]);
-            // glUniform1i(glGetUniformLocation(pixelate.ID, "u_texture"), 0);
+            // glUniform1i(glGetUniformLocation(pixelate.ID, "screenTexture"), 0);
             // VAO_Bind(&framebufferVAO);
             // glDrawArrays(GL_TRIANGLES, 0, 6);
             // ping = !ping;
@@ -365,7 +365,7 @@ int main() {
         glClear(GL_COLOR_BUFFER_BIT);
         Shader_Activate(&postFBO);
         FBO_BindTexture(&postProcessingFBO[!ping]);
-        glUniform1i(glGetUniformLocation(outline.ID, "u_texture"), 0);
+        glUniform1i(glGetUniformLocation(outline.ID, "screenTexture"), 0);
         VAO_Bind(&framebufferVAO);
         glDrawArrays(GL_TRIANGLES, 0, 6);
 
