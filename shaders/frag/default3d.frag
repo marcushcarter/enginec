@@ -96,7 +96,7 @@ vec3 calcDirectLight(DirectLight light, vec3 normal, vec3 viewDirection, int ind
     return (texture(diffuse0, texCoord) * diffuse * (1.0f - shadow) + texture(specular0, texCoord).r * specular * (1.0f - shadow)) * light.color;
 }
 
-vec3 calcPointLight(PointLight light, vec3 normal, vec3 viewDirection) {
+vec3 calcPointLight(PointLight light, vec3 normal, vec3 viewDirection, int index) {
     
     float dist = length(light.position - crntPos);
     float inten = 1.0f / (light.a * dist * dist + light.b * dist + 1.0f); 
@@ -197,19 +197,16 @@ void main() {
     result += calcSpotLight(spotlights[3], normal, viewDir, 3);
     result += calcSpotLight(spotlights[4], normal, viewDir, 4);
 
-
-
-    // for (int i = 0; i < NR_POINT_LIGHTS; i++) {
-    //     result += calcPointLight(pointlights[i], normal, viewDir);
-    //}
-
-    // result += calcSpotLight(spotlights[0], normal, viewDir, 0);
+    result += calcPointLight(pointlights[0], normal, viewDir, 0);
+    result += calcPointLight(pointlights[1], normal, viewDir, 1);
+    result += calcPointLight(pointlights[2], normal, viewDir, 2);
+    result += calcPointLight(pointlights[3], normal, viewDir, 3);
+    result += calcPointLight(pointlights[4], normal, viewDir, 4);
+    result += calcPointLight(pointlights[5], normal, viewDir, 5);
+    result += calcPointLight(pointlights[6], normal, viewDir, 6);
+    result += calcPointLight(pointlights[7], normal, viewDir, 7);
     
-    //for (int i = 0; i < NR_SPOT_LIGHTS; i++) {
-      //  result += calcSpotLight(spotlights[i], normal, viewDir, i);
-    //}
-    
-     FragColor = vec4(result, 1.0);
+    FragColor = vec4(result, 1.0);
     
     // float depth = logisticDepth(gl_FragCoord.z);
     // FragColor = pointLight() * (1.0f - depth) + vec4(depth * vec3(0.85f, 0.85f, 0.90f), 1.0f);

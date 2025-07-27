@@ -162,10 +162,14 @@ void draw_stuff(Shader* shader, Camera* camera) {
     make_model_matrix((vec3){0.0f, 0.5f, 0.0f}, (vec3){0.0f, 0.0f, 0.0f}, (vec3){1.0f, 1.0f, 1.0f}, model);
     glUniformMatrix4fv(glGetUniformLocation(shader->ID, "model"), 1, GL_FALSE, (float*)model);
     Mesh_Draw(&pyramid, shader, camera);
+
+    // for (int i = 0; i < 20; i++) {
     
     make_model_matrix((vec3){0.0f, 0.0f, 0.0f}, (vec3){0.0f, 0.0f, 0.0f}, (vec3){3.0f, 1.0f, 3.0f}, model);
     glUniformMatrix4fv(glGetUniformLocation(shader->ID, "model"), 1, GL_FALSE, (float*)model);
     Mesh_Draw(&ground, shader, camera);
+
+    // }
 
     // PLAYER
 
@@ -281,15 +285,15 @@ int main() {
         // LightSystem_Clear(&dynamicLights);
         LightSystem_Clear(&mergedLights);
 
-        // LightSystem_AddPointLight(&dynamicLights, (vec3){sin(glfwGetTime()), 1.0f, cos(glfwGetTime())}, (vec4){1.0f, 0.1f, 0.05f, 1.0f}, 1.0f, 0.04f, 0.5f);
-        // LightSystem_AddPointLight(&dynamicLights, (vec3){-sin(glfwGetTime()), 1.0f, -cos(glfwGetTime())}, (vec4){0.2f, 1.0f, 0.2f, 1.0f}, 1.0f, 0.04f, 0.5f);
+        LightSystem_AddPointLight(&mergedLights, (vec3){sin(glfwGetTime()), 1.0f, cos(glfwGetTime())}, (vec4){1.0f, 0.1f, 0.05f, 1.0f}, 1.0f, 0.04f, 0.5f);
+        LightSystem_AddPointLight(&mergedLights, (vec3){-sin(glfwGetTime()), 1.0f, -cos(glfwGetTime())}, (vec4){0.2f, 1.0f, 0.2f, 1.0f}, 1.0f, 0.04f, 0.5f);
         // LightSystem_AddSpotLight(&dynamicLights, (vec3){0.0f, 2.5f, 0.0f}, (vec3){0.1f, -1.0f, 0.0f}, (vec4){1.0f, 1.0f, 1.0f, 1.0f}, 0.90f, 0.95f, 0.5f);
         // LightSystem_SetDirectLight(&dynamicLights, (vec3){sin(glfwGetTime()), -0.5f, cos(glfwGetTime())}, (vec4){1.0f, 1.0f, 1.0f, 1.0f}, 0.5f);
         // LightSystem_SetDirectLight(&staticLights, (vec3){1.0f, -0.5f, 1.0f}, (vec4){1.0f, 1.0f, 1.0f, 1.0f}, 0.5f);
 
         // LightSystem_Merge(&mergedLights, &staticLights, &dynamicLights);
         // LightSystem_SetDirectLight(&mergedLights, (vec3){sin(glfwGetTime()), -0.5f, cos(glfwGetTime())}, (vec4){1.0f, 1.0f, 1.0f, 1.0f}, 0.5f);
-        // LightSystem_SetDirectLight(&mergedLights, (vec3){cos(glfwGetTime()), -0.5f, sin(glfwGetTime())}, (vec4){1.0f, 1.0f, 1.0f, 1.0f}, 0.5f);
+        LightSystem_SetDirectLight(&mergedLights, (vec3){cos(glfwGetTime()/10), -0.5f, sin(glfwGetTime()/10)}, (vec4){1.0f, 1.0f, 1.0f, 1.0f}, 0.5f);
         LightSystem_AddSpotLight(&mergedLights, (vec3){0.0f, 8.5f, 0.0f}, (vec3){0.1f, -1.0f, 0.0f}, (vec4){1.0f, 1.0f, 1.0f, 1.0f}, 0.90f, 0.95f, 0.5f);
         // LightSystem_AddSpotLight(&mergedLights, (vec3){-3.0f, 3.0f, 3.0f}, (vec3){0.6f, -1.0f, -0.6f}, (vec4){1.0f, 0.2f, 0.0f, 1.0f}, 0.90f, 0.95f, 0.5f);
         // LightSystem_AddSpotLight(&mergedLights, (vec3){3.5f, 6.0f, 1.0f}, (vec3){-0.5f, -1.0f, -0.2f}, (vec4){0.0f, 0.8f, 1.0f, 1.0f}, 0.92f, 0.96f, 0.6f);

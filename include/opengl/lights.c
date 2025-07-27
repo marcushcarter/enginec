@@ -122,19 +122,31 @@ void LightSystem_SetUniforms(Shader* shader, LightSystem* lightSystem) {
     glBindTexture(GL_TEXTURE_2D_ARRAY, lightSystem->directShadowFBO.depthTextureArray);
     glUniform1i(glGetUniformLocation(shader->ID, "directShadowMapArray"), 3);
 
-    // for (int i = 0; i < lightSystem->numPointLights; i++) {
-    //     glUniform3fv(glGetUniformLocation(shader->ID, fmt("pointlights[%d].position", i)), 1, (float*)lightSystem->pointlights[i].position);
-    //     glUniform4fv(glGetUniformLocation(shader->ID, fmt("pointlights[%d].color", i)), 1, (float*)lightSystem->pointlights[i].color);
-    //     glUniform1f(glGetUniformLocation(shader->ID, fmt("pointlights[%d].a", i)), lightSystem->pointlights[i].a);
-    //     glUniform1f(glGetUniformLocation(shader->ID, fmt("pointlights[%d].b", i)), lightSystem->pointlights[i].b);
-    //     glUniform1f(glGetUniformLocation(shader->ID, fmt("pointlights[%d].specular", i)), lightSystem->pointlights[i].specular);  
-    // }
-    
     char buffer[256];
 
     snprintf(buffer, sizeof(buffer), "", 0);
 
+    for (int i = 0; i < lightSystem->numPointLights; i++) {
+
+        snprintf(buffer, sizeof(buffer), "pointlights[%d].position", i);
+        glUniform3fv(glGetUniformLocation(shader->ID, buffer), 1, (float*)lightSystem->pointlights[i].position);
+
+        snprintf(buffer, sizeof(buffer), "pointlights[%d].color", i);
+        glUniform4fv(glGetUniformLocation(shader->ID, buffer), 1, (float*)lightSystem->pointlights[i].color);
+
+        snprintf(buffer, sizeof(buffer), "pointlights[%d].a", i);
+        glUniform1f(glGetUniformLocation(shader->ID, buffer), lightSystem->pointlights[i].a);
+
+        snprintf(buffer, sizeof(buffer), "pointlights[%d].b", i);
+        glUniform1f(glGetUniformLocation(shader->ID, buffer), lightSystem->pointlights[i].b);
+
+        snprintf(buffer, sizeof(buffer), "pointlights[%d].specular", i);
+        glUniform1f(glGetUniformLocation(shader->ID, buffer), lightSystem->pointlights[i].specular);  
+
+    }
+
     for (int i = 0; i < lightSystem->numSpotLights; i++) {
+
         snprintf(buffer, sizeof(buffer), "spotlights[%d].position", i);
         glUniform3fv(glGetUniformLocation(shader->ID, buffer), 1, (float*)lightSystem->spotlights[i].position);
 
