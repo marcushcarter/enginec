@@ -21,10 +21,11 @@ ShadowMapFBO ShadowMapFBO_Init(int width, int height, int layers) {
 
     float borderColor[] = { 1.0f, 1.0f, 1.0f, 1.0f };
     glTexParameterfv(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_BORDER_COLOR, borderColor);
+    glFramebufferTextureLayer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, smfbo.depthTextureArray, 0, 0);
 
-    // glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, smfbo.depthTextureArray, 0);
-    // glDrawBuffer(GL_NONE);
-    // glReadBuffer(GL_NONE);
+    glDrawBuffer(GL_NONE);
+    glReadBuffer(GL_NONE);
+
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
     return smfbo;
@@ -36,11 +37,6 @@ void ShadowMapFBO_BindLayer(ShadowMapFBO* smfbo, int layer) {
    
     glDrawBuffer(GL_NONE);
     glReadBuffer(GL_NONE);
-
-
-    // glViewport(0, 0, smfbo->width, smfbo->height);
-    // glBindFramebuffer(GL_FRAMEBUFFER, smfbo->fbo);
-    // glClear(GL_DEPTH_BUFFER_BIT);
 }
 
 void ShadowMapFBO_Delete(ShadowMapFBO* smfbo) {

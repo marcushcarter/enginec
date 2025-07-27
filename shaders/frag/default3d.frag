@@ -17,8 +17,7 @@ struct DirectLight {
     vec4 color;
     float specular;
 
-    sampler2D shadowMap;
-    mat4 lightProjection;
+    mat4 lightSpaceMatrix;
 };
 
 struct PointLight {
@@ -27,6 +26,8 @@ struct PointLight {
     float a;
     float b;
     float specular;
+
+    mat4 lightSpaceMatrix;
 };
 
 struct SpotLight {
@@ -38,21 +39,21 @@ struct SpotLight {
     float outerCone;
     float specular;
 
-    sampler2D shadowMap;
-    mat4 lightProjection;
+    mat4 lightSpaceMatrix;
 };
 
-uniform int NR_SPOT_LIGHTS;
-uniform int NR_POINT_LIGHTS;
 uniform DirectLight directlight;
-uniform PointLight pointlights[10];
-uniform SpotLight spotlights[10];
-
 uniform sampler2DArray directShadowMapArray;
+
+uniform int NR_POINT_LIGHTS;
+uniform PointLight pointlights[10];
 uniform sampler2DArray pointShadowMapArray;
+
+uniform int NR_SPOT_LIGHTS;
+uniform SpotLight spotlights[10];
 uniform sampler2DArray spotShadowMapArray;
 
-vec3 calcDirectLight(DirectLight light, vec3 normal, vec3 viewDirection) {
+vec3 calcDirectLight(DirectLight light, vec3 normal, vec3 viewDirection, int index) {
 
     vec3 lightDirection = normalize(-light.direction);
 
@@ -66,22 +67,22 @@ vec3 calcDirectLight(DirectLight light, vec3 normal, vec3 viewDirection) {
 		specular = specAmount * specularLight;
     };
 
-    vec4 fragPosLight = light.lightProjection * vec4(crntPos, 1.0);
+    vec4 fragPosLight = light.lightSpaceMatrix * vec4(crntPos, 1.0);
 
     float shadow = 0.0f;
     vec3 lightCoords = fragPosLight.xyz / fragPosLight.w;
     if(lightCoords.z <= 1.0f) {
         lightCoords = (lightCoords + 1.0f) / 2.0f;
 
-        float closestDepth = texture(directShadowMapArray, vec3(lightCoords.xy, 0)).r;
+        float closestDepth = texture(directShadowMapArray, vec3(lightCoords.xy, index)).r;
         float currentDepth = lightCoords.z;
         float bias = max(0.025f * (1.0f - dot(normal, lightDirection)), 0.0005f);
 
         int sampleRadius = 2;
-        vec2 pixelSize = 1.0 / vec2(textureSize(directShadowMapArray, 0).xy);
+        vec2 pixelSize = 1.0 / vec2(textureSize(directShadowMapArray, index).xy);
         for (int y = -sampleRadius; y <= sampleRadius; y++) {
             for (int x = -sampleRadius; x <= sampleRadius; x++) {
-                float closestDepth = texture(directShadowMapArray, vec3(lightCoords.xy + vec2(x, y) * pixelSize, 0)).r;
+                float closestDepth = texture(directShadowMapArray, vec3(lightCoords.xy + vec2(x, y) * pixelSize, index)).r;
                 if (currentDepth > closestDepth + bias) {
                     shadow += 1.0f;
                 }
@@ -115,14 +116,17 @@ vec3 calcPointLight(PointLight light, vec3 normal, vec3 viewDirection) {
     return (texture(diffuse0, texCoord) * (diffuse * inten) + texture(specular0, texCoord).r * specular * inten) * light.color;
 }
 
-vec3 calcSpotLight(SpotLight light, vec3 normal, vec3 viewDirection) {
-
-    vec3 lightDirection = normalize(light.position - crntPos);
-    float diffuse = max(dot(normal, lightDirection), 0.0f);
+vec3 calcSpotLight(SpotLight light, vec3 normal, vec3 viewDirection, int index) { 
     
+    vec3 lightDirection = normalize(light.position - crntPos);
+
+    float diffuse = max(dot(normal, lightDirection), 0.0f);
+
     float specular = 0.0f;
     if (diffuse != 0.0f) {
         float specularLight = light.specular;
+
+
         vec3 halfwayVec = normalize(viewDirection + lightDirection);
         float specAmount = pow(max(dot(normal, halfwayVec), 0.0f), 8);
         specular = specAmount * specularLight;
@@ -130,23 +134,23 @@ vec3 calcSpotLight(SpotLight light, vec3 normal, vec3 viewDirection) {
 
     float angle = dot(normalize(-light.direction), lightDirection);
     float inten = clamp((angle - light.outerCone) / (light.outerCone - light.innerCone), 0.0f, 1.0f);
-
-    vec4 fragPosLight = light.lightProjection * vec4(crntPos, 1.0);
+    
+    vec4 fragPosLight = light.lightSpaceMatrix * vec4(crntPos, 1.0);
 
     float shadow = 0.0f;
     vec3 lightCoords = fragPosLight.xyz / fragPosLight.w;
     if(lightCoords.z <= 1.0f) {
         lightCoords = (lightCoords + 1.0f) / 2.0f;
 
-        float closestDepth = texture(light.shadowMap, lightCoords.xy).r;
+        float closestDepth = texture(spotShadowMapArray, vec3(lightCoords.xy, index)).r;
         float currentDepth = lightCoords.z;
-        float bias = max(0.00025f * (1.0f - dot(normal, lightDirection)), 0.000005f);
+        float bias = max(0.005f * (1.0f - dot(normal, lightDirection)), 0.002f);
 
         int sampleRadius = 2;
-        vec2 pixelSize = 1.0 / textureSize(light.shadowMap, 0);
+        vec2 pixelSize = 1.0 / vec2(textureSize(spotShadowMapArray, index).xy);
         for (int y = -sampleRadius; y <= sampleRadius; y++) {
             for (int x = -sampleRadius; x <= sampleRadius; x++) {
-                float closestDepth = texture(light.shadowMap, lightCoords.xy + vec2(x, y) * pixelSize).r;
+                float closestDepth = texture(spotShadowMapArray, vec3(lightCoords.xy + vec2(x, y) * pixelSize, index)).r;
                 if (currentDepth > closestDepth + bias) {
                     shadow += 1.0f;
                 }
@@ -156,6 +160,8 @@ vec3 calcSpotLight(SpotLight light, vec3 normal, vec3 viewDirection) {
 
         shadow /= pow((sampleRadius * 2. + 1.), 2);
     }
+
+    // return (texture(diffuse0, texCoord) * diffuse * (1.0f - shadow) + texture(specular0, texCoord).r * specular * (1.0f - shadow)) * light.color;
 
     return (texture(diffuse0, texCoord) * (diffuse * (1.0f - shadow) * inten) + texture(specular0, texCoord).r * specular * (1.0f - shadow) * inten) * light.color;
 }
@@ -179,18 +185,29 @@ void main() {
     vec3 viewDir = normalize(camPos - crntPos);
 
     vec3 result = texture(diffuse0, texCoord).rgb * ambient;
+
+    result += calcDirectLight(directlight, normal, viewDir, 0);
+
+    //
+
     
-    result += calcDirectLight(directlight, normal, viewDir);
+    result += calcSpotLight(spotlights[0], normal, viewDir, 0);
+    result += calcSpotLight(spotlights[1], normal, viewDir, 1);
+    result += calcSpotLight(spotlights[2], normal, viewDir, 2);
+    result += calcSpotLight(spotlights[3], normal, viewDir, 3);
+    result += calcSpotLight(spotlights[4], normal, viewDir, 4);
+
+
 
     // for (int i = 0; i < NR_POINT_LIGHTS; i++) {
     //     result += calcPointLight(pointlights[i], normal, viewDir);
-    // }
+    //}
 
-    // result += calcSpotLight(spotlights[0], normal, viewDir);
+    // result += calcSpotLight(spotlights[0], normal, viewDir, 0);
     
-    // for (int i = 0; i < NR_SPOT_LIGHTS; i++) {
-    //     result += calcSpotLight(spotlights[i], normal, viewDir);
-    // }
+    //for (int i = 0; i < NR_SPOT_LIGHTS; i++) {
+      //  result += calcSpotLight(spotlights[i], normal, viewDir, i);
+    //}
     
      FragColor = vec4(result, 1.0);
     

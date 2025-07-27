@@ -163,7 +163,7 @@ void draw_stuff(Shader* shader, Camera* camera) {
     glUniformMatrix4fv(glGetUniformLocation(shader->ID, "model"), 1, GL_FALSE, (float*)model);
     Mesh_Draw(&pyramid, shader, camera);
     
-    make_model_matrix((vec3){0.0f, 0.0f, 0.0f}, (vec3){0.0f, 0.0f, 0.0f}, (vec3){1.0f, 1.0f, 1.0f}, model);
+    make_model_matrix((vec3){0.0f, 0.0f, 0.0f}, (vec3){0.0f, 0.0f, 0.0f}, (vec3){3.0f, 1.0f, 3.0f}, model);
     glUniformMatrix4fv(glGetUniformLocation(shader->ID, "model"), 1, GL_FALSE, (float*)model);
     Mesh_Draw(&ground, shader, camera);
 
@@ -172,6 +172,17 @@ void draw_stuff(Shader* shader, Camera* camera) {
     make_model_matrix(camera->Position, (vec3){0.0f, 0.0f, 0.0f}, (vec3){0.2f, 0.2f, 0.2f}, model);
     glUniformMatrix4fv(glGetUniformLocation(shader->ID, "model"), 1, GL_FALSE, (float*)model);
     Mesh_Draw(&pyramid, shader, camera);
+}
+
+void print_mat4(mat4 m) {
+    printf("mat4:\n");
+    for (int row = 0; row < 4; row++) {
+        printf("[ ");
+        for (int col = 0; col < 4; col++) {
+            printf("%8.3f ", m[col][row]);  // cglm stores matrices column-major
+        }
+        printf("]\n");
+    }
 }
 
 int main() {
@@ -250,9 +261,9 @@ int main() {
     glGetIntegerv(GL_MAX_TEXTURE_IMAGE_UNITS, &maxTexUnits);
     printf("Max texture units: %d\n", maxTexUnits);
 
-    LightSystem staticLights = LightSystem_Init(0.2f);
-    LightSystem dynamicLights = LightSystem_Init(0.2f);
-    LightSystem mergedLights = LightSystem_Init(0.2f);
+    // LightSystem staticLights = LightSystem_Init(0.2f);
+    // LightSystem dynamicLights = LightSystem_Init(0.2f);
+    LightSystem mergedLights = LightSystem_Init(0.0f);
     
     while(!glfwWindowShouldClose(window)) {
 
@@ -267,7 +278,7 @@ int main() {
         Camera_Inputs(&camera, window, &joysticks[0], dt);
         Camera_UpdateMatrix(&camera, 45.0f, 0.1f, 100.0f);
         
-        LightSystem_Clear(&dynamicLights);
+        // LightSystem_Clear(&dynamicLights);
         LightSystem_Clear(&mergedLights);
 
         // LightSystem_AddPointLight(&dynamicLights, (vec3){sin(glfwGetTime()), 1.0f, cos(glfwGetTime())}, (vec4){1.0f, 0.1f, 0.05f, 1.0f}, 1.0f, 0.04f, 0.5f);
@@ -277,9 +288,19 @@ int main() {
         // LightSystem_SetDirectLight(&staticLights, (vec3){1.0f, -0.5f, 1.0f}, (vec4){1.0f, 1.0f, 1.0f, 1.0f}, 0.5f);
 
         // LightSystem_Merge(&mergedLights, &staticLights, &dynamicLights);
-        LightSystem_SetDirectLight(&mergedLights, (vec3){sin(glfwGetTime()), -0.5f, cos(glfwGetTime())}, (vec4){1.0f, 1.0f, 1.0f, 1.0f}, 0.5f);
-        // LightSystem_AddSpotLight(&mergedLights, (vec3){0.0f, 2.5f, 0.0f}, (vec3){0.1f, -1.0f, 0.0f}, (vec4){1.0f, 1.0f, 1.0f, 1.0f}, 0.90f, 0.95f, 0.5f);
+        // LightSystem_SetDirectLight(&mergedLights, (vec3){sin(glfwGetTime()), -0.5f, cos(glfwGetTime())}, (vec4){1.0f, 1.0f, 1.0f, 1.0f}, 0.5f);
+        // LightSystem_SetDirectLight(&mergedLights, (vec3){cos(glfwGetTime()), -0.5f, sin(glfwGetTime())}, (vec4){1.0f, 1.0f, 1.0f, 1.0f}, 0.5f);
+        LightSystem_AddSpotLight(&mergedLights, (vec3){0.0f, 8.5f, 0.0f}, (vec3){0.1f, -1.0f, 0.0f}, (vec4){1.0f, 1.0f, 1.0f, 1.0f}, 0.90f, 0.95f, 0.5f);
+        // LightSystem_AddSpotLight(&mergedLights, (vec3){-3.0f, 3.0f, 3.0f}, (vec3){0.6f, -1.0f, -0.6f}, (vec4){1.0f, 0.2f, 0.0f, 1.0f}, 0.90f, 0.95f, 0.5f);
+        // LightSystem_AddSpotLight(&mergedLights, (vec3){3.5f, 6.0f, 1.0f}, (vec3){-0.5f, -1.0f, -0.2f}, (vec4){0.0f, 0.8f, 1.0f, 1.0f}, 0.92f, 0.96f, 0.6f);
+        // LightSystem_AddSpotLight(&mergedLights, (vec3){0.0f, 5.5f, -4.0f}, (vec3){0.0f, -1.0f, 0.8f}, (vec4){0.6f, 0.1f, 1.0f, 1.0f}, 0.91f, 0.94f, 0.55f);
+        // LightSystem_AddSpotLight(&mergedLights, (vec3){-2.0f, 2.2f, -2.5f}, (vec3){0.4f, -0.9f, 0.5f}, (vec4){1.0f, 1.0f, 0.2f, 1.0f}, 0.89f, 0.93f, 0.45f);
+
+        // LightSystem_AddPointLight(&mergedLights, (vec3){sin(glfwGetTime()), 1.0f, cos(glfwGetTime())}, (vec4){1.0f, 0.1f, 0.05f, 1.0f}, 1.0f, 0.04f, 0.5f);
+        // LightSystem_AddPointLight(&mergedLights, (vec3){cos(glfwGetTime()), 1.0f, sin(glfwGetTime())}, (vec4){0.2f, 1.0f, 0.2f, 1.0f}, 1.0f, 0.04f, 0.5f);
         LightSystem_MakeShadowMaps(&mergedLights, &shadowMapProgram, &camera, draw_stuff);
+
+        // if (joystickIsPressed(&joysticks[0], 6)) print_mat4(mergedLights.spotlight.lightSpaceMatrix);
 
         glViewport(0, 0, width, height);
         FBO_Bind(&postProcessingFBO[ping]);
@@ -301,6 +322,8 @@ int main() {
         glEnable(GL_DEPTH_TEST);
 
         LightSystem_SetUniforms(&glShaderProgram_default3d, &mergedLights);
+        
+        // Camera_MatrixCustom(&glShaderProgram_default3d, "camMatrix", mergedLights.spotlights[0].lightSpaceMatrix);
 
         draw_stuff(&glShaderProgram_default3d, &camera);
         

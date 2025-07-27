@@ -34,15 +34,8 @@ LightSystem LightSystem_Init(float ambient) {
     lightSystem.numSpotLights = 0;
     
     lightSystem.directShadowFBO = ShadowMapFBO_Init(1024*4, 1024*4, 1);
-
-    // for (int i = 0; i < MAX_POINT_LIGHTS; i++) {
-    //     lightSystem.pointlights[i].shadowFBO = ShadowMapFBO_Init(1024*4, 1024*4);
-    // }
-    
-    for (int i = 0; i < MAX_SPOT_LIGHTS; i++) {
-    // for (int i = 0; i < 5; i++) {
-        // lightSystem.spotlights[i].shadowFBO = ShadowMapFBO_Init(1024*4, 1024*4, 1);
-    }
+    // lightSystem.pointShadowFBO = ShadowMapFBO_Init(1024*4, 1024*4, 1);
+    lightSystem.spotShadowFBO = ShadowMapFBO_Init(250, 250, MAX_SPOT_LIGHTS);
 
     return lightSystem;
 }
@@ -51,13 +44,13 @@ void LightSystem_Clear(LightSystem* lightSystem) {
     lightSystem->numPointLights = 0;
     lightSystem->numSpotLights = 0;
 
-    for (int i = 0; i < MAX_POINT_LIGHTS; i++) {
-        glm_vec3_zero(lightSystem->pointlights[i].position);
-        glm_vec4_zero(lightSystem->pointlights[i].color);
-        lightSystem->pointlights[i].a = 0.0f;
-        lightSystem->pointlights[i].b = 0.0f;
-        lightSystem->pointlights[i].specular = 0.0f;
-    }
+    // for (int i = 0; i < MAX_POINT_LIGHTS; i++) {
+    //     glm_vec3_zero(lightSystem->pointlights[i].position);
+    //     glm_vec4_zero(lightSystem->pointlights[i].color);
+    //     lightSystem->pointlights[i].a = 0.0f;
+    //     lightSystem->pointlights[i].b = 0.0f;
+    //     lightSystem->pointlights[i].specular = 0.0f;
+    // }
 
     for (int i = 0; i < MAX_SPOT_LIGHTS; i++) {
         glm_vec3_zero(lightSystem->spotlights[i].position);
@@ -94,39 +87,40 @@ void LightSystem_AddPointLight(LightSystem* lightSystem, vec3 position, vec4 col
     lightSystem->pointlights[lightSystem->numPointLights++] = light;
 }
 
-void LightSystem_AddSpotLight(LightSystem* lightSystem, vec3 position, vec3 direction, vec4 color, float innerCone, float outerCone, float specular) {
+void LightSystem_AddSpotLight(LightSystem* lightSystem, vec3 position, vec3 direction, vec4 color, float innerConeCos, float outerConeCos, float specular) {
     if (lightSystem->numSpotLights >= MAX_SPOT_LIGHTS) return;
     
     SpotLight light;
+    
     glm_vec3_copy(position, light.position);
-
-    // normalize direction before copying and using it
     vec3 normDir;
     glm_normalize_to(direction, normDir);
     glm_vec3_copy(normDir, light.direction);
-
     glm_vec4_copy(color, light.color);
-    light.innerCone = innerCone;
-    light.outerCone = outerCone;
+    light.innerCone = innerConeCos;
+    light.outerCone = outerConeCos;
     light.specular = specular;
+    
+    float outerAngleRad = acosf(outerConeCos);
+    float outerAngleDeg = glm_deg(outerAngleRad);
+    float fov = outerAngleDeg * 2.0f;
 
-    // perspective matrix for spotlight
-    mat4 perspectiveProjection;
-    glm_perspective(glm_rad(90.0f), 1.0f, 0.1f, 100.0f, perspectiveProjection);
-
-    // calculate target = position + normalized direction
+    mat4 proj;
+    glm_perspective(glm_rad(fov), 1.0f, 0.1f, 100.0f, proj);
+    
     vec3 target;
     glm_vec3_add(position, normDir, target);
 
-    // up vector is usually (0,1,0)
-    mat4 lightView;
-    glm_lookat(position, target, (vec3){0.0f, 1.0f, 0.0f}, lightView);
+    vec3 up = {0.0f, 1.0f, 0.0f};
+    if (fabsf(glm_dot(normDir, up)) > 0.99f)
+        glm_vec3_copy((vec3){1.0f, 0.0f, 0.0f}, up);
 
-    // final light space matrix = projection * view
-    glm_mat4_mul(perspectiveProjection, lightView, light.lightSpaceMatrix);
+    mat4 view;
+    glm_lookat(position, target, up, view);
+
+    glm_mat4_mul(proj, view, light.lightSpaceMatrix);
 
     lightSystem->spotlights[lightSystem->numSpotLights++] = light;
-
 
 }
 
@@ -135,26 +129,26 @@ void LightSystem_SetUniforms(Shader* shader, LightSystem* lightSystem) {
     Shader_Activate(shader);
 
     glUniform1f(glGetUniformLocation(shader->ID, "ambient"), lightSystem->ambient);
-    glUniform1i(glGetUniformLocation(shader->ID, "NR_POINT_LIGHTS"), lightSystem->numPointLights);
-    glUniform1i(glGetUniformLocation(shader->ID, "NR_SPOT_LIGHTS"), lightSystem->numSpotLights);
+    // glUniform1i(glGetUniformLocation(shader->ID, "NR_POINT_LIGHTS"), lightSystem->numPointLights);
+    // glUniform1i(glGetUniformLocation(shader->ID, "NR_SPOT_LIGHTS"), lightSystem->numSpotLights);
 
 
     glUniform3fv(glGetUniformLocation(shader->ID, "directlight.direction"), 1, (float*)lightSystem->directlight.direction);
     glUniform4fv(glGetUniformLocation(shader->ID, "directlight.color"), 1, (float*)lightSystem->directlight.color);
     glUniform1f(glGetUniformLocation(shader->ID, "directlight.specular"), lightSystem->directlight.specular);
-    glUniformMatrix4fv(glGetUniformLocation(shader->ID, "directlight.lightProjection"), 1, GL_FALSE, (float*)lightSystem->directlight.lightSpaceMatrix);
+    glUniformMatrix4fv(glGetUniformLocation(shader->ID, "directlight.lightSpaceMatrix"), 1, GL_FALSE, (float*)lightSystem->directlight.lightSpaceMatrix);
 
-    glActiveTexture(GL_TEXTURE3);
+    glActiveTexture(GL_TEXTURE0 + 3);
     glBindTexture(GL_TEXTURE_2D_ARRAY, lightSystem->directShadowFBO.depthTextureArray);
     glUniform1i(glGetUniformLocation(shader->ID, "directShadowMapArray"), 3);
 
-    for (int i = 0; i < lightSystem->numPointLights; i++) {
-        glUniform3fv(glGetUniformLocation(shader->ID, fmt("pointlights[%d].position", i)), 1, (float*)lightSystem->pointlights[i].position);
-        glUniform4fv(glGetUniformLocation(shader->ID, fmt("pointlights[%d].color", i)), 1, (float*)lightSystem->pointlights[i].color);
-        glUniform1f(glGetUniformLocation(shader->ID, fmt("pointlights[%d].a", i)), lightSystem->pointlights[i].a);
-        glUniform1f(glGetUniformLocation(shader->ID, fmt("pointlights[%d].b", i)), lightSystem->pointlights[i].b);
-        glUniform1f(glGetUniformLocation(shader->ID, fmt("pointlights[%d].specular", i)), lightSystem->pointlights[i].specular);  
-    }
+    // for (int i = 0; i < lightSystem->numPointLights; i++) {
+    //     glUniform3fv(glGetUniformLocation(shader->ID, fmt("pointlights[%d].position", i)), 1, (float*)lightSystem->pointlights[i].position);
+    //     glUniform4fv(glGetUniformLocation(shader->ID, fmt("pointlights[%d].color", i)), 1, (float*)lightSystem->pointlights[i].color);
+    //     glUniform1f(glGetUniformLocation(shader->ID, fmt("pointlights[%d].a", i)), lightSystem->pointlights[i].a);
+    //     glUniform1f(glGetUniformLocation(shader->ID, fmt("pointlights[%d].b", i)), lightSystem->pointlights[i].b);
+    //     glUniform1f(glGetUniformLocation(shader->ID, fmt("pointlights[%d].specular", i)), lightSystem->pointlights[i].specular);  
+    // }
     
     for (int i = 0; i < lightSystem->numSpotLights; i++) {
         glUniform3fv(glGetUniformLocation(shader->ID, fmt("spotlights[%d].position", i)), 1, (float*)lightSystem->spotlights[i].position);
@@ -163,24 +157,49 @@ void LightSystem_SetUniforms(Shader* shader, LightSystem* lightSystem) {
         glUniform1f(glGetUniformLocation(shader->ID, fmt("spotlights[%d].innerCone", i)), lightSystem->spotlights[i].innerCone);
         glUniform1f(glGetUniformLocation(shader->ID, fmt("spotlights[%d].outerCone", i)), lightSystem->spotlights[i].outerCone);
         glUniform1f(glGetUniformLocation(shader->ID, fmt("spotlights[%d].specular", i)), lightSystem->spotlights[i].specular); 
+        glUniformMatrix4fv(glGetUniformLocation(shader->ID, fmt("spotlights[%d].lightSpaceMatrix", i)), 1, GL_FALSE, (float*)lightSystem->spotlights[i].lightSpaceMatrix);
     }
+    
+    glActiveTexture(GL_TEXTURE0 + 5);
+    glBindTexture(GL_TEXTURE_2D_ARRAY, lightSystem->spotShadowFBO.depthTextureArray);
+    glUniform1i(glGetUniformLocation(shader->ID, "spotShadowMapArray"), 5);
 
 }
 
 void LightSystem_MakeShadowMaps(LightSystem* lightSystem, Shader* lightShader, Camera* camera, ShadowRenderFunc renderFunc) {
     
     Shader_Activate(lightShader);
-
     glEnable(GL_DEPTH_TEST);
+
     ShadowMapFBO_BindLayer(&lightSystem->directShadowFBO, 0);
     glViewport(0, 0, lightSystem->directShadowFBO.width, lightSystem->directShadowFBO.height);
     glClear(GL_DEPTH_BUFFER_BIT);
-    glUniformMatrix4fv(glGetUniformLocation(lightShader->ID, "lightProjection"), 1, GL_FALSE, (float*)lightSystem->directlight.lightSpaceMatrix);
+    glUniformMatrix4fv(glGetUniformLocation(lightShader->ID, "lightSpaceMatrix"), 1, GL_FALSE, (float*)lightSystem->directlight.lightSpaceMatrix);
     renderFunc(lightShader, camera);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+    for (int i = 0; i < lightSystem->numSpotLights; i++) {
+        
+        ShadowMapFBO_BindLayer(&lightSystem->spotShadowFBO, i);
+        glViewport(0, 0, lightSystem->spotShadowFBO.width, lightSystem->spotShadowFBO.height);
+        glClear(GL_DEPTH_BUFFER_BIT);
+        glUniformMatrix4fv(glGetUniformLocation(lightShader->ID, "lightSpaceMatrix"), 1, GL_FALSE, (float*)lightSystem->spotlights[i].lightSpaceMatrix);
+        renderFunc(lightShader, camera);
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    }
+
+    // glEnable(GL_DEPTH_TEST);
+    // ShadowMapFBO_BindLayer(&lightSystem->directShadowFBO, 0);
+    // glViewport(0, 0, lightSystem->directShadowFBO.width, lightSystem->directShadowFBO.height);
+    // glClear(GL_DEPTH_BUFFER_BIT);
+    // glUniformMatrix4fv(glGetUniformLocation(lightShader->ID, "lightSpaceMatrix"), 1, GL_FALSE, (float*)lightSystem->directlight.lightSpaceMatrix);
+    // renderFunc(lightShader, camera);
+    // glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
 void LightSystem_DrawLights(LightSystem* lightSystem, Mesh* mesh, Shader* shader, Camera* camera) {
+    
+    Shader_Activate(shader);
 
     vec3 lightScale = { 1.0f, 1.0f, 1.0f };
 
@@ -207,7 +226,6 @@ void LightSystem_DrawLights(LightSystem* lightSystem, Mesh* mesh, Shader* shader
         glm_mat4_identity(lightModel);
         glm_translate(lightModel, lightSystem->pointlights[i].position);
         glm_scale(lightModel, lightScale);
-        Shader_Activate(shader);
         glUniformMatrix4fv(glGetUniformLocation(shader->ID, "model"), 1, GL_FALSE, (float*)lightModel);
         glUniform4fv(glGetUniformLocation(shader->ID, "lightColor"), 1, (float*)lightSystem->pointlights[i].color);   
         Mesh_Draw(mesh, shader, camera); 
@@ -218,7 +236,6 @@ void LightSystem_DrawLights(LightSystem* lightSystem, Mesh* mesh, Shader* shader
         glm_mat4_identity(lightModel);
         glm_translate(lightModel, lightSystem->spotlights[i].position);
         glm_scale(lightModel, lightScale);
-        Shader_Activate(shader);
         glUniformMatrix4fv(glGetUniformLocation(shader->ID, "model"), 1, GL_FALSE, (float*)lightModel);
         glUniform4fv(glGetUniformLocation(shader->ID, "lightColor"), 1, (float*)lightSystem->spotlights[i].color);  
         Mesh_Draw(mesh, shader, camera);  

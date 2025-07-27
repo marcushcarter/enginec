@@ -50,6 +50,10 @@ void Camera_Matrix(Camera* camera, Shader* shader, const char* uniform) {
     glUniformMatrix4fv(glGetUniformLocation(shader->ID, uniform), 1, GL_FALSE, (float*)camera->cameraMatrix);
 }
 
+void Camera_MatrixCustom(Shader* shader, const char* uniform, mat4 matrix) {
+    glUniformMatrix4fv(glGetUniformLocation(shader->ID, uniform), 1, GL_FALSE, (float*)matrix);
+}
+
 void rotate_vec3_axis(vec3 in, vec3 axis, float angle_rad, vec3 out) {
     vec3 axis_n;
     glm_vec3_normalize_to(axis, axis_n);
