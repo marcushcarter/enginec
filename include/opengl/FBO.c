@@ -99,9 +99,10 @@ void FBO_Bind(FBO* fb) {
     glBindFramebuffer(GL_FRAMEBUFFER, fb->fbo);
 }
 
-void FBO_BindTexture(FBO* fb) {
+void FBO_BindTexture(FBO* fb, Shader* shader) {
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, fb->texture);
+    glUniform1i(glGetUniformLocation(shader->ID, "screenTexture"), 0);
 }
 
 void FBO_Unbind() {

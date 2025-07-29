@@ -267,7 +267,7 @@ int main() {
 
     // LightSystem staticLights = LightSystem_Init(0.2f);
     // LightSystem dynamicLights = LightSystem_Init(0.2f);
-    LightSystem mergedLights = LightSystem_Init(0.0f);
+    LightSystem mergedLights = LightSystem_Init(0.2f);
     
     while(!glfwWindowShouldClose(window)) {
 
@@ -294,11 +294,7 @@ int main() {
         // LightSystem_Merge(&mergedLights, &staticLights, &dynamicLights);
         // LightSystem_SetDirectLight(&mergedLights, (vec3){sin(glfwGetTime()), -0.5f, cos(glfwGetTime())}, (vec4){1.0f, 1.0f, 1.0f, 1.0f}, 0.5f);
         LightSystem_SetDirectLight(&mergedLights, (vec3){cos(glfwGetTime()/10), -0.5f, sin(glfwGetTime()/10)}, (vec4){1.0f, 1.0f, 1.0f, 1.0f}, 0.5f);
-        LightSystem_AddSpotLight(&mergedLights, (vec3){0.0f, 8.5f, 0.0f}, (vec3){0.1f, -1.0f, 0.0f}, (vec4){1.0f, 1.0f, 1.0f, 1.0f}, 0.90f, 0.95f, 0.5f);
-        // LightSystem_AddSpotLight(&mergedLights, (vec3){-3.0f, 3.0f, 3.0f}, (vec3){0.6f, -1.0f, -0.6f}, (vec4){1.0f, 0.2f, 0.0f, 1.0f}, 0.90f, 0.95f, 0.5f);
-        // LightSystem_AddSpotLight(&mergedLights, (vec3){3.5f, 6.0f, 1.0f}, (vec3){-0.5f, -1.0f, -0.2f}, (vec4){0.0f, 0.8f, 1.0f, 1.0f}, 0.92f, 0.96f, 0.6f);
-        // LightSystem_AddSpotLight(&mergedLights, (vec3){0.0f, 5.5f, -4.0f}, (vec3){0.0f, -1.0f, 0.8f}, (vec4){0.6f, 0.1f, 1.0f, 1.0f}, 0.91f, 0.94f, 0.55f);
-        // LightSystem_AddSpotLight(&mergedLights, (vec3){-2.0f, 2.2f, -2.5f}, (vec3){0.4f, -0.9f, 0.5f}, (vec4){1.0f, 1.0f, 0.2f, 1.0f}, 0.89f, 0.93f, 0.45f);
+        // LightSystem_AddSpotLight(&mergedLights, (vec3){0.0f, 8.5f, 0.0f}, (vec3){0.1f, -1.0f, 0.0f}, (vec4){1.0f, 1.0f, 1.0f, 1.0f}, 0.90f, 0.95f, 0.5f);
 
         // LightSystem_AddPointLight(&mergedLights, (vec3){sin(glfwGetTime()), 1.0f, cos(glfwGetTime())}, (vec4){1.0f, 0.1f, 0.05f, 1.0f}, 1.0f, 0.04f, 0.5f);
         // LightSystem_AddPointLight(&mergedLights, (vec3){cos(glfwGetTime()), 1.0f, sin(glfwGetTime())}, (vec4){0.2f, 1.0f, 0.2f, 1.0f}, 1.0f, 0.04f, 0.5f);
@@ -326,8 +322,6 @@ int main() {
         glEnable(GL_DEPTH_TEST);
 
         LightSystem_SetUniforms(&glShaderProgram_default3d, &mergedLights);
-        
-        // Camera_MatrixCustom(&glShaderProgram_default3d, "camMatrix", mergedLights.spotlights[0].lightSpaceMatrix);
 
         draw_stuff(&glShaderProgram_default3d, &camera);
         
@@ -339,13 +333,11 @@ int main() {
         glDisable(GL_DEPTH_TEST);
         glDisable(GL_CULL_FACE);
         
-        if (postProcessing) {
+        if (postProcessing || glfwGetKey(window, GLFW_KEY_1) == GLFW_PRESS) {
             FBO_Bind(&postProcessingFBO[ping]);
             glClear(GL_COLOR_BUFFER_BIT);
             Shader_Activate(&pixelate);
-            FBO_BindTexture(&postProcessingFBO[!ping]);
-            glUniform1i(glGetUniformLocation(pixelate.ID, "screenTexture"), 0);
-            glUniform2f(glGetUniformLocation(pixelate.ID, "resolution"), postProcessingFBO[!ping].width, postProcessingFBO[!ping].height);
+            FBO_BindTexture(&postProcessingFBO[!ping], &pixelate);
             glUniform1f(glGetUniformLocation(pixelate.ID, "pixelSize"), 4.0f);
             VAO_Bind(&framebufferVAO);
             glDrawArrays(GL_TRIANGLES, 0, 6);
@@ -364,8 +356,7 @@ int main() {
         FBO_Unbind();
         glClear(GL_COLOR_BUFFER_BIT);
         Shader_Activate(&postFBO);
-        FBO_BindTexture(&postProcessingFBO[!ping]);
-        glUniform1i(glGetUniformLocation(outline.ID, "screenTexture"), 0);
+        FBO_BindTexture(&postProcessingFBO[!ping], &postFBO);
         VAO_Bind(&framebufferVAO);
         glDrawArrays(GL_TRIANGLES, 0, 6);
 

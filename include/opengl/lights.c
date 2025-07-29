@@ -109,8 +109,8 @@ void LightSystem_SetUniforms(Shader* shader, LightSystem* lightSystem) {
     Shader_Activate(shader);
 
     glUniform1f(glGetUniformLocation(shader->ID, "ambient"), lightSystem->ambient);
-    // glUniform1i(glGetUniformLocation(shader->ID, "NR_POINT_LIGHTS"), lightSystem->numPointLights);
-    // glUniform1i(glGetUniformLocation(shader->ID, "NR_SPOT_LIGHTS"), lightSystem->numSpotLights);
+    glUniform1i(glGetUniformLocation(shader->ID, "NR_POINT_LIGHTS"), lightSystem->numPointLights);
+    glUniform1i(glGetUniformLocation(shader->ID, "NR_SPOT_LIGHTS"), lightSystem->numSpotLights);
 
 
     glUniform3fv(glGetUniformLocation(shader->ID, "directlight.direction"), 1, (float*)lightSystem->directlight.direction);
