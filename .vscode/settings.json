@@ -30,7 +30,10 @@
         "lights.h": "c",
         "cglm.h": "c",
         "stdio.h": "c",
-        "shadowmapfbo.h": "c"
+        "shadowmapfbo.h": "c",
+        "numbers": "c",
+        "ratio": "c",
+        "import.h": "c"
     },
     "C_Cpp.errorSquiggles": "disabled"
 }

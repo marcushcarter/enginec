@@ -15,6 +15,9 @@
 #include "opengl/shadowMapFBO.h"
 #include "opengl/joystick.h"
 #include "opengl/lights.h"
+#include "opengl/import.h"
+
+#include "vert.c"
 
 unsigned int width = 1600;
 unsigned int height = 1000;
@@ -56,6 +59,14 @@ GLuint pyramidIndices[] = {
     10, 11, 12,
     13, 14, 15,
 };
+
+
+Vertex gunVertices[] = {
+};
+
+GLuint gunIndices[] = {
+};
+
 
 Vertex cubeVertices[] = {
     { { -1.0f, -1.0f,  1.0f }, {  0.0f, -1.0f,  0.0f }, { 1.0f, 0.0f, 0.0f }, { 0.0f, 0.0f } },
@@ -135,7 +146,7 @@ float get_delta_time() {
 
 // -----------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-Mesh ground, pyramid, light;
+Mesh ground, pyramid, light, Gun, Model;
 
 void make_model_matrix(vec3 translation, vec3 rotation, vec3 scale, mat4 dest) {
     mat4 trans, rotX, rotY, rotZ, rot, scl;
@@ -168,6 +179,10 @@ void draw_stuff(Shader* shader, Camera* camera) {
     make_model_matrix((vec3){0.0f, 0.0f, 0.0f}, (vec3){0.0f, 0.0f, 0.0f}, (vec3){3.0f, 1.0f, 3.0f}, model);
     glUniformMatrix4fv(glGetUniformLocation(shader->ID, "model"), 1, GL_FALSE, (float*)model);
     Mesh_Draw(&ground, shader, camera);
+    
+    make_model_matrix((vec3){0.0f, 1.5f, 0.0f}, (vec3){0.0f, 0.0f, 0.0f}, (vec3){1.0f, 1.0f, 1.0f}, model);
+    glUniformMatrix4fv(glGetUniformLocation(shader->ID, "model"), 1, GL_FALSE, (float*)model);
+    Mesh_Draw(&Model, shader, camera);
 
     // }
 
@@ -211,6 +226,7 @@ int main() {
     Shader glShaderProgram_default3d = Shader_Init("shaders/vert/default3d.vert", "shaders/frag/default3d.frag", NULL);
     Shader glShaderProgram_light3d = Shader_Init("shaders/vert/light3d.vert", "shaders/frag/light3d.frag", NULL);
     Shader shadowMapProgram = Shader_Init("shaders/vert/shadowMap.vert", "shaders/frag/shadowMap.frag", NULL);
+    Shader programssss = Shader_Init("shaders/vert/default3d.vert", "shaders/frag/blank.frag", NULL);
     
     Shader postFBO = Shader_Init("shaders/framebuffer/framebuffer.vert", "shaders/framebuffer/framebuffer.frag", NULL);
     Shader pixelate = Shader_Init("shaders/framebuffer/framebuffer.vert", "shaders/framebuffer/pixelate.frag", NULL);
@@ -242,6 +258,20 @@ int main() {
     GLuintVector lightInd;
     GLuintVector_Copy(cubeIndices, sizeof(cubeIndices) / sizeof(GLuint), &lightInd);
     light = Mesh_Init(&lightVerts, &lightInd, &tex);
+
+    Gun = Import_loadMeshFromOBJ("res/models/Untitled.obj");
+
+    VertexVector modelverts;
+    VertexVector_Copy(modelVertices, sizeof(modelVertices) / sizeof(Vertex), &modelverts);
+    GLuintVector modelind;
+    GLuintVector_Copy(modelIndices, sizeof(modelIndices) / sizeof(GLuint), &modelind);
+    Model = Mesh_Init(&modelverts, &modelind, &PLANEtex);
+
+    for (int i = 0; i < Gun.textures->size; i++) {
+        printf("Gun texture %d ID: %u\n", i, Gun.textures->data[i].ID);
+    }
+
+
 
     // FRAMEBUFFER
 
@@ -285,8 +315,8 @@ int main() {
         // LightSystem_Clear(&dynamicLights);
         LightSystem_Clear(&mergedLights);
 
-        LightSystem_AddPointLight(&mergedLights, (vec3){sin(glfwGetTime()), 1.0f, cos(glfwGetTime())}, (vec4){1.0f, 0.1f, 0.05f, 1.0f}, 1.0f, 0.04f, 0.5f);
-        LightSystem_AddPointLight(&mergedLights, (vec3){-sin(glfwGetTime()), 1.0f, -cos(glfwGetTime())}, (vec4){0.2f, 1.0f, 0.2f, 1.0f}, 1.0f, 0.04f, 0.5f);
+        // LightSystem_AddPointLight(&mergedLights, (vec3){sin(glfwGetTime()), 1.0f, cos(glfwGetTime())}, (vec4){1.0f, 0.1f, 0.05f, 1.0f}, 1.0f, 0.04f, 0.5f);
+        // LightSystem_AddPointLight(&mergedLights, (vec3){-sin(glfwGetTime()), 1.0f, -cos(glfwGetTime())}, (vec4){0.2f, 1.0f, 0.2f, 1.0f}, 1.0f, 0.04f, 0.5f);
         // LightSystem_AddSpotLight(&dynamicLights, (vec3){0.0f, 2.5f, 0.0f}, (vec3){0.1f, -1.0f, 0.0f}, (vec4){1.0f, 1.0f, 1.0f, 1.0f}, 0.90f, 0.95f, 0.5f);
         // LightSystem_SetDirectLight(&dynamicLights, (vec3){sin(glfwGetTime()), -0.5f, cos(glfwGetTime())}, (vec4){1.0f, 1.0f, 1.0f, 1.0f}, 0.5f);
         // LightSystem_SetDirectLight(&staticLights, (vec3){1.0f, -0.5f, 1.0f}, (vec4){1.0f, 1.0f, 1.0f, 1.0f}, 0.5f);
