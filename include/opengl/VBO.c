@@ -1,4 +1,4 @@
-#include "opengl/VBO.h"
+#include "VBO.h"
 
 VBO VBO_InitRaw(GLfloat* vertices, GLsizeiptr size) {
     VBO vbo;

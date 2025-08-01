@@ -1,9 +1,9 @@
-#include "opengl/lights.h"
+#include "lights.h"
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include <stdlib.h>
 #include <stdarg.h>
-#include "opengl/mesh.h"
+#include "mesh.h"
 
 #include <stdio.h>
 
@@ -13,7 +13,7 @@ LightSystem LightSystem_Init(float ambient) {
     lightSystem.numPointLights = 0;
     lightSystem.numSpotLights = 0;
     
-    lightSystem.directShadowFBO = ShadowMapFBO_Init(1024*4, 1024*4, 1);
+    lightSystem.directShadowFBO = ShadowMapFBO_Init(1024*10, 1024*10, 1);
     // lightSystem.pointShadowFBO = ShadowMapFBO_Init(1024*4, 1024*4, 1);
     lightSystem.spotShadowFBO = ShadowMapFBO_Init(250, 250, MAX_SPOT_LIGHTS);
 
@@ -50,7 +50,7 @@ void LightSystem_SetDirectLight(LightSystem* lightSystem, vec3 direction, vec4 c
     mat4 orthographicProjection, lightView;
     glm_ortho(-35.0f, 35.0f, -35.0f, 35.0f, 0.1f, 100.0f, orthographicProjection);
     vec3 lightPos;
-    glm_vec3_scale(direction, -30.0f, lightPos);
+    glm_vec3_scale(direction, -DIRECT_LIGHT_DIST, lightPos);
     glm_lookat(lightPos, (vec3){0.0f, 0.0f, 0.0f}, (vec3){0.0f, 1.0f, 0.0f}, lightView);
     glm_mat4_mul(orthographicProjection, lightView, lightSystem->directlight.lightSpaceMatrix);
 }
@@ -188,15 +188,15 @@ void LightSystem_MakeShadowMaps(LightSystem* lightSystem, Shader* lightShader, C
     renderFunc(lightShader, camera);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-    for (int i = 0; i < lightSystem->numSpotLights; i++) {
+    // for (int i = 0; i < lightSystem->numSpotLights; i++) {
         
-        ShadowMapFBO_BindLayer(&lightSystem->spotShadowFBO, i);
-        glViewport(0, 0, lightSystem->spotShadowFBO.width, lightSystem->spotShadowFBO.height);
-        glClear(GL_DEPTH_BUFFER_BIT);
-        glUniformMatrix4fv(glGetUniformLocation(lightShader->ID, "lightSpaceMatrix"), 1, GL_FALSE, (float*)lightSystem->spotlights[i].lightSpaceMatrix);
-        renderFunc(lightShader, camera);
-        glBindFramebuffer(GL_FRAMEBUFFER, 0);
-    }
+    //     ShadowMapFBO_BindLayer(&lightSystem->spotShadowFBO, i);
+    //     glViewport(0, 0, lightSystem->spotShadowFBO.width, lightSystem->spotShadowFBO.height);
+    //     glClear(GL_DEPTH_BUFFER_BIT);
+    //     glUniformMatrix4fv(glGetUniformLocation(lightShader->ID, "lightSpaceMatrix"), 1, GL_FALSE, (float*)lightSystem->spotlights[i].lightSpaceMatrix);
+    //     renderFunc(lightShader, camera);
+    //     glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    // }
 
     // glEnable(GL_DEPTH_TEST);
     // ShadowMapFBO_BindLayer(&lightSystem->directShadowFBO, 0);
@@ -213,23 +213,19 @@ void LightSystem_DrawLights(LightSystem* lightSystem, Mesh* mesh, Shader* shader
 
     vec3 lightScale = { 1.0f, 1.0f, 1.0f };
 
-    // for (int i = 0; i < lightSystem->numDirectLights; i++) {
-    //     mat4 lightModel;
-    //     glm_mat4_identity(lightModel);
-    //     vec3 lightPos;
-    //     glm_vec3_mul(lightSystem->directlights[i].direction, (vec3){ 50.0f, 50.0f, 50.0f}, lightPos);
-    //     glm_vec3_sub(camera->Position, lightPos, lightPos);
-    //     glm_translate(lightModel, lightPos);
-    //     glm_scale(lightModel, lightScale);
-    //     Shader_Activate(shader);
-    //     glUniformMatrix4fv(glGetUniformLocation(shader->ID, "model"), 1, GL_FALSE, (float*)lightModel);
-    //     glUniform4fv(glGetUniformLocation(shader->ID, "lightColor"), 1, (float*)lightSystem->directlights[i].color);   
-    //     Mesh_Draw(mesh, shader, camera); 
-    // }
+    mat4 lightModel;
+    glm_mat4_identity(lightModel);
+    vec3 lightPos;
+    glm_vec3_scale(lightSystem->directlight.direction, -DIRECT_LIGHT_DIST, lightPos);
+    glm_translate(lightModel, lightPos);
+    glm_scale(lightModel, lightScale);
+
+    Shader_Activate(shader);
+    glUniformMatrix4fv(glGetUniformLocation(shader->ID, "model"), 1, GL_FALSE, (float*)lightModel);
+    glUniform4fv(glGetUniformLocation(shader->ID, "lightColor"), 1, (float*)lightSystem->directlight.color);   
+    Mesh_Draw(mesh, shader, camera);
 
     glm_vec3_copy((vec3){ 0.1f, 0.1f, 0.1f }, lightScale);
-    
-    // lightScale = (vec3){ 0.1f, 0.1f, 0.1f };
 
     for (int i = 0; i < lightSystem->numPointLights; i++) {
         mat4 lightModel;

@@ -8,16 +8,7 @@
 #include <math.h>
 #include <time.h>
 
-#include "opengl/vector.h"
-
-#include "opengl/mesh.h"
-#include "opengl/FBO.h"
-#include "opengl/shadowMapFBO.h"
-#include "opengl/joystick.h"
-#include "opengl/lights.h"
-#include "opengl/import.h"
-
-#include "vert.c"
+#include "opengl/opengl.h"
 
 unsigned int width = 1600;
 unsigned int height = 1000;
@@ -60,13 +51,11 @@ GLuint pyramidIndices[] = {
     13, 14, 15,
 };
 
-
 Vertex gunVertices[] = {
 };
 
 GLuint gunIndices[] = {
 };
-
 
 Vertex cubeVertices[] = {
     { { -1.0f, -1.0f,  1.0f }, {  0.0f, -1.0f,  0.0f }, { 1.0f, 0.0f, 0.0f }, { 0.0f, 0.0f } },
@@ -148,41 +137,22 @@ float get_delta_time() {
 
 Mesh ground, pyramid, light, Gun, Model;
 
-void make_model_matrix(vec3 translation, vec3 rotation, vec3 scale, mat4 dest) {
-    mat4 trans, rotX, rotY, rotZ, rot, scl;
-
-    glm_translate_make(trans, translation);
-
-    glm_rotate_make(rotX, rotation[0], (vec3){1.0f, 0.0f, 0.0f});
-    glm_rotate_make(rotY, rotation[1], (vec3){0.0f, 1.0f, 0.0f});
-    glm_rotate_make(rotZ, rotation[2], (vec3){0.0f, 0.0f, 1.0f});
-
-    glm_mat4_mul(rotY, rotX, rot);    // R = Ry * Rx
-    glm_mat4_mul(rotZ, rot, rot);     // R = Rz * (Ry * Rx)
-
-    glm_scale_make(scl, scale);
-
-    mat4 rs;
-    glm_mat4_mul(rot, scl, rs);       // RS = R * S
-    glm_mat4_mul(trans, rs, dest);    // M = T * (R * S)
-}
-
 void draw_stuff(Shader* shader, Camera* camera) {
     mat4 model;
 
-    make_model_matrix((vec3){0.0f, 0.5f, 0.0f}, (vec3){0.0f, 0.0f, 0.0f}, (vec3){1.0f, 1.0f, 1.0f}, model);
+    make_model_matrix((vec3){0.0f, 0.0f, 0.0f}, (vec3){0.0f, 0.0f, 0.0f}, (vec3){1.0f, 1.0f, 1.0f}, model);
     glUniformMatrix4fv(glGetUniformLocation(shader->ID, "model"), 1, GL_FALSE, (float*)model);
     Mesh_Draw(&pyramid, shader, camera);
 
     // for (int i = 0; i < 20; i++) {
     
-    make_model_matrix((vec3){0.0f, 0.0f, 0.0f}, (vec3){0.0f, 0.0f, 0.0f}, (vec3){3.0f, 1.0f, 3.0f}, model);
+    make_model_matrix((vec3){0.0f, 0.0f, 0.0f}, (vec3){0.0f, 0.0f, 0.0f}, (vec3){1.0f, 1.0f, 1.0f}, model);
     glUniformMatrix4fv(glGetUniformLocation(shader->ID, "model"), 1, GL_FALSE, (float*)model);
     Mesh_Draw(&ground, shader, camera);
     
-    make_model_matrix((vec3){0.0f, 1.5f, 0.0f}, (vec3){0.0f, 0.0f, 0.0f}, (vec3){1.0f, 1.0f, 1.0f}, model);
-    glUniformMatrix4fv(glGetUniformLocation(shader->ID, "model"), 1, GL_FALSE, (float*)model);
-    Mesh_Draw(&Model, shader, camera);
+    // make_model_matrix((vec3){0.0f, 1.5f, 0.0f}, (vec3){0.0f, 0.0f, 0.0f}, (vec3){1.0f, 1.0f, 1.0f}, model);
+    // glUniformMatrix4fv(glGetUniformLocation(shader->ID, "model"), 1, GL_FALSE, (float*)model);
+    // Mesh_Draw(&Model, shader, camera);
 
     // }
 
@@ -191,17 +161,6 @@ void draw_stuff(Shader* shader, Camera* camera) {
     make_model_matrix(camera->Position, (vec3){0.0f, 0.0f, 0.0f}, (vec3){0.2f, 0.2f, 0.2f}, model);
     glUniformMatrix4fv(glGetUniformLocation(shader->ID, "model"), 1, GL_FALSE, (float*)model);
     Mesh_Draw(&pyramid, shader, camera);
-}
-
-void print_mat4(mat4 m) {
-    printf("mat4:\n");
-    for (int row = 0; row < 4; row++) {
-        printf("[ ");
-        for (int col = 0; col < 4; col++) {
-            printf("%8.3f ", m[col][row]);  // cglm stores matrices column-major
-        }
-        printf("]\n");
-    }
 }
 
 int main() {
@@ -226,7 +185,6 @@ int main() {
     Shader glShaderProgram_default3d = Shader_Init("shaders/vert/default3d.vert", "shaders/frag/default3d.frag", NULL);
     Shader glShaderProgram_light3d = Shader_Init("shaders/vert/light3d.vert", "shaders/frag/light3d.frag", NULL);
     Shader shadowMapProgram = Shader_Init("shaders/vert/shadowMap.vert", "shaders/frag/shadowMap.frag", NULL);
-    Shader programssss = Shader_Init("shaders/vert/default3d.vert", "shaders/frag/blank.frag", NULL);
     
     Shader postFBO = Shader_Init("shaders/framebuffer/framebuffer.vert", "shaders/framebuffer/framebuffer.frag", NULL);
     Shader pixelate = Shader_Init("shaders/framebuffer/framebuffer.vert", "shaders/framebuffer/pixelate.frag", NULL);
@@ -259,19 +217,13 @@ int main() {
     GLuintVector_Copy(cubeIndices, sizeof(cubeIndices) / sizeof(GLuint), &lightInd);
     light = Mesh_Init(&lightVerts, &lightInd, &tex);
 
-    Gun = Import_loadMeshFromOBJ("res/models/Untitled.obj");
+    // Gun = Import_loadMeshFromOBJ("res/models/Untitled.obj");
 
-    VertexVector modelverts;
-    VertexVector_Copy(modelVertices, sizeof(modelVertices) / sizeof(Vertex), &modelverts);
-    GLuintVector modelind;
-    GLuintVector_Copy(modelIndices, sizeof(modelIndices) / sizeof(GLuint), &modelind);
-    Model = Mesh_Init(&modelverts, &modelind, &PLANEtex);
-
-    for (int i = 0; i < Gun.textures->size; i++) {
-        printf("Gun texture %d ID: %u\n", i, Gun.textures->data[i].ID);
-    }
-
-
+    // VertexVector modelverts;
+    // VertexVector_Copy(modelVertices, sizeof(modelVertices) / sizeof(Vertex), &modelverts);
+    // GLuintVector modelind;
+    // GLuintVector_Copy(modelIndices, sizeof(modelIndices) / sizeof(GLuint), &modelind);
+    // Model = Mesh_Init(&modelverts, &modelind, &PLANEtex);
 
     // FRAMEBUFFER
 
@@ -289,15 +241,9 @@ int main() {
     bool postProcessing = false;
     int ping = 0;
 
-    Camera camera = Camera_Init(width, height, 2.5f, 3.0f,(vec3){0.0f, 1.0f, 3.0f});
-    
-    GLint maxTexUnits;
-    glGetIntegerv(GL_MAX_TEXTURE_IMAGE_UNITS, &maxTexUnits);
-    printf("Max texture units: %d\n", maxTexUnits);
+    Camera camera = Camera_Init(width, height, 2.5f, 3.0f,(vec3){0.0f, 1.0f, 3.0f}, false);
 
-    // LightSystem staticLights = LightSystem_Init(0.2f);
-    // LightSystem dynamicLights = LightSystem_Init(0.2f);
-    LightSystem mergedLights = LightSystem_Init(0.2f);
+    LightSystem lightSystem = LightSystem_Init(0.2f);
     
     while(!glfwWindowShouldClose(window)) {
 
@@ -312,25 +258,14 @@ int main() {
         Camera_Inputs(&camera, window, &joysticks[0], dt);
         Camera_UpdateMatrix(&camera, 45.0f, 0.1f, 100.0f);
         
-        // LightSystem_Clear(&dynamicLights);
-        LightSystem_Clear(&mergedLights);
+        LightSystem_Clear(&lightSystem);
+        // LightSystem_AddPointLight(&lightSystem, (vec3){sin(glfwGetTime()), 0.5f, cos(glfwGetTime())}, (vec4){1.0f, 0.1f, 0.05f, 1.0f}, 1.0f, 0.04f, 0.5f);
+        // LightSystem_AddPointLight(&lightSystem, (vec3){-sin(glfwGetTime()), 0.5f, -cos(glfwGetTime())}, (vec4){0.2f, 1.0f, 0.2f, 1.0f}, 1.0f, 0.04f, 0.5f);
+        LightSystem_SetDirectLight(&lightSystem, (vec3){cos(glfwGetTime()/10), -0.9f, sin(glfwGetTime()/10)}, (vec4){1.0f, 1.0f, 1.0f, 1.0f}, 0.5f);
+        // LightSystem_AddSpotLight(&lightSystem, (vec3){0.0f, 8.5f, 0.0f}, (vec3){0.1f, -1.0f, 0.0f}, (vec4){1.0f, 1.0f, 1.0f, 1.0f}, 0.90f, 0.95f, 0.5f);
+        LightSystem_MakeShadowMaps(&lightSystem, &shadowMapProgram, &camera, draw_stuff);
 
-        // LightSystem_AddPointLight(&mergedLights, (vec3){sin(glfwGetTime()), 1.0f, cos(glfwGetTime())}, (vec4){1.0f, 0.1f, 0.05f, 1.0f}, 1.0f, 0.04f, 0.5f);
-        // LightSystem_AddPointLight(&mergedLights, (vec3){-sin(glfwGetTime()), 1.0f, -cos(glfwGetTime())}, (vec4){0.2f, 1.0f, 0.2f, 1.0f}, 1.0f, 0.04f, 0.5f);
-        // LightSystem_AddSpotLight(&dynamicLights, (vec3){0.0f, 2.5f, 0.0f}, (vec3){0.1f, -1.0f, 0.0f}, (vec4){1.0f, 1.0f, 1.0f, 1.0f}, 0.90f, 0.95f, 0.5f);
-        // LightSystem_SetDirectLight(&dynamicLights, (vec3){sin(glfwGetTime()), -0.5f, cos(glfwGetTime())}, (vec4){1.0f, 1.0f, 1.0f, 1.0f}, 0.5f);
-        // LightSystem_SetDirectLight(&staticLights, (vec3){1.0f, -0.5f, 1.0f}, (vec4){1.0f, 1.0f, 1.0f, 1.0f}, 0.5f);
-
-        // LightSystem_Merge(&mergedLights, &staticLights, &dynamicLights);
-        // LightSystem_SetDirectLight(&mergedLights, (vec3){sin(glfwGetTime()), -0.5f, cos(glfwGetTime())}, (vec4){1.0f, 1.0f, 1.0f, 1.0f}, 0.5f);
-        LightSystem_SetDirectLight(&mergedLights, (vec3){cos(glfwGetTime()/10), -0.5f, sin(glfwGetTime()/10)}, (vec4){1.0f, 1.0f, 1.0f, 1.0f}, 0.5f);
-        // LightSystem_AddSpotLight(&mergedLights, (vec3){0.0f, 8.5f, 0.0f}, (vec3){0.1f, -1.0f, 0.0f}, (vec4){1.0f, 1.0f, 1.0f, 1.0f}, 0.90f, 0.95f, 0.5f);
-
-        // LightSystem_AddPointLight(&mergedLights, (vec3){sin(glfwGetTime()), 1.0f, cos(glfwGetTime())}, (vec4){1.0f, 0.1f, 0.05f, 1.0f}, 1.0f, 0.04f, 0.5f);
-        // LightSystem_AddPointLight(&mergedLights, (vec3){cos(glfwGetTime()), 1.0f, sin(glfwGetTime())}, (vec4){0.2f, 1.0f, 0.2f, 1.0f}, 1.0f, 0.04f, 0.5f);
-        LightSystem_MakeShadowMaps(&mergedLights, &shadowMapProgram, &camera, draw_stuff);
-
-        // if (joystickIsPressed(&joysticks[0], 6)) print_mat4(mergedLights.spotlight.lightSpaceMatrix);
+        // if (joystickIsPressed(&joysticks[0], 6)) print_mat4(lightSystem.spotlight.lightSpaceMatrix);
 
         glViewport(0, 0, width, height);
         FBO_Bind(&postProcessingFBO[ping]);
@@ -351,11 +286,11 @@ int main() {
         glFrontFace(GL_CCW);
         glEnable(GL_DEPTH_TEST);
 
-        LightSystem_SetUniforms(&glShaderProgram_default3d, &mergedLights);
+        LightSystem_SetUniforms(&glShaderProgram_default3d, &lightSystem);
 
         draw_stuff(&glShaderProgram_default3d, &camera);
         
-        LightSystem_DrawLights(&mergedLights, &light, &glShaderProgram_light3d, &camera);
+        LightSystem_DrawLights(&lightSystem, &light, &glShaderProgram_light3d, &camera);
 
         // POST PROCESSING
 
@@ -368,38 +303,20 @@ int main() {
             glClear(GL_COLOR_BUFFER_BIT);
             Shader_Activate(&pixelate);
             FBO_BindTexture(&postProcessingFBO[!ping], &pixelate);
-            glUniform1f(glGetUniformLocation(pixelate.ID, "pixelSize"), 4.0f);
-            VAO_Bind(&framebufferVAO);
-            glDrawArrays(GL_TRIANGLES, 0, 6);
+            glUniform1f(glGetUniformLocation(pixelate.ID, "pixelSize"), 4.f);
+            FBO_Draw(&postProcessingFBO[ping]);
             ping = !ping;
-
-            // FBO_Bind(&postProcessingFBO[ping]);
-            // glClear(GL_COLOR_BUFFER_BIT);
-            // Shader_Activate(&outline);
-            // FBO_BindTexture(&postProcessingFBO[!ping]);
-            // glUniform1i(glGetUniformLocation(pixelate.ID, "screenTexture"), 0);
-            // VAO_Bind(&framebufferVAO);
-            // glDrawArrays(GL_TRIANGLES, 0, 6);
-            // ping = !ping;
         }
         
         FBO_Unbind();
         glClear(GL_COLOR_BUFFER_BIT);
         Shader_Activate(&postFBO);
         FBO_BindTexture(&postProcessingFBO[!ping], &postFBO);
-        VAO_Bind(&framebufferVAO);
-        glDrawArrays(GL_TRIANGLES, 0, 6);
+        FBO_Draw(&postProcessingFBO[ping]);
 
         glfwSwapBuffers(window);
         glfwPollEvents();
     }
-
-    // VAO_Delete(&VAO1);
-    // VBO_Delete(&VBO1);
-    // EBO_Delete(&EBO1);
-    // Texture_Delete(&sydney);
-    for (int i = 0; i < sizeof(textures) / sizeof(Texture); i++) { Texture_Delete(&textures[i]); }
-    Shader_Delete(&glShaderProgram_default3d);
 
     glfwDestroyWindow(window);
     glfwTerminate();

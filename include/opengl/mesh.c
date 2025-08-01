@@ -1,4 +1,4 @@
-#include "opengl/mesh.h"
+#include "mesh.h"
 
 Mesh Mesh_Init(VertexVector* vertices, GLuintVector* indices, TextureVector* textures) {
     Mesh mesh;
@@ -21,14 +21,14 @@ Mesh Mesh_Init(VertexVector* vertices, GLuintVector* indices, TextureVector* tex
 
     mesh.vao = VAO1;
 
-    printf("Vertices: %zu, Indices: %zu\n", mesh.vertices->size, mesh.indices->size);
+    // printf("Vertices: %zu, Indices: %zu\n", mesh.vertices->size, mesh.indices->size);
 
-    for (int i = 0; i < mesh.vertices->size; i++) {
-        printf("Vertex %d: pos = %.2f %.2f %.2f\n", i, 
-            mesh.vertices->data[i].position[0],
-            mesh.vertices->data[i].position[1],
-            mesh.vertices->data[i].position[2]);
-    }
+    // for (int i = 0; i < mesh.vertices->size; i++) {
+    //     printf("Vertex %d: pos = %.2f %.2f %.2f\n", i, 
+    //         mesh.vertices->data[i].position[0],
+    //         mesh.vertices->data[i].position[1],
+    //         mesh.vertices->data[i].position[2]);
+    // }
 
     return mesh;
 }

@@ -1,4 +1,4 @@
-#include "opengl/EBO.h"
+#include "EBO.h"
 
 EBO EBO_InitRaw(GLuint* indices, GLsizeiptr size) {
     EBO ebo;

@@ -4,11 +4,15 @@
 #include <stdio.h>
 #include <glad/glad.h>
 #include "opengl/shader.h"
+#include "VBO.h"
+#include "VAO.h"
 
 typedef struct {
     GLuint fbo;
     GLuint texture;
     GLuint rbo;
+    VAO vao;
+    VBO vbo;
     int width, height;
 } FBO;
 
@@ -19,5 +23,17 @@ void FBO_Bind(FBO* fb);
 void FBO_BindTexture(FBO* fb, Shader* shader);
 void FBO_Unbind();
 void FBO_Delete(FBO* fb);
+void FBO_Draw(FBO* fb);
+
+typedef struct {
+    GLuint fbo;
+    GLuint depthTextureArray;
+    int width, height;
+    int layers;
+} ShadowMapFBO;
+
+ShadowMapFBO ShadowMapFBO_Init(int width, int height, int layers);
+void ShadowMapFBO_BindLayer(ShadowMapFBO* smfbo, int layer);
+void ShadowMapFBO_Delete(ShadowMapFBO* smfbo);
 
 #endif

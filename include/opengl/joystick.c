@@ -1,4 +1,4 @@
-#include "opengl/joystick.h"
+#include "joystick.h"
 #include <string.h>
 #include <stdio.h>
 

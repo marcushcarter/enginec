@@ -2,12 +2,13 @@
 #define LIGHTS_CLASS_H
 
 #include <cglm/cglm.h>
-// #include "opengl/shader.h"
 #include "opengl/mesh.h"
-#include "opengl/shadowMapFBO.h"
+#include "opengl/FBO.h"
 
 #define MAX_POINT_LIGHTS 10
 #define MAX_SPOT_LIGHTS 10
+
+#define DIRECT_LIGHT_DIST 50
 
 typedef struct {
     vec3 direction;

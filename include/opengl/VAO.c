@@ -1,4 +1,4 @@
-#include "opengl/VAO.h"
+#include "VAO.h"
 
 VAO VAO_Init() {
     VAO vao;

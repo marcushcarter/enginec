@@ -1,4 +1,4 @@
-#include "opengl/texture.h"
+#include "texture.h"
 #include <string.h>
 
 Texture Texture_Init(const char* imageFile, char* texType, GLuint slot) {
@@ -22,7 +22,7 @@ Texture Texture_Init(const char* imageFile, char* texType, GLuint slot) {
         fprintf(stderr, "Failed to load imageFile: %s\nReason: %s\n", imageFile, stbi_failure_reason());
         exit(1); // or return a default texture
     }
-    printf("bytes: %p\n", bytes);
+    // printf("bytes: %p\n", bytes);
 
     glGenTextures(1, &texture.ID);
     glActiveTexture(GL_TEXTURE0 + slot);
