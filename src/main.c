@@ -124,9 +124,14 @@ Mesh ground, pyramid, light, Gun, Model;
 void draw_stuff(Shader* shader, Camera* camera) {
     mat4 model;
 
-    make_model_matrix((vec3){0.0f, 0.0f, 0.0f}, (vec3){0.0f, 0.0f, 0.0f}, (vec3){0.25f, 1.5f, 0.25f}, model);
+    make_model_matrix((vec3){0.0f, 0.0f, 0.0f}, (vec3){0.0f, 0.0f, 0.0f}, (vec3){1.0f, 1.0f, 1.0f}, model);
     glUniformMatrix4fv(glGetUniformLocation(shader->ID, "model"), 1, GL_FALSE, (float*)model);
     Mesh_Draw(&pyramid, shader, camera);
+
+    
+    // make_model_matrix((vec3){0.0f, 1.5f, 0.0f}, (vec3){0.0f, 0.0f, 0.0f}, (vec3){1.0f, 1.0f, 1.0f}, model);
+    // glUniformMatrix4fv(glGetUniformLocation(shader->ID, "model"), 1, GL_FALSE, (float*)model);
+    // Mesh_Draw(&Gun, shader, camera);
 
     // for (int i = 0; i < 20; i++) {
     
@@ -147,6 +152,33 @@ void draw_stuff(Shader* shader, Camera* camera) {
     Mesh_Draw(&pyramid, shader, camera);
 }
 
+Mesh Init_mesh(char** texturearr, int texcount, Vertex* vertices, int vertcount, GLuint* indices, int indcount) {
+    // static Texture PLANEtextures[2];
+    VertexVector verts;
+    GLuintVector inds;
+    TextureVector texs;
+
+    // PLANEtextures[0] = Texture_Init("res/textures/box.png", "diffuse", 0);
+    // PLANEtextures[1] = Texture_Init("res/textures/box_specular.png", "specular", 1);
+
+    Texture textures[texcount];
+    for (int i = 0; i < texcount; i+=2) {
+        textures[i] = Texture_Init(texturearr[i], texturearr[i+1], i);
+    }
+
+    VertexVector_Copy(vertices, vertcount, &verts);
+    GLuintVector_Copy(indices, indcount, &inds);
+    TextureVector_Copy(textures, texcount, &texs);
+
+    Mesh mesh = Mesh_Init(verts, inds, texs);
+
+    // VertexVector_Free(&verts);
+    // GLuintVector_Free(&inds);
+    // TextureVector_Free(&texs);
+
+    return mesh;
+}
+
 int main() {
     glfwInit();
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
@@ -164,7 +196,7 @@ int main() {
     gladLoadGL();
     glViewport(0, 0, width, height);
 
-    // OTHER SHADERS
+    // SHADERS
     
     Shader glShaderProgram_default3d = Shader_Init("shaders/vert/default3d.vert", "shaders/frag/default3d.frag", NULL);
     Shader glShaderProgram_light3d = Shader_Init("shaders/vert/light3d.vert", "shaders/frag/light3d.frag", NULL);
@@ -176,50 +208,22 @@ int main() {
     
     Shader spriteShad = Shader_Init("shaders/sprite/sprite.vert", "shaders/sprite/sprite.frag", NULL);
 
-    Texture textures[1];
-    textures[0] = Texture_Init("res/textures/brick.jpg", "diffuse", 0);
-    VertexVector verts;
-    VertexVector_Copy(pyramidVertices, sizeof(pyramidVertices) / sizeof(Vertex), &verts);
-    GLuintVector ind;
-    GLuintVector_Copy(pyramidIndices, sizeof(pyramidIndices) / sizeof(GLuint), &ind);
-    TextureVector tex;
-    TextureVector_Copy(textures, sizeof(textures) / sizeof(Texture), &tex);
-    pyramid = Mesh_Init(&verts, &ind, &tex);
-
-    // Texture textures[2];
-    // textures[0] = Texture_Init("res/textures/box.png", "diffuse", 0);
-    // textures[1] = Texture_Init("res/textures/box_specular.png", "specular", 1);
-    // VertexVector verts;
-    // VertexVector_Copy(cubeVertices, sizeof(cubeVertices) / sizeof(Vertex), &verts);
-    // GLuintVector ind;
-    // GLuintVector_Copy(cubeIndices, sizeof(cubeIndices) / sizeof(GLuint), &ind);
-    // TextureVector tex;
-    // TextureVector_Copy(textures, sizeof(textures) / sizeof(Texture), &tex);
-    // pyramid = Mesh_Init(&verts, &ind, &tex);
-
-    Texture PLANEtextures[2];
-    PLANEtextures[0] = Texture_Init("res/textures/box.png", "diffuse", 0);
-    PLANEtextures[1] = Texture_Init("res/textures/box_specular.png", "specular", 1);
-    VertexVector PLANEverts;
-    VertexVector_Copy(planeVertices, sizeof(planeVertices) / sizeof(Vertex), &PLANEverts);
-    GLuintVector PLANEind;
-    GLuintVector_Copy(planeIndices, sizeof(planeIndices) / sizeof(GLuint), &PLANEind);
-    TextureVector PLANEtex;
-    TextureVector_Copy(PLANEtextures, sizeof(PLANEtextures) / sizeof(Texture), &PLANEtex);
-    ground = Mesh_Init(&PLANEverts, &PLANEind, &PLANEtex);
+    // MESHES
     
-    VertexVector lightVerts;
-    VertexVector_Copy(cubeVertices, sizeof(cubeVertices) / sizeof(Vertex), &lightVerts);
-    GLuintVector lightInd;
-    GLuintVector_Copy(cubeIndices, sizeof(cubeIndices) / sizeof(GLuint), &lightInd);
-    light = Mesh_Init(&lightVerts, &lightInd, &tex);
+    const char* pyramidtextures[] = { "res/textures/brick.jpg", "diffuse" };
+    pyramid = Mesh_InitFromData(pyramidtextures, 1, pyramidVertices, sizeof(pyramidVertices) / sizeof(Vertex), pyramidIndices, sizeof(pyramidIndices) / sizeof(GLuint));
+    
+    const char* groundtextures[] = { "res/textures/box.png", "diffuse", "res/textures/box_specular.png", "specular" };  
+    ground = Mesh_InitFromData(groundtextures, 2, planeVertices, sizeof(planeVertices) / sizeof(Vertex), planeIndices, sizeof(planeIndices) / sizeof(GLuint));
+    
+    const char* lighttextures[] = { "res/textures/box.png", "diffuse" };
+    light = Mesh_InitFromData(lighttextures, 1, cubeVertices, sizeof(cubeVertices) / sizeof(Vertex), cubeIndices, sizeof(cubeIndices) / sizeof(GLuint));
+
+    // SPRITES
 
     VAO quadVAO = VAO_InitQuad();
 
-    const char* files[] = {
-        "res/textures/gun.png",
-        "res/textures/gun.png"
-    };
+    const char* files[] = { "res/textures/gun.png", "res/textures/gun.png" };
     Sprite sprite = Sprite_Init(files, 2);
 
     // Gun = Import_loadMeshFromOBJ("res/models/Untitled.obj");
@@ -266,10 +270,10 @@ int main() {
         Camera_UpdateMatrix(&camera, 45.0f, 0.1f, 100.0f);
         
         LightSystem_Clear(&lightSystem);
-        // LightSystem_AddPointLight(&lightSystem, (vec3){sin(glfwGetTime()), 0.5f, cos(glfwGetTime())}, (vec4){1.0f, 0.1f, 0.05f, 1.0f}, 1.0f, 0.04f, 0.5f);
-        // LightSystem_AddPointLight(&lightSystem, (vec3){-sin(glfwGetTime()), 0.5f, -cos(glfwGetTime())}, (vec4){0.2f, 1.0f, 0.2f, 1.0f}, 1.0f, 0.04f, 0.5f);
+        LightSystem_AddPointLight(&lightSystem, (vec3){sin(glfwGetTime()), 0.5f, cos(glfwGetTime())}, (vec4){1.0f, 0.1f, 0.05f, 1.0f}, 1.0f, 0.04f, 0.5f);
+        LightSystem_AddPointLight(&lightSystem, (vec3){-sin(glfwGetTime()), 0.5f, -cos(glfwGetTime())}, (vec4){0.2f, 1.0f, 0.2f, 1.0f}, 1.0f, 0.04f, 0.5f);
         LightSystem_SetDirectLight(&lightSystem, (vec3){cos(glfwGetTime()/10), -1.0f, sin(glfwGetTime()/10)}, (vec4){1.0f, 1.0f, 1.0f, 1.0f}, 0.5f);
-        // LightSystem_AddSpotLight(&lightSystem, (vec3){0.0f, 8.5f, 0.0f}, (vec3){0.1f, -1.0f, 0.0f}, (vec4){1.0f, 1.0f, 1.0f, 1.0f}, 0.90f, 0.95f, 0.5f);
+        LightSystem_AddSpotLight(&lightSystem, (vec3){0.0f, 8.5f, 0.0f}, (vec3){0.1f, -1.0f, 0.0f}, (vec4){1.0f, 1.0f, 1.0f, 1.0f}, 0.90f, 0.95f, 0.5f);
         LightSystem_MakeShadowMaps(&lightSystem, &shadowMapProgram, &camera, draw_stuff);
 
         // if (joystickIsPressed(&joysticks[0], 6)) print_mat4(lightSystem.spotlight.lightSpaceMatrix);
@@ -303,19 +307,19 @@ int main() {
 
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
         
-        mat4 proj = GLM_MAT4_IDENTITY_INIT;
-        glm_ortho(0.0f, width, height, 0.0f, -1.0f, 1.0f, proj); // Top-left is (0,0)
+        // mat4 proj = GLM_MAT4_IDENTITY_INIT;
+        // glm_ortho(0.0f, width, height, 0.0f, -1.0f, 1.0f, proj); // Top-left is (0,0)
         // glUniformMatrix4fv(glGetUniformLocation(shader->ID, "uProjection"), 1, GL_FALSE, (float*)proj);
 
-        SpriteInstance inst = {
-            .position = {800, 500},
-            .size = {500, 500},
-            .rotation = 0.0f, 
-            .color = {1.0f, 1.0f, 1.0f, 1.0f},
-            .layer = 1
-        };
+        // SpriteInstance inst = {
+        //     .position = {800, 500},
+        //     .size = {500, 500},
+        //     .rotation = 0.0f, 
+        //     .color = {1.0f, 1.0f, 1.0f, 1.0f},
+        //     .layer = 1
+        // };
 
-        Sprite_Draw(&sprite, &spriteShad, &inst, proj, &quadVAO);
+        // Sprite_Draw(&sprite, &spriteShad, &inst, proj, &quadVAO);
 
 
         // POST PROCESSING

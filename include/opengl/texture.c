@@ -1,7 +1,7 @@
 #include "texture.h"
 #include <string.h>
 
-Texture Texture_Init(const char* imageFile, char* texType, GLuint slot) {
+Texture Texture_Init(const char* imageFile, const char* texType, GLuint slot) {
     Texture texture;
 
     texture.type = malloc(strlen(texType) + 1);  // +1 for null terminator

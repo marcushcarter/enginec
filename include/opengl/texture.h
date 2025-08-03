@@ -13,7 +13,7 @@ typedef struct {
     GLuint unit;
 } Texture;
 
-Texture Texture_Init(const char* imageFile, char* texType, GLenum slot);
+Texture Texture_Init(const char* imageFile, const char* texType, GLenum slot);
 void Texture_texUnit(Shader* shader, const char* uniform, GLuint unit);
 void Texture_Bind(Texture* texture);
 void Texture_Unbind();

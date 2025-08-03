@@ -9,13 +9,14 @@
 #include "opengl/texture.h"
 
 typedef struct {
-    VertexVector* vertices;
-    GLuintVector* indices;
-    TextureVector* textures;
+    VertexVector vertices;
+    GLuintVector indices;
+    TextureVector textures;
     VAO vao;
 } Mesh;
 
-Mesh Mesh_Init(VertexVector* vertices, GLuintVector* indices, TextureVector* textures);
+Mesh Mesh_Init(VertexVector vertices, GLuintVector indices, TextureVector textures);
+Mesh Mesh_InitFromData(const char** texbuffer, int texcount, Vertex* vertices, int vertcount, GLuint* indices, int indcount);
 void Mesh_Draw(Mesh* mesh, Shader* shader, Camera* camera);
 
 #endif

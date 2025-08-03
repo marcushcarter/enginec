@@ -1,7 +1,16 @@
 #include "mesh.h"
 
-Mesh Mesh_Init(VertexVector* vertices, GLuintVector* indices, TextureVector* textures) {
+Mesh Mesh_Init(VertexVector vertices, GLuintVector indices, TextureVector textures) {
     Mesh mesh;
+
+    // mesh.vertices = malloc(sizeof(Vertex) * vertices.size);
+    // memcpy(mesh.vertices, vertices.data, sizeof(Vertex) * vertices.size);
+
+    // mesh.indices = malloc(sizeof(GLuint) * indices.size);
+    // memcpy(mesh.indices, indices.data, sizeof(GLuint) * indices.size);
+
+    // mesh.textures = malloc(sizeof(Texture) * textures.size);
+    // memcpy(mesh.textures, textures.data, sizeof(Texture) * textures.size);
 
     mesh.vertices = vertices;
     mesh.indices = indices;
@@ -9,8 +18,8 @@ Mesh Mesh_Init(VertexVector* vertices, GLuintVector* indices, TextureVector* tex
 
     VAO VAO1 = VAO_Init();
     VAO_Bind(&VAO1);
-    VBO VBO1 = VBO_Init(vertices);
-    EBO EBO1 = EBO_Init(indices);
+    VBO VBO1 = VBO_Init(&vertices);
+    EBO EBO1 = EBO_Init(&indices);
     VAO_LinkAttrib(&VBO1, 0, 3, GL_FLOAT, sizeof(Vertex), (void*)0);
     VAO_LinkAttrib(&VBO1, 1, 3, GL_FLOAT, sizeof(Vertex), (void*)(3 * sizeof(float)));
     VAO_LinkAttrib(&VBO1, 2, 3, GL_FLOAT, sizeof(Vertex), (void*)(6 * sizeof(float)));
@@ -21,17 +30,45 @@ Mesh Mesh_Init(VertexVector* vertices, GLuintVector* indices, TextureVector* tex
 
     mesh.vao = VAO1;
 
-    // printf("Vertices: %zu, Indices: %zu\n", mesh.vertices->size, mesh.indices->size);
+    return mesh;
+}
 
-    // for (int i = 0; i < mesh.vertices->size; i++) {
-    //     printf("Vertex %d: pos = %.2f %.2f %.2f\n", i, 
-    //         mesh.vertices->data[i].position[0],
-    //         mesh.vertices->data[i].position[1],
-    //         mesh.vertices->data[i].position[2]);
-    // }
+
+Mesh Mesh_InitFromData(const char** texbuffer, int texcount, Vertex* vertices, int vertcount, GLuint* indices, int indcount) {
+
+    VertexVector verts;
+    GLuintVector inds;
+    TextureVector texs;
+
+    Texture textures[texcount];
+    for (int i = 0; i < texcount; i++) {
+        textures[i] = Texture_Init(texbuffer[i*2], texbuffer[i*2+1], i);
+    }
+
+    VertexVector_Copy(vertices, vertcount, &verts);
+    GLuintVector_Copy(indices, indcount, &inds);
+    TextureVector_Copy(textures, texcount, &texs);
+
+    Mesh mesh = Mesh_Init(verts, inds, texs);
 
     return mesh;
 }
+
+// Mesh Mesh_InitFromData(Texture* textures, int texcount, Vertex* vertices, int vertexcount, GLuint* indices, int indexcount) {
+
+//     VertexVector verts;
+//     VertexVector_Copy(vertices, vertexcount, &verts);
+
+//     GLuintVector inds;
+//     GLuintVector_Copy(indices, indexcount, &inds);
+
+//     TextureVector texs;
+//     TextureVector_Copy(textures, texcount, &texs);
+
+//     Mesh mesh = Mesh_Init(&verts, &inds, &texs);
+
+//     return mesh;
+// }
 
 void Mesh_Draw(Mesh* mesh, Shader* shader, Camera* camera) {
     Shader_Activate(shader);
@@ -42,11 +79,11 @@ void Mesh_Draw(Mesh* mesh, Shader* shader, Camera* camera) {
     unsigned int numDiffuse = 0;
     unsigned int numSpecular = 0;
 
-    if (mesh->textures) {
-        for (unsigned int i = 0; i < mesh->textures->size; i++) {
+    if (mesh->textures.data) {
+        for (unsigned int i = 0; i < mesh->textures.size; i++) {
             char num[16];
             char uniformName[256];
-            char* type = mesh->textures->data[i].type;
+            char* type = mesh->textures.data[i].type;
             if (strcmp(type, "diffuse") == 0) {
                 sprintf(num, "%d", numDiffuse++);
             } else if (strcmp(type, "specular") == 0) {
@@ -54,12 +91,11 @@ void Mesh_Draw(Mesh* mesh, Shader* shader, Camera* camera) {
             }
             snprintf(uniformName, sizeof(uniformName), "%s%s", type, num);
             Texture_texUnit(shader, uniformName, i);
-            Texture_Bind(&mesh->textures->data[i]);
+            Texture_Bind(&mesh->textures.data[i]);
         }
     }
     glUniform3fv(glGetUniformLocation(shader->ID, "camPos"), 1, (float*)camera->Position); 
     Camera_Matrix(camera, shader, "camMatrix");
 
-    glDrawElements(GL_TRIANGLES, mesh->indices->size, GL_UNSIGNED_INT, 0);
-    // glUniform3f(glGetUniformLocation(shader.ID, "camPos"))
+    glDrawElements(GL_TRIANGLES, mesh->indices.size, GL_UNSIGNED_INT, 0);
 }
