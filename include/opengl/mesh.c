@@ -3,15 +3,6 @@
 Mesh Mesh_Init(VertexVector vertices, GLuintVector indices, TextureVector textures) {
     Mesh mesh;
 
-    // mesh.vertices = malloc(sizeof(Vertex) * vertices.size);
-    // memcpy(mesh.vertices, vertices.data, sizeof(Vertex) * vertices.size);
-
-    // mesh.indices = malloc(sizeof(GLuint) * indices.size);
-    // memcpy(mesh.indices, indices.data, sizeof(GLuint) * indices.size);
-
-    // mesh.textures = malloc(sizeof(Texture) * textures.size);
-    // memcpy(mesh.textures, textures.data, sizeof(Texture) * textures.size);
-
     mesh.vertices = vertices;
     mesh.indices = indices;
     mesh.textures = textures;
@@ -54,27 +45,9 @@ Mesh Mesh_InitFromData(const char** texbuffer, int texcount, Vertex* vertices, i
     return mesh;
 }
 
-// Mesh Mesh_InitFromData(Texture* textures, int texcount, Vertex* vertices, int vertexcount, GLuint* indices, int indexcount) {
-
-//     VertexVector verts;
-//     VertexVector_Copy(vertices, vertexcount, &verts);
-
-//     GLuintVector inds;
-//     GLuintVector_Copy(indices, indexcount, &inds);
-
-//     TextureVector texs;
-//     TextureVector_Copy(textures, texcount, &texs);
-
-//     Mesh mesh = Mesh_Init(&verts, &inds, &texs);
-
-//     return mesh;
-// }
-
 void Mesh_Draw(Mesh* mesh, Shader* shader, Camera* camera) {
     Shader_Activate(shader);
     VAO_Bind(&mesh->vao);
-
-    
 
     unsigned int numDiffuse = 0;
     unsigned int numSpecular = 0;
