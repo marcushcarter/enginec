@@ -129,9 +129,9 @@ void draw_stuff(Shader* shader, Camera* camera) {
     Mesh_Draw(&pyramid, shader, camera);
 
     
-    // make_model_matrix((vec3){0.0f, 1.5f, 0.0f}, (vec3){0.0f, 0.0f, 0.0f}, (vec3){1.0f, 1.0f, 1.0f}, model);
-    // glUniformMatrix4fv(glGetUniformLocation(shader->ID, "model"), 1, GL_FALSE, (float*)model);
-    // Mesh_Draw(&Gun, shader, camera);
+    make_model_matrix((vec3){0.0f, 1.5f, 0.0f}, (vec3){0.0f, 0.0f, 0.0f}, (vec3){1.0f, 1.0f, 1.0f}, model);
+    glUniformMatrix4fv(glGetUniformLocation(shader->ID, "model"), 1, GL_FALSE, (float*)model);
+    Mesh_Draw(&Gun, shader, camera);
 
     // for (int i = 0; i < 20; i++) {
     
@@ -150,33 +150,6 @@ void draw_stuff(Shader* shader, Camera* camera) {
     make_model_matrix(camera->Position, (vec3){0.0f, 0.0f, 0.0f}, (vec3){0.2f, 0.2f, 0.2f}, model);
     glUniformMatrix4fv(glGetUniformLocation(shader->ID, "model"), 1, GL_FALSE, (float*)model);
     Mesh_Draw(&pyramid, shader, camera);
-}
-
-Mesh Init_mesh(char** texturearr, int texcount, Vertex* vertices, int vertcount, GLuint* indices, int indcount) {
-    // static Texture PLANEtextures[2];
-    VertexVector verts;
-    GLuintVector inds;
-    TextureVector texs;
-
-    // PLANEtextures[0] = Texture_Init("res/textures/box.png", "diffuse", 0);
-    // PLANEtextures[1] = Texture_Init("res/textures/box_specular.png", "specular", 1);
-
-    Texture textures[texcount];
-    for (int i = 0; i < texcount; i+=2) {
-        textures[i] = Texture_Init(texturearr[i], texturearr[i+1], i);
-    }
-
-    VertexVector_Copy(vertices, vertcount, &verts);
-    GLuintVector_Copy(indices, indcount, &inds);
-    TextureVector_Copy(textures, texcount, &texs);
-
-    Mesh mesh = Mesh_Init(verts, inds, texs);
-
-    // VertexVector_Free(&verts);
-    // GLuintVector_Free(&inds);
-    // TextureVector_Free(&texs);
-
-    return mesh;
 }
 
 int main() {
@@ -219,28 +192,23 @@ int main() {
     const char* lighttextures[] = { "res/textures/box.png", "diffuse" };
     light = Mesh_InitFromData(lighttextures, 1, cubeVertices, sizeof(cubeVertices) / sizeof(Vertex), cubeIndices, sizeof(cubeIndices) / sizeof(GLuint));
 
+    Gun = Import_loadMeshFromOBJ("res/models/Gun/Gun.obj");
+
     // SPRITES
 
     VAO quadVAO = VAO_InitQuad();
 
     const char* files[] = { "res/textures/gun.png", "res/textures/gun.png" };
     Sprite sprite = Sprite_Init(files, 2);
-
-    // Gun = Import_loadMeshFromOBJ("res/models/Untitled.obj");
-
-    // VertexVector modelverts;
-    // VertexVector_Copy(modelVertices, sizeof(modelVertices) / sizeof(Vertex), &modelverts);
-    // GLuintVector modelind;
-    // GLuintVector_Copy(modelIndices, sizeof(modelIndices) / sizeof(GLuint), &modelind);
-    // Model = Mesh_Init(&modelverts, &modelind, &PLANEtex);
     
     FBO postProcessingFBO[2];
     postProcessingFBO[0] = FBO_Init(width, height);
     postProcessingFBO[1] = FBO_Init(width, height);
-    bool postProcessing = false;
     int ping = 0;
 
+    bool postProcessing = false;
     bool wireframe = false;
+
     glLineWidth(5.0f);
 
     Camera camera = Camera_Init(width, height, 2.5f, 3.0f,(vec3){0.0f, 1.0f, 3.0f}, false);
@@ -249,15 +217,6 @@ int main() {
     
     while(!glfwWindowShouldClose(window)) {
 
-        // glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-
-        wireframe = glfwGetKey(window, GLFW_KEY_4);
-
-        if (glfwGetKey(window, GLFW_KEY_4) == GLFW_PRESS) {
-            // wireframe = !wireframe;
-            glPolygonMode(GL_FRONT_AND_BACK, wireframe ? GL_LINE : GL_FILL);
-        }
-
         dt = get_delta_time();
         char buffer[256];
         snprintf(buffer, sizeof(buffer), "opengl window: %f FPS", fps);
@@ -265,6 +224,7 @@ int main() {
 
         glfwJoystickEvents();
         if (joystickIsPressed(&joysticks[0], 7)) postProcessing = !postProcessing;
+        if (joystickIsPressed(&joysticks[0], 6)) wireframe = !wireframe;
         
         Camera_Inputs(&camera, window, &joysticks[0], dt);
         Camera_UpdateMatrix(&camera, 45.0f, 0.1f, 100.0f);
@@ -274,9 +234,8 @@ int main() {
         LightSystem_AddPointLight(&lightSystem, (vec3){-sin(glfwGetTime()), 0.5f, -cos(glfwGetTime())}, (vec4){0.2f, 1.0f, 0.2f, 1.0f}, 1.0f, 0.04f, 0.5f);
         LightSystem_SetDirectLight(&lightSystem, (vec3){cos(glfwGetTime()/10), -1.0f, sin(glfwGetTime()/10)}, (vec4){1.0f, 1.0f, 1.0f, 1.0f}, 0.5f);
         LightSystem_AddSpotLight(&lightSystem, (vec3){0.0f, 8.5f, 0.0f}, (vec3){0.1f, -1.0f, 0.0f}, (vec4){1.0f, 1.0f, 1.0f, 1.0f}, 0.90f, 0.95f, 0.5f);
-        LightSystem_MakeShadowMaps(&lightSystem, &shadowMapProgram, &camera, draw_stuff);
 
-        // if (joystickIsPressed(&joysticks[0], 6)) print_mat4(lightSystem.spotlight.lightSpaceMatrix);
+        LightSystem_MakeShadowMaps(&lightSystem, &shadowMapProgram, &camera, draw_stuff);
 
         glViewport(0, 0, width, height);
         FBO_Bind(&postProcessingFBO[ping]);
@@ -296,6 +255,11 @@ int main() {
         glCullFace(GL_FRONT);
         glFrontFace(GL_CCW);
         glEnable(GL_DEPTH_TEST);
+        
+        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+        if (wireframe || glfwGetKey(window, GLFW_KEY_4) == GLFW_PRESS) {
+            glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+        }
 
         LightSystem_SetUniforms(&glShaderProgram_default3d, &lightSystem);
 
