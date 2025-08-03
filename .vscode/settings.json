@@ -33,7 +33,10 @@
         "shadowmapfbo.h": "c",
         "numbers": "c",
         "ratio": "c",
-        "import.h": "c"
+        "import.h": "c",
+        "sprite.h": "c",
+        "string.h": "c",
+        "stb_image_resize.h": "c"
     },
     "C_Cpp.errorSquiggles": "disabled"
 }

@@ -15,5 +15,6 @@
 #include "VBO.h"
 #include "vector.h"
 #include "math.h"
+#include "sprite.h"
 
 #endif

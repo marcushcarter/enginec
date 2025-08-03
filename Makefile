@@ -8,7 +8,11 @@ INCLUDES := -Iinclude
 LDFLAGS := -Llib -lglfw3dll
 
 # === Files ===
-SRCS := src/main.c $(wildcard include/stb_image/*.c) $(wildcard include/glad/*.c) $(wildcard include/opengl/*.c)
+SRCS:= $(wildcard src/*.c) $(wildcard include/stb_image/*.c) $(wildcard include/glad/*.c) $(wildcard include/opengl/*.c)
+IMGUI_SRCS:= $(wildcard include/imgui/*.cpp)
+CIMGUI_SRCS:= $(wildcard include/cimgui/*.cpp)
+
+ALL_SRCS:= $(SRCS)
 
 OUT := opengl.exe
 
@@ -17,11 +21,11 @@ OUT := opengl.exe
 compile: test run
 
 test:
-	$(CXX) $(CXXFLAGS) $(INCLUDES) $(SRCS) -o $(OUT) $(LDFLAGS)
+	$(CXX) $(CXXFLAGS) $(INCLUDES) $(ALL_SRCS) -o $(OUT) $(LDFLAGS)
 
-build: $(SRCS)
-	$(CXX) -mwindows $(CXXFLAGS) $(INCLUDES) $(SRCS) -o $(OUT) $(LDFLAGS)
-	"C:/Program Files/Git/bin/git.exe" add .
+build:
+	$(CXX) -mwindows $(CXXFLAGS) $(INCLUDES) $(ALL_SRCS) -o $(OUT) $(LDFLAGS)
+#	"C:/Program Files/Git/bin/git.exe" add .
 #	"C:/Program Files/Git/bin/git.exe" restore --staged Makefile
 
 run:

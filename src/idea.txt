@@ -1,0 +1,46 @@
+const char* cubeTexPaths[] = { "res/textures/box.png", "res/textures/box_specular.png" };
+const char* cubeTexTypes[] = { "diffuse", "specular" };
+pyramid = CreateMeshFromData(cubeTexPaths, cubeTexTypes, 2, cubeVertices, sizeof(cubeVertices)/sizeof(Vertex), cubeIndices, sizeof(cubeIndices)/sizeof(GLuint));
+
+const char* planeTexPaths[] = { "res/textures/box.png", "res/textures/box_specular.png" };
+const char* planeTexTypes[] = { "diffuse", "specular" };
+ground = CreateMeshFromData(planeTexPaths, planeTexTypes, 2, planeVertices, sizeof(planeVertices)/sizeof(Vertex), planeIndices, sizeof(planeIndices)/sizeof(GLuint));
+
+light = CreateMeshFromData(cubeTexPaths, cubeTexTypes, 2, cubeVertices, sizeof(cubeVertices)/sizeof(Vertex), cubeIndices, sizeof(cubeIndices)/sizeof(GLuint));
+
+
+
+
+
+
+
+Mesh CreateMeshFromData(
+    const char** texturePaths, const char** textureTypes, int textureCount,
+    Vertex* vertices, int vertexCount,
+    GLuint* indices, int indexCount
+) {
+    // Initialize textures
+    Texture* textures = malloc(textureCount * sizeof(Texture));
+    for (int i = 0; i < textureCount; i++) {
+        textures[i] = Texture_Init(texturePaths[i], textureTypes[i], i);
+    }
+
+    // Copy vertices
+    VertexVector verts;
+    VertexVector_Copy(vertices, vertexCount, &verts);
+
+    // Copy indices
+    GLuintVector ind;
+    GLuintVector_Copy(indices, indexCount, &ind);
+
+    // Copy textures
+    TextureVector tex;
+    TextureVector_Copy(textures, textureCount, &tex);
+
+    // Init mesh
+    Mesh mesh = Mesh_Init(&verts, &ind, &tex);
+
+    free(textures);
+
+    return mesh;
+}

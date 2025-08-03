@@ -3,6 +3,7 @@
 #include <GLFW/glfw3.h>
 #include <cglm/cglm.h>
 #include <stb_image/stb_image.h>
+#include <stb_image/stb_image_resize.h>
 
 #include <stdio.h>
 #include <math.h>
@@ -51,12 +52,6 @@ GLuint pyramidIndices[] = {
     13, 14, 15,
 };
 
-Vertex gunVertices[] = {
-};
-
-GLuint gunIndices[] = {
-};
-
 Vertex cubeVertices[] = {
     { { -1.0f, -1.0f,  1.0f }, {  0.0f, -1.0f,  0.0f }, { 1.0f, 0.0f, 0.0f }, { 0.0f, 0.0f } },
     { { -1.0f, -1.0f, -1.0f }, {  0.0f, -1.0f,  0.0f }, { 0.0f, 1.0f, 0.0f }, { 0.0f, 1.0f } },
@@ -95,19 +90,6 @@ GLuint planeIndices[] = {
     0, 2, 3,
 };
 
-GLfloat frameBufferVertices[] = {
-    // positions   // texCoords
-    -1.0f,  1.0f,   0.0f, 1.0f,  // top-left
-    -1.0f, -1.0f,   0.0f, 0.0f,  // bottom-left
-     1.0f, -1.0f,   1.0f, 0.0f,  // bottom-right
-
-    -1.0f,  1.0f,   0.0f, 1.0f,  // top-left
-     1.0f, -1.0f,   1.0f, 0.0f,  // bottom-right
-     1.0f,  1.0f,   1.0f, 1.0f   // top-right
-};
-
-
-
 // -----------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 clock_t previous_time = 0;
@@ -142,7 +124,7 @@ Mesh ground, pyramid, light, Gun, Model;
 void draw_stuff(Shader* shader, Camera* camera) {
     mat4 model;
 
-    make_model_matrix((vec3){0.0f, 0.0f, 0.0f}, (vec3){0.0f, 0.0f, 0.0f}, (vec3){1.0f, 1.0f, 1.0f}, model);
+    make_model_matrix((vec3){0.0f, 0.0f, 0.0f}, (vec3){0.0f, 0.0f, 0.0f}, (vec3){0.25f, 1.5f, 0.25f}, model);
     glUniformMatrix4fv(glGetUniformLocation(shader->ID, "model"), 1, GL_FALSE, (float*)model);
     Mesh_Draw(&pyramid, shader, camera);
 
@@ -191,27 +173,29 @@ int main() {
     Shader postFBO = Shader_Init("shaders/framebuffer/framebuffer.vert", "shaders/framebuffer/framebuffer.frag", NULL);
     Shader pixelate = Shader_Init("shaders/framebuffer/framebuffer.vert", "shaders/framebuffer/pixelate.frag", NULL);
     Shader outline = Shader_Init("shaders/framebuffer/framebuffer.vert", "shaders/framebuffer/outline.frag", NULL);
+    
+    Shader spriteShad = Shader_Init("shaders/sprite/sprite.vert", "shaders/sprite/sprite.frag", NULL);
 
-    // Texture textures[1];
-    // textures[0] = Texture_Init("res/textures/brick.jpg", "diffuse", 0);
-    // VertexVector verts;
-    // VertexVector_Copy(pyramidVertices, sizeof(pyramidVertices) / sizeof(Vertex), &verts);
-    // GLuintVector ind;
-    // GLuintVector_Copy(pyramidIndices, sizeof(pyramidIndices) / sizeof(GLuint), &ind);
-    // TextureVector tex;
-    // TextureVector_Copy(textures, sizeof(textures) / sizeof(Texture), &tex);
-    // pyramid = Mesh_Init(&verts, &ind, &tex);
-
-    Texture textures[2];
-    textures[0] = Texture_Init("res/textures/box.png", "diffuse", 0);
-    textures[1] = Texture_Init("res/textures/box_specular.png", "specular", 1);
+    Texture textures[1];
+    textures[0] = Texture_Init("res/textures/brick.jpg", "diffuse", 0);
     VertexVector verts;
-    VertexVector_Copy(cubeVertices, sizeof(cubeVertices) / sizeof(Vertex), &verts);
+    VertexVector_Copy(pyramidVertices, sizeof(pyramidVertices) / sizeof(Vertex), &verts);
     GLuintVector ind;
-    GLuintVector_Copy(cubeIndices, sizeof(cubeIndices) / sizeof(GLuint), &ind);
+    GLuintVector_Copy(pyramidIndices, sizeof(pyramidIndices) / sizeof(GLuint), &ind);
     TextureVector tex;
     TextureVector_Copy(textures, sizeof(textures) / sizeof(Texture), &tex);
     pyramid = Mesh_Init(&verts, &ind, &tex);
+
+    // Texture textures[2];
+    // textures[0] = Texture_Init("res/textures/box.png", "diffuse", 0);
+    // textures[1] = Texture_Init("res/textures/box_specular.png", "specular", 1);
+    // VertexVector verts;
+    // VertexVector_Copy(cubeVertices, sizeof(cubeVertices) / sizeof(Vertex), &verts);
+    // GLuintVector ind;
+    // GLuintVector_Copy(cubeIndices, sizeof(cubeIndices) / sizeof(GLuint), &ind);
+    // TextureVector tex;
+    // TextureVector_Copy(textures, sizeof(textures) / sizeof(Texture), &tex);
+    // pyramid = Mesh_Init(&verts, &ind, &tex);
 
     Texture PLANEtextures[2];
     PLANEtextures[0] = Texture_Init("res/textures/box.png", "diffuse", 0);
@@ -230,6 +214,14 @@ int main() {
     GLuintVector_Copy(cubeIndices, sizeof(cubeIndices) / sizeof(GLuint), &lightInd);
     light = Mesh_Init(&lightVerts, &lightInd, &tex);
 
+    VAO quadVAO = VAO_InitQuad();
+
+    const char* files[] = {
+        "res/textures/gun.png",
+        "res/textures/gun.png"
+    };
+    Sprite sprite = Sprite_Init(files, 2);
+
     // Gun = Import_loadMeshFromOBJ("res/models/Untitled.obj");
 
     // VertexVector modelverts;
@@ -237,16 +229,6 @@ int main() {
     // GLuintVector modelind;
     // GLuintVector_Copy(modelIndices, sizeof(modelIndices) / sizeof(GLuint), &modelind);
     // Model = Mesh_Init(&modelverts, &modelind, &PLANEtex);
-
-    // FRAMEBUFFER
-
-    VAO framebufferVAO = VAO_Init();
-    VAO_Bind(&framebufferVAO);
-    VBO framebufferVBO = VBO_InitRaw(frameBufferVertices, sizeof(frameBufferVertices));
-    VAO_LinkAttrib(&framebufferVBO, 0, 2, GL_FLOAT, 4 * sizeof(float), (void*)0);
-    VAO_LinkAttrib(&framebufferVBO, 1, 2, GL_FLOAT, 4 * sizeof(float), (void*)(2 * sizeof(float)));
-    VAO_Unbind();
-    VBO_Unbind();
     
     FBO postProcessingFBO[2];
     postProcessingFBO[0] = FBO_Init(width, height);
@@ -254,11 +236,23 @@ int main() {
     bool postProcessing = false;
     int ping = 0;
 
+    bool wireframe = false;
+    glLineWidth(5.0f);
+
     Camera camera = Camera_Init(width, height, 2.5f, 3.0f,(vec3){0.0f, 1.0f, 3.0f}, false);
 
-    LightSystem lightSystem = LightSystem_Init(0.2f);
+    LightSystem lightSystem = LightSystem_Init(0.0f);
     
     while(!glfwWindowShouldClose(window)) {
+
+        // glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+
+        wireframe = glfwGetKey(window, GLFW_KEY_4);
+
+        if (glfwGetKey(window, GLFW_KEY_4) == GLFW_PRESS) {
+            // wireframe = !wireframe;
+            glPolygonMode(GL_FRONT_AND_BACK, wireframe ? GL_LINE : GL_FILL);
+        }
 
         dt = get_delta_time();
         char buffer[256];
@@ -274,7 +268,7 @@ int main() {
         LightSystem_Clear(&lightSystem);
         // LightSystem_AddPointLight(&lightSystem, (vec3){sin(glfwGetTime()), 0.5f, cos(glfwGetTime())}, (vec4){1.0f, 0.1f, 0.05f, 1.0f}, 1.0f, 0.04f, 0.5f);
         // LightSystem_AddPointLight(&lightSystem, (vec3){-sin(glfwGetTime()), 0.5f, -cos(glfwGetTime())}, (vec4){0.2f, 1.0f, 0.2f, 1.0f}, 1.0f, 0.04f, 0.5f);
-        LightSystem_SetDirectLight(&lightSystem, (vec3){cos(glfwGetTime()/10), -0.9f, sin(glfwGetTime()/10)}, (vec4){1.0f, 1.0f, 1.0f, 1.0f}, 0.5f);
+        LightSystem_SetDirectLight(&lightSystem, (vec3){cos(glfwGetTime()/10), -1.0f, sin(glfwGetTime()/10)}, (vec4){1.0f, 1.0f, 1.0f, 1.0f}, 0.5f);
         // LightSystem_AddSpotLight(&lightSystem, (vec3){0.0f, 8.5f, 0.0f}, (vec3){0.1f, -1.0f, 0.0f}, (vec4){1.0f, 1.0f, 1.0f, 1.0f}, 0.90f, 0.95f, 0.5f);
         LightSystem_MakeShadowMaps(&lightSystem, &shadowMapProgram, &camera, draw_stuff);
 
@@ -305,27 +299,45 @@ int main() {
         
         LightSystem_DrawLights(&lightSystem, &light, &glShaderProgram_light3d, &camera);
 
+        glDisable(GL_DEPTH_TEST);
+
+        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+        
+        mat4 proj = GLM_MAT4_IDENTITY_INIT;
+        glm_ortho(0.0f, width, height, 0.0f, -1.0f, 1.0f, proj); // Top-left is (0,0)
+        // glUniformMatrix4fv(glGetUniformLocation(shader->ID, "uProjection"), 1, GL_FALSE, (float*)proj);
+
+        SpriteInstance inst = {
+            .position = {800, 500},
+            .size = {500, 500},
+            .rotation = 0.0f, 
+            .color = {1.0f, 1.0f, 1.0f, 1.0f},
+            .layer = 1
+        };
+
+        Sprite_Draw(&sprite, &spriteShad, &inst, proj, &quadVAO);
+
+
         // POST PROCESSING
 
         ping = !ping;
         glDisable(GL_DEPTH_TEST);
         glDisable(GL_CULL_FACE);
         
-        if (postProcessing || glfwGetKey(window, GLFW_KEY_1) == GLFW_PRESS) {
+        if (postProcessing || glfwGetKey(window, GLFW_KEY_3) == GLFW_PRESS) {
+            
             FBO_Bind(&postProcessingFBO[ping]);
-            glClear(GL_COLOR_BUFFER_BIT);
             Shader_Activate(&pixelate);
             FBO_BindTexture(&postProcessingFBO[!ping], &pixelate);
             glUniform1f(glGetUniformLocation(pixelate.ID, "pixelSize"), 4.f);
-            FBO_Draw(&postProcessingFBO[ping]);
+            VAO_DrawQuad(&quadVAO);
             ping = !ping;
         }
         
         FBO_Unbind();
-        glClear(GL_COLOR_BUFFER_BIT);
         Shader_Activate(&postFBO);
         FBO_BindTexture(&postProcessingFBO[!ping], &postFBO);
-        FBO_Draw(&postProcessingFBO[ping]);
+        VAO_DrawQuad(&quadVAO);
 
         glfwSwapBuffers(window);
         glfwPollEvents();

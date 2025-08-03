@@ -83,6 +83,7 @@ FBO FBO_InitMultiSample(int width, int height, int samples) {
 
 void FBO_Bind(FBO* fb) {
     glBindFramebuffer(GL_FRAMEBUFFER, fb->fbo);
+    glClear(GL_COLOR_BUFFER_BIT);
 }
 
 void FBO_BindTexture(FBO* fb, Shader* shader) {
