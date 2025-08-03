@@ -106,6 +106,8 @@ GLfloat frameBufferVertices[] = {
      1.0f,  1.0f,   1.0f, 1.0f   // top-right
 };
 
+
+
 // -----------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 clock_t previous_time = 0;
@@ -190,12 +192,23 @@ int main() {
     Shader pixelate = Shader_Init("shaders/framebuffer/framebuffer.vert", "shaders/framebuffer/pixelate.frag", NULL);
     Shader outline = Shader_Init("shaders/framebuffer/framebuffer.vert", "shaders/framebuffer/outline.frag", NULL);
 
-    Texture textures[1];
-    textures[0] = Texture_Init("res/textures/brick.jpg", "diffuse", 0);
+    // Texture textures[1];
+    // textures[0] = Texture_Init("res/textures/brick.jpg", "diffuse", 0);
+    // VertexVector verts;
+    // VertexVector_Copy(pyramidVertices, sizeof(pyramidVertices) / sizeof(Vertex), &verts);
+    // GLuintVector ind;
+    // GLuintVector_Copy(pyramidIndices, sizeof(pyramidIndices) / sizeof(GLuint), &ind);
+    // TextureVector tex;
+    // TextureVector_Copy(textures, sizeof(textures) / sizeof(Texture), &tex);
+    // pyramid = Mesh_Init(&verts, &ind, &tex);
+
+    Texture textures[2];
+    textures[0] = Texture_Init("res/textures/box.png", "diffuse", 0);
+    textures[1] = Texture_Init("res/textures/box_specular.png", "specular", 1);
     VertexVector verts;
-    VertexVector_Copy(pyramidVertices, sizeof(pyramidVertices) / sizeof(Vertex), &verts);
+    VertexVector_Copy(cubeVertices, sizeof(cubeVertices) / sizeof(Vertex), &verts);
     GLuintVector ind;
-    GLuintVector_Copy(pyramidIndices, sizeof(pyramidIndices) / sizeof(GLuint), &ind);
+    GLuintVector_Copy(cubeIndices, sizeof(cubeIndices) / sizeof(GLuint), &ind);
     TextureVector tex;
     TextureVector_Copy(textures, sizeof(textures) / sizeof(Texture), &tex);
     pyramid = Mesh_Init(&verts, &ind, &tex);
