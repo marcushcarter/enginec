@@ -11,84 +11,10 @@
 
 #include "opengl/opengl.h"
 
+// #include "geometry.c"
+
 unsigned int width = 1600;
 unsigned int height = 1000;
-
-Vertex pyramidVertices[] = {
-    // { { -1.0f,  0.0f,  1.0f }, { 0.0f, 1.0f, 0.0f }, { 0.0f, 1.0f, 0.0f }, { 0.0f, 0.0f } },
-    // { { -1.0f,  0.0f, -1.0f }, { 0.0f, 1.0f, 0.0f }, { 0.0f, 1.0f, 0.0f }, { 0.0f, 1.0f } },
-    // { {  1.0f,  0.0f, -1.0f }, { 0.0f, 1.0f, 0.0f }, { 1.0f, 1.0f, 0.0f }, { 1.0f, 1.0f } },
-    // { {  1.0f,  0.0f,  1.0f }, { 0.0f, 1.0f, 0.0f }, { 1.0f, 0.0f, 0.0f }, { 1.0f, 0.0f } }
-
-    { { -0.5f,  0.0f,  0.5f }, {  0.0f, -1.0f,  0.0f }, { 0.83f, 0.70f, 0.44f }, { 0.0f, 0.0f } },
-    { { -0.5f,  0.0f, -0.5f }, {  0.0f, -1.0f,  0.0f }, { 0.83f, 0.70f, 0.44f }, { 0.0f, 1.0f } },
-    { {  0.5f,  0.0f, -0.5f }, {  0.0f, -1.0f,  0.0f }, { 0.83f, 0.70f, 0.44f }, { 1.0f, 1.0f } },
-    { {  0.5f,  0.0f,  0.5f }, {  0.0f, -1.0f,  0.0f }, { 0.83f, 0.70f, 0.44f }, { 1.0f, 0.0f } },
-
-    { { -0.5f,  0.0f,  0.5f }, { -0.8f,  0.5f,  0.0f }, { 0.83f, 0.70f, 0.44f }, { 0.0f, 0.0f } },
-    { { -0.5f,  0.0f, -0.5f }, { -0.8f,  0.5f,  0.0f }, { 0.83f, 0.70f, 0.44f }, { 1.0f, 0.0f } },
-    { {  0.0f,  0.8f,  0.0f }, { -0.8f,  0.5f,  0.0f }, { 0.92f, 0.86f, 0.76f }, { 0.5f, 1.0f } },
-
-    { { -0.5f,  0.0f, -0.5f }, {  0.0f,  0.5f, -0.8f }, { 0.83f, 0.70f, 0.44f }, { 1.0f, 0.0f } },
-    { {  0.5f,  0.0f, -0.5f }, {  0.0f,  0.5f, -0.8f }, { 0.83f, 0.70f, 0.44f }, { 0.0f, 0.0f } },
-    { {  0.0f,  0.8f,  0.0f }, {  0.0f,  0.5f, -0.8f }, { 0.92f, 0.86f, 0.76f }, { 0.5f, 1.0f } },
-
-    { {  0.5f,  0.0f, -0.5f }, {  0.8f,  0.5f,  0.0f }, { 0.83f, 0.70f, 0.44f }, { 0.0f, 0.0f } },
-    { {  0.5f,  0.0f,  0.5f }, {  0.8f,  0.5f,  0.0f }, { 0.83f, 0.70f, 0.44f }, { 1.0f, 0.0f } },
-    { {  0.0f,  0.8f,  0.0f }, {  0.8f,  0.5f,  0.0f }, { 0.92f, 0.86f, 0.76f }, { 0.5f, 1.0f } },
-
-    { {  0.5f,  0.0f,  0.5f }, {  0.0f,  0.5f,  0.8f }, { 0.83f, 0.70f, 0.44f }, { 1.0f, 0.0f } },
-    { { -0.5f,  0.0f,  0.5f }, {  0.0f,  0.5f,  0.8f }, { 0.83f, 0.70f, 0.44f }, { 0.0f, 0.0f } },
-    { {  0.0f,  0.8f,  0.0f }, {  0.0f,  0.5f,  0.8f }, { 0.92f, 0.86f, 0.76f }, { 0.5f, 1.0f } },
-
-};
-
-GLuint pyramidIndices[] = {
-    0, 2, 1,
-    0, 3, 2,
-    4, 5, 6,
-    7, 8, 9,
-    10, 11, 12,
-    13, 14, 15,
-};
-
-Vertex cubeVertices[] = {
-    { { -1.0f, -1.0f,  1.0f }, {  0.0f, -1.0f,  0.0f }, { 1.0f, 0.0f, 0.0f }, { 0.0f, 0.0f } },
-    { { -1.0f, -1.0f, -1.0f }, {  0.0f, -1.0f,  0.0f }, { 0.0f, 1.0f, 0.0f }, { 0.0f, 1.0f } },
-    { {  1.0f, -1.0f, -1.0f }, {  0.0f, -1.0f,  0.0f }, { 0.0f, 0.0f, 1.0f }, { 1.0f, 1.0f } },
-    { {  1.0f, -1.0f,  1.0f }, {  0.0f, -1.0f,  0.0f }, { 1.0f, 1.0f, 0.0f }, { 1.0f, 0.0f } },
-    { { -1.0f,  1.0f,  1.0f }, {  0.0f,  1.0f,  0.0f }, { 1.0f, 0.0f, 1.0f }, { 0.0f, 0.0f } },
-    { { -1.0f,  1.0f, -1.0f }, {  0.0f,  1.0f,  0.0f }, { 0.0f, 1.0f, 1.0f }, { 0.0f, 1.0f } },
-    { {  1.0f,  1.0f, -1.0f }, {  0.0f,  1.0f,  0.0f }, { 1.0f, 1.0f, 1.0f }, { 1.0f, 1.0f } },
-    { {  1.0f,  1.0f,  1.0f }, {  0.0f,  1.0f,  0.0f }, { 0.5f, 0.5f, 0.5f }, { 1.0f, 0.0f } }
-};
-
-GLuint cubeIndices[] = {
-    0, 2, 1,
-    0, 3, 2,
-    0, 4, 7,
-    0, 7, 3,
-    3, 7, 6,
-    3, 6, 2,
-    2, 6, 5,
-    2, 5, 1,
-    1, 5, 4,
-    1, 4, 0,
-    4, 5, 6,
-    4, 6, 7
-};
-
-Vertex planeVertices[] = {
-    { { -1.0f,  0.0f,  1.0f }, { 0.0f, 1.0f, 0.0f }, { 0.0f, 1.0f, 0.0f }, { 0.0f, 0.0f } },
-    { { -1.0f,  0.0f, -1.0f }, { 0.0f, 1.0f, 0.0f }, { 0.0f, 1.0f, 0.0f }, { 0.0f, 1.0f } },
-    { {  1.0f,  0.0f, -1.0f }, { 0.0f, 1.0f, 0.0f }, { 1.0f, 1.0f, 0.0f }, { 1.0f, 1.0f } },
-    { {  1.0f,  0.0f,  1.0f }, { 0.0f, 1.0f, 0.0f }, { 1.0f, 0.0f, 0.0f }, { 1.0f, 0.0f } }
-};
-
-GLuint planeIndices[] = {
-    0, 1, 2,
-    0, 2, 3,
-};
 
 // -----------------------------------------------------------------------------------------------------------------------------------------------------------------
 
@@ -119,37 +45,21 @@ float get_delta_time() {
 
 // -----------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-Mesh ground, pyramid, light, Gun, Model;
+
+Mesh scene1, capsule, light;
 
 void draw_stuff(Shader* shader, Camera* camera) {
     mat4 model;
-
-    make_model_matrix((vec3){0.0f, 0.0f, 0.0f}, (vec3){0.0f, 0.0f, 0.0f}, (vec3){1.0f, 1.0f, 1.0f}, model);
-    glUniformMatrix4fv(glGetUniformLocation(shader->ID, "model"), 1, GL_FALSE, (float*)model);
-    Mesh_Draw(&pyramid, shader, camera);
-
-    
-    make_model_matrix((vec3){0.0f, 1.5f, 0.0f}, (vec3){0.0f, 0.0f, 0.0f}, (vec3){1.0f, 1.0f, 1.0f}, model);
-    glUniformMatrix4fv(glGetUniformLocation(shader->ID, "model"), 1, GL_FALSE, (float*)model);
-    Mesh_Draw(&Gun, shader, camera);
-
-    // for (int i = 0; i < 20; i++) {
     
     make_model_matrix((vec3){0.0f, 0.0f, 0.0f}, (vec3){0.0f, 0.0f, 0.0f}, (vec3){1.0f, 1.0f, 1.0f}, model);
     glUniformMatrix4fv(glGetUniformLocation(shader->ID, "model"), 1, GL_FALSE, (float*)model);
-    Mesh_Draw(&ground, shader, camera);
-    
-    // make_model_matrix((vec3){0.0f, 1.5f, 0.0f}, (vec3){0.0f, 0.0f, 0.0f}, (vec3){1.0f, 1.0f, 1.0f}, model);
-    // glUniformMatrix4fv(glGetUniformLocation(shader->ID, "model"), 1, GL_FALSE, (float*)model);
-    // Mesh_Draw(&Model, shader, camera);
-
-    // }
+    Mesh_Draw(&scene1, shader, camera);
 
     // PLAYER
 
     make_model_matrix(camera->Position, (vec3){0.0f, 0.0f, 0.0f}, (vec3){0.2f, 0.2f, 0.2f}, model);
     glUniformMatrix4fv(glGetUniformLocation(shader->ID, "model"), 1, GL_FALSE, (float*)model);
-    Mesh_Draw(&pyramid, shader, camera);
+    Mesh_Draw(&capsule, shader, camera);
 }
 
 int main() {
@@ -182,24 +92,19 @@ int main() {
     Shader spriteShad = Shader_Init("shaders/sprite/sprite.vert", "shaders/sprite/sprite.frag", NULL);
 
     // MESHES
-    
-    const char* pyramidtextures[] = { "res/textures/brick.jpg", "diffuse" };
-    pyramid = Mesh_InitFromData(pyramidtextures, 1, pyramidVertices, sizeof(pyramidVertices) / sizeof(Vertex), pyramidIndices, sizeof(pyramidIndices) / sizeof(GLuint));
-    
-    const char* groundtextures[] = { "res/textures/box.png", "diffuse", "res/textures/box_specular.png", "specular" };  
-    ground = Mesh_InitFromData(groundtextures, 2, planeVertices, sizeof(planeVertices) / sizeof(Vertex), planeIndices, sizeof(planeIndices) / sizeof(GLuint));
-    
+
     const char* lighttextures[] = { "res/textures/box.png", "diffuse" };
     light = Mesh_InitFromData(lighttextures, 1, cubeVertices, sizeof(cubeVertices) / sizeof(Vertex), cubeIndices, sizeof(cubeIndices) / sizeof(GLuint));
 
-    Gun = Import_loadMeshFromOBJ("res/models/Gun/Gun.obj");
+    capsule = Import_loadMeshFromOBJ("res/models/capsule.obj");
+    scene1 = Import_loadMeshFromOBJ("res/models/Untitled.obj");
 
     // SPRITES
 
     VAO quadVAO = VAO_InitQuad();
 
-    const char* files[] = { "res/textures/gun.png", "res/textures/gun.png" };
-    Sprite sprite = Sprite_Init(files, 2);
+    // const char* files[] = { "res/textures/gun.png", "res/textures/gun.png" };
+    // Sprite sprite = Sprite_Init(files, 2);
     
     FBO postProcessingFBO[2];
     postProcessingFBO[0] = FBO_Init(width, height);
@@ -213,7 +118,7 @@ int main() {
 
     Camera camera = Camera_Init(width, height, 2.5f, 3.0f,(vec3){0.0f, 1.0f, 3.0f}, false);
 
-    LightSystem lightSystem = LightSystem_Init(0.0f);
+    LightSystem lightSystem = LightSystem_Init(0.15f);
     
     while(!glfwWindowShouldClose(window)) {
 
@@ -230,10 +135,10 @@ int main() {
         Camera_UpdateMatrix(&camera, 45.0f, 0.1f, 100.0f);
         
         LightSystem_Clear(&lightSystem);
-        LightSystem_AddPointLight(&lightSystem, (vec3){sin(glfwGetTime()), 0.5f, cos(glfwGetTime())}, (vec4){1.0f, 0.1f, 0.05f, 1.0f}, 1.0f, 0.04f, 0.5f);
-        LightSystem_AddPointLight(&lightSystem, (vec3){-sin(glfwGetTime()), 0.5f, -cos(glfwGetTime())}, (vec4){0.2f, 1.0f, 0.2f, 1.0f}, 1.0f, 0.04f, 0.5f);
-        LightSystem_SetDirectLight(&lightSystem, (vec3){cos(glfwGetTime()/10), -1.0f, sin(glfwGetTime()/10)}, (vec4){1.0f, 1.0f, 1.0f, 1.0f}, 0.5f);
-        LightSystem_AddSpotLight(&lightSystem, (vec3){0.0f, 8.5f, 0.0f}, (vec3){0.1f, -1.0f, 0.0f}, (vec4){1.0f, 1.0f, 1.0f, 1.0f}, 0.90f, 0.95f, 0.5f);
+        // LightSystem_AddPointLight(&lightSystem, (vec3){sin(glfwGetTime()), 0.5f, cos(glfwGetTime())}, (vec4){1.0f, 0.1f, 0.05f, 1.0f}, 1.0f, 0.04f, 0.5f);
+        // LightSystem_AddPointLight(&lightSystem, (vec3){-sin(glfwGetTime()), 0.5f, -cos(glfwGetTime())}, (vec4){0.2f, 1.0f, 0.2f, 1.0f}, 1.0f, 0.04f, 0.5f);
+        LightSystem_SetDirectLight(&lightSystem, (vec3){cos(glfwGetTime()/25), -1.0f, sin(glfwGetTime()/25)}, (vec4){1.0f, 1.0f, 1.0f, 1.0f}, 0.5f);
+        // LightSystem_AddSpotLight(&lightSystem, (vec3){0.0f, 8.5f, 0.0f}, (vec3){0.1f, -1.0f, 0.0f}, (vec4){1.0f, 1.0f, 1.0f, 1.0f}, 0.90f, 0.95f, 0.5f);
 
         LightSystem_MakeShadowMaps(&lightSystem, &shadowMapProgram, &camera, draw_stuff);
 
@@ -270,21 +175,6 @@ int main() {
         glDisable(GL_DEPTH_TEST);
 
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-        
-        // mat4 proj = GLM_MAT4_IDENTITY_INIT;
-        // glm_ortho(0.0f, width, height, 0.0f, -1.0f, 1.0f, proj); // Top-left is (0,0)
-        // glUniformMatrix4fv(glGetUniformLocation(shader->ID, "uProjection"), 1, GL_FALSE, (float*)proj);
-
-        // SpriteInstance inst = {
-        //     .position = {800, 500},
-        //     .size = {500, 500},
-        //     .rotation = 0.0f, 
-        //     .color = {1.0f, 1.0f, 1.0f, 1.0f},
-        //     .layer = 1
-        // };
-
-        // Sprite_Draw(&sprite, &spriteShad, &inst, proj, &quadVAO);
-
 
         // POST PROCESSING
 

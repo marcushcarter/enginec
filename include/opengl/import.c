@@ -24,6 +24,44 @@ int check_duplicate_vert(Vertex* check, int count, Vertex* reference) {
     return -1;
 }
 
+int count_face_vertices(const char* line) {
+    const char* ptr = line + 2;  // skip "f "
+    int count = 0;
+
+    while (*ptr) {
+        // Skip any leading whitespace
+        while (*ptr == ' ' || *ptr == '\t' || *ptr == '\r' || *ptr == '\n') ptr++;
+        if (*ptr == '\0') break;
+
+        // Token start
+        const char* token_start = ptr;
+
+        // Move to end of token
+        while (*ptr && *ptr != ' ' && *ptr != '\t' && *ptr != '\r' && *ptr != '\n') ptr++;
+
+        // Parse the token without modifying the string
+        char token[64];
+        size_t len = ptr - token_start;
+        if (len >= sizeof(token)) len = sizeof(token) - 1;
+        memcpy(token, token_start, len);
+        token[len] = '\0';
+
+        // Count if it's a valid vertex (vi, vi/vti, etc.)
+        int vi, vti, vni;
+        if (sscanf(token, "%d/%d/%d", &vi, &vti, &vni) == 3 ||
+            sscanf(token, "%d//%d", &vi, &vni) == 2 ||
+            sscanf(token, "%d/%d", &vi, &vti) == 2 ||
+            sscanf(token, "%d", &vi) == 1) {
+            count++;
+        } else {
+            printf("Warning: malformed face token '%s'\n", token);
+        }
+    }
+
+    return count;
+}
+
+
 void replacePathSuffix(const char* path, const char* newsuffix, char* dest, int destsize) {
     const char* lastSlash = strrchr(path, '/');
 
@@ -69,10 +107,7 @@ Mesh Import_loadMeshFromOBJ(const char* obj_path) {
     const char** textures;
     int texturesCount = 0;
 
-    // Texture textures[10];
-    // int texturesCount = 0;
-
-    char line[256];
+    char line[546];
     int lineNum = 0;
 
     while (fgets(line, sizeof(line), file)) {
@@ -88,8 +123,6 @@ Mesh Import_loadMeshFromOBJ(const char* obj_path) {
 
             sscanf(line, "mtllib %s", mtl_file);
             replacePathSuffix(obj_path, mtl_file, mtl_filepath, sizeof(mtl_filepath));
-
-            printf("%s\n", mtl_filepath);
 
             textures = Mesh_getTexturesFromMTL(mtl_filepath, &texturesCount);
 
@@ -124,9 +157,12 @@ Mesh Import_loadMeshFromOBJ(const char* obj_path) {
             }
 
         } else if (strncmp(line, "f ", 2) == 0) {
-            char* token = strtok(line+2, " \t\r\n");
+            
+            int faceVertCount = count_face_vertices(line);
 
-            Vertex verts[10];
+            char* token = strtok(line+2, " \t\r\n");
+            
+            Vertex* verts = malloc(sizeof(Vertex) * faceVertCount);
             int numVerts = 0;
 
             while (token != NULL) {
@@ -182,6 +218,8 @@ Mesh Import_loadMeshFromOBJ(const char* obj_path) {
                 indices[indicesCount++] = i0;
                 indices[indicesCount++] = i2;
             }
+
+            free(verts);
             
         } else {
             printf("%s:%d:warning: unknown command -> %s", obj_path, lineNum, line);
@@ -195,7 +233,7 @@ Mesh Import_loadMeshFromOBJ(const char* obj_path) {
 
     if (texturesCount == 0) {
         static const char* fallbackTextures[] = {
-            "res/models/default.jpg",
+            "res/textures/null.jpg",
             "diffuse"
         };
         textures = fallbackTextures;
@@ -210,6 +248,7 @@ Mesh Import_loadMeshFromOBJ(const char* obj_path) {
     free(vertices);
     free(indices);
 
+    printf("succesfully loaded model -> %s\n", obj_path);
     return mesh;
 }
 

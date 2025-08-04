@@ -12,7 +12,7 @@ SRCS:= $(wildcard src/*.c) $(wildcard include/stb_image/*.c) $(wildcard include/
 IMGUI_SRCS:= $(wildcard include/imgui/*.cpp)
 CIMGUI_SRCS:= $(wildcard include/cimgui/*.cpp)
 
-ALL_SRCS:= $(SRCS)
+ALL_SRCS:= $(SRCS) $(IMGUI_SRCS) $(CIMGUI_SRCS)
 
 OUT := opengl.exe
 
