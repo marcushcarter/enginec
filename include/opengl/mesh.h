@@ -7,6 +7,7 @@
 #include "opengl/EBO.h"
 #include "opengl/camera.h"
 #include "opengl/texture.h"
+#include "math.h"
 
 typedef struct {
     VertexVector vertices;
@@ -18,5 +19,6 @@ typedef struct {
 Mesh Mesh_Init(VertexVector vertices, GLuintVector indices, TextureVector textures);
 Mesh Mesh_InitFromData(const char** texbuffer, int texcount, Vertex* vertices, int vertcount, GLuint* indices, int indcount);
 void Mesh_Draw(Mesh* mesh, Shader* shader, Camera* camera);
+void Mesh_DrawBillboard(Mesh* mesh, Shader* shader, Camera* camera, Texture* texture);
 
 #endif

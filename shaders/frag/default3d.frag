@@ -82,7 +82,7 @@ vec3 calcDirectLight(DirectLight light, vec3 normal, vec3 viewDirection, int ind
         vec2 pixelSize = 1.0 / vec2(textureSize(directShadowMapArray, index).xy);
         for (int y = -sampleRadius; y <= sampleRadius; y++) {
             for (int x = -sampleRadius; x <= sampleRadius; x++) {
-                float closestDepth = texture(directShadowMapArray, vec3(lightCoords.xy + vec2(x, y) * pixelSize, index)).r;
+                closestDepth = texture(directShadowMapArray, vec3(lightCoords.xy + vec2(x, y) * pixelSize, index)).r;
                 if (currentDepth > closestDepth + bias) {
                     shadow += 1.0f;
                 }
@@ -163,7 +163,8 @@ vec3 calcSpotLight(SpotLight light, vec3 normal, vec3 viewDirection, int index) 
 
     // return (texture(diffuse0, texCoord) * diffuse * (1.0f - shadow) + texture(specular0, texCoord).r * specular * (1.0f - shadow)) * light.color;
 
-    return (texture(diffuse0, texCoord) * (diffuse * (1.0f - shadow) * inten) + texture(specular0, texCoord).r * specular * (1.0f - shadow) * inten) * light.color;
+    // return (texture(diffuse0, texCoord) * (diffuse * (1.0f - shadow) * inten) + texture(specular0, texCoord).r * specular * (1.0f - shadow) * inten) * light.color;
+    return (texture(diffuse0, texCoord) * (diffuse * inten) + texture(specular0, texCoord).r * specular * inten) * light.color;
 }
 
 float near = 0.1f;

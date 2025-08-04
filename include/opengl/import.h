@@ -4,7 +4,6 @@
 #include "mesh.h"
 #include "vector.h"
 int find_or_add_vertex(Vertex* vertices, int* verticesCount, Vertex v);
-int check_duplicate_vert(Vertex* check, int count, Vertex* reference);
 void replacePathSuffix(const char* path, const char* newsuffix, char* dest, int destsize);
 int count_face_vertices(const char* line);
 

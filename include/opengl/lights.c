@@ -165,14 +165,14 @@ void LightSystem_SetUniforms(Shader* shader, LightSystem* lightSystem) {
         snprintf(buffer, sizeof(buffer), "spotlights[%d].specular", i);
         glUniform1f(glGetUniformLocation(shader->ID, buffer), lightSystem->spotlights[i].specular); 
 
-        snprintf(buffer, sizeof(buffer), "spotlights[%d].lightSpaceMatrix", i);
-        glUniformMatrix4fv(glGetUniformLocation(shader->ID, buffer), 1, GL_FALSE, (float*)lightSystem->spotlights[i].lightSpaceMatrix);
+        // snprintf(buffer, sizeof(buffer), "spotlights[%d].lightSpaceMatrix", i);
+        // glUniformMatrix4fv(glGetUniformLocation(shader->ID, buffer), 1, GL_FALSE, (float*)lightSystem->spotlights[i].lightSpaceMatrix);
 
     }
     
-    glActiveTexture(GL_TEXTURE0 + 5);
-    glBindTexture(GL_TEXTURE_2D_ARRAY, lightSystem->spotShadowFBO.depthTextureArray);
-    glUniform1i(glGetUniformLocation(shader->ID, "spotShadowMapArray"), 5);
+    // glActiveTexture(GL_TEXTURE0 + 5);
+    // glBindTexture(GL_TEXTURE_2D_ARRAY, lightSystem->spotShadowFBO.depthTextureArray);
+    // glUniform1i(glGetUniformLocation(shader->ID, "spotShadowMapArray"), 5);
 
 }
 

@@ -15,15 +15,6 @@ int find_or_add_vertex(Vertex* vertices, int* verticesCount, Vertex v) {
     return index;
 }
 
-int check_duplicate_vert(Vertex* check, int count, Vertex* reference) {
-    for (int i = 0; i < count; i++) {
-        if (memcmp(&check[i], reference, sizeof(Vertex)) == 0) {
-            return i;
-        }
-    }
-    return -1;
-}
-
 int count_face_vertices(const char* line) {
     const char* ptr = line + 2;  // skip "f "
     int count = 0;
@@ -61,7 +52,6 @@ int count_face_vertices(const char* line) {
     return count;
 }
 
-
 void replacePathSuffix(const char* path, const char* newsuffix, char* dest, int destsize) {
     const char* lastSlash = strrchr(path, '/');
 
@@ -85,7 +75,7 @@ Mesh Import_loadMeshFromOBJ(const char* obj_path) {
 
     FILE* file = fopen(obj_path, "r");
     if (!file) {
-        printf("%s:1:error: could not open the file\n", obj_path);
+        printf("%s:1:error: could not open file\n", obj_path);
         return mesh;
     }
 
@@ -112,12 +102,9 @@ Mesh Import_loadMeshFromOBJ(const char* obj_path) {
 
     while (fgets(line, sizeof(line), file)) {
         lineNum++;
+        if (line[0] == '#') continue;
 
-        if (strncmp(line, "#", 1) == 0) {
-
-            continue;
-
-        } else if (strncmp(line, "mtllib ", 7) == 0) {
+        if (strncmp(line, "mtllib ", 7) == 0) {
             char mtl_file[256] = {0};
             char mtl_filepath[256] = {0};
 
@@ -224,7 +211,6 @@ Mesh Import_loadMeshFromOBJ(const char* obj_path) {
         } else {
             printf("%s:%d:warning: unknown command -> %s", obj_path, lineNum, line);
             continue;
-
         }
 
     }
@@ -248,7 +234,7 @@ Mesh Import_loadMeshFromOBJ(const char* obj_path) {
     free(vertices);
     free(indices);
 
-    printf("succesfully loaded model -> %s\n", obj_path);
+    printf("%s:%d: succesfully loaded model\n", obj_path, lineNum);
     return mesh;
 }
 
@@ -257,7 +243,7 @@ const char** Mesh_getTexturesFromMTL(const char* mtl_path, int* outCount) {
     const int maxTextures = 50;
     const char** textures = malloc(maxTextures * sizeof(char*));
     if (!textures) {
-        printf("error: could not allocate memory for textures\n");
+        printf("%s:1:error: could not allocate memory for textures\n", mtl_path);
         exit(1);
     }
 
@@ -265,7 +251,7 @@ const char** Mesh_getTexturesFromMTL(const char* mtl_path, int* outCount) {
 
     FILE* file = fopen(mtl_path, "r");
     if (!file) {
-        printf("%s:1:error: could not open the file\n", mtl_path);
+        printf("%s:1:error: could not open file\n", mtl_path);
         exit(1);
     }
 
@@ -277,6 +263,7 @@ const char** Mesh_getTexturesFromMTL(const char* mtl_path, int* outCount) {
         if (line[0] == '#') continue;
 
         if (strncmp(line, "map_Kd ", 7) == 0) {
+
             char fileRelPath[256] = {0};
             sscanf(line + 7, "%255[^\n]", fileRelPath);
 
@@ -285,9 +272,8 @@ const char** Mesh_getTexturesFromMTL(const char* mtl_path, int* outCount) {
 
             textures[count++] = strdup(texturePath);
             textures[count++] = strdup("diffuse");
-        }
 
-        if (strncmp(line, "map_Ks ", 7) == 0) {
+        } else if (strncmp(line, "map_Ks ", 7) == 0) {
             char fileRelPath[256] = {0};
             sscanf(line + 7, "%255[^\n]", fileRelPath);
 
@@ -296,6 +282,9 @@ const char** Mesh_getTexturesFromMTL(const char* mtl_path, int* outCount) {
 
             textures[count++] = strdup(texturePath);
             textures[count++] = strdup("specular");
+        } else {
+            printf("%s:%d:warning: unknown command -> %s", mtl_path, lineNum, line);
+            continue;
         }
     }
 

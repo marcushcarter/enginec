@@ -19,6 +19,33 @@ void make_model_matrix(vec3 translation, vec3 rotation, vec3 scale, mat4 dest) {
     glm_mat4_mul(trans, rs, dest);
 }
 
+void make_billboard_matrix(vec3 position, mat4 view, vec3 scale, mat4 dest) {
+    mat4 model = GLM_MAT4_IDENTITY_INIT;
+
+    // Copy camera rotation from view matrix (transpose of upper-left 3x3)
+    model[0][0] = view[0][0];
+    model[0][1] = view[1][0];
+    model[0][2] = view[2][0];
+
+    model[1][0] = view[0][1];
+    model[1][1] = view[1][1];
+    model[1][2] = view[2][1];
+
+    model[2][0] = view[0][2];
+    model[2][1] = view[1][2];
+    model[2][2] = view[2][2];
+
+    // Apply scaling
+    glm_scale(model, scale);
+
+    // Set position
+    model[3][0] = position[0];
+    model[3][1] = position[1];
+    model[3][2] = position[2];
+
+    glm_mat4_copy(model, dest);
+}
+
 void print_mat4(mat4 m) {
     printf("mat4:\n");
     for (int row = 0; row < 4; row++) {

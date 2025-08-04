@@ -37,7 +37,8 @@
         "sprite.h": "c",
         "string.h": "c",
         "stb_image_resize.h": "c",
-        "texture.h": "c"
+        "texture.h": "c",
+        "chrono": "c"
     },
     "C_Cpp.errorSquiggles": "disabled"
 }

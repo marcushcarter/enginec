@@ -7,6 +7,8 @@ Mesh Mesh_Init(VertexVector vertices, GLuintVector indices, TextureVector textur
     mesh.indices = indices;
     mesh.textures = textures;
 
+    // printf("%d faces in mesh\n", indices.size/3);
+
     VAO VAO1 = VAO_Init();
     VAO_Bind(&VAO1);
     VBO VBO1 = VBO_Init(&vertices);
@@ -23,7 +25,6 @@ Mesh Mesh_Init(VertexVector vertices, GLuintVector indices, TextureVector textur
 
     return mesh;
 }
-
 
 Mesh Mesh_InitFromData(const char** texbuffer, int texcount, Vertex* vertices, int vertcount, GLuint* indices, int indcount) {
 
@@ -67,6 +68,19 @@ void Mesh_Draw(Mesh* mesh, Shader* shader, Camera* camera) {
             Texture_Bind(&mesh->textures.data[i]);
         }
     }
+    glUniform3fv(glGetUniformLocation(shader->ID, "camPos"), 1, (float*)camera->Position); 
+    Camera_Matrix(camera, shader, "camMatrix");
+
+    glDrawElements(GL_TRIANGLES, mesh->indices.size, GL_UNSIGNED_INT, 0);
+}
+
+void Mesh_DrawBillboard(Mesh* mesh, Shader* shader, Camera* camera, Texture* texture) {
+    Shader_Activate(shader);
+    VAO_Bind(&mesh->vao);
+
+    Texture_texUnit(shader, "diffuse0", texture->unit);
+    Texture_Bind(texture);
+
     glUniform3fv(glGetUniformLocation(shader->ID, "camPos"), 1, (float*)camera->Position); 
     Camera_Matrix(camera, shader, "camMatrix");
 

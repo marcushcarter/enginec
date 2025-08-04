@@ -11,8 +11,6 @@
 
 #include "opengl/opengl.h"
 
-// #include "geometry.c"
-
 unsigned int width = 1600;
 unsigned int height = 1000;
 
@@ -45,19 +43,28 @@ float get_delta_time() {
 
 // -----------------------------------------------------------------------------------------------------------------------------------------------------------------
 
+Texture tex1;
 
-Mesh scene1, capsule, light;
+Mesh scene1, capsule, light, billboard;
 
 void draw_stuff(Shader* shader, Camera* camera) {
     mat4 model;
     
+    Camera_UpdateMatrix(camera, 45.0f, 0.1f, 100.0f);
+
+    make_billboard_matrix((vec3){0.0f, 2.0f, 0.0f}, camera->cameraMatrix3D, (vec3){1.0f, 1.0f, 1.0f}, model);
+    // make_model_matrix((vec3){0.0f, 2.0f, 0.0f}, (vec3){0.0f, 0.0f, 0.0f}, (vec3){1.0f, 1.0f, 1.0f}, model);
+    glUniformMatrix4fv(glGetUniformLocation(shader->ID, "model"), 1, GL_FALSE, (float*)model);
+    Mesh_Draw(&billboard, shader, camera);
+    // Mesh_DrawBillboard(&billboard, shader, camera, &tex1);
+
     make_model_matrix((vec3){0.0f, 0.0f, 0.0f}, (vec3){0.0f, 0.0f, 0.0f}, (vec3){1.0f, 1.0f, 1.0f}, model);
     glUniformMatrix4fv(glGetUniformLocation(shader->ID, "model"), 1, GL_FALSE, (float*)model);
     Mesh_Draw(&scene1, shader, camera);
 
     // PLAYER
 
-    make_model_matrix(camera->Position, (vec3){0.0f, 0.0f, 0.0f}, (vec3){0.2f, 0.2f, 0.2f}, model);
+    make_model_matrix(camera->Position, (vec3){glm_rad(45), glm_rad(45), glm_rad(45)}, (vec3){0.2f, 0.2f, 0.2f}, model);
     glUniformMatrix4fv(glGetUniformLocation(shader->ID, "model"), 1, GL_FALSE, (float*)model);
     Mesh_Draw(&capsule, shader, camera);
 }
@@ -98,10 +105,14 @@ int main() {
 
     capsule = Import_loadMeshFromOBJ("res/models/capsule.obj");
     scene1 = Import_loadMeshFromOBJ("res/models/Untitled.obj");
+    billboard = Import_loadMeshFromOBJ("res/models/billboard.obj");
+
+    tex1 = Texture_Init("res/textures/box.png", "diffuse", 0);
 
     // SPRITES
 
     VAO quadVAO = VAO_InitQuad();
+    VAO bbVAO = VAO_InitBillboardQuad();
 
     // const char* files[] = { "res/textures/gun.png", "res/textures/gun.png" };
     // Sprite sprite = Sprite_Init(files, 2);

@@ -10,6 +10,7 @@ typedef struct {
 
 VAO VAO_Init();
 VAO VAO_InitQuad();
+VAO VAO_InitBillboardQuad();
 void VAO_LinkAttrib(VBO* vbo, GLuint layout, GLuint numComponents, GLenum type, GLsizeiptr stride, void* offset);
 void VAO_Bind(VAO* vao);
 void VAO_DrawQuad(VAO* vao);
