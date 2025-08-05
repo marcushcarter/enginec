@@ -53,10 +53,8 @@ void draw_stuff(Shader* shader, Camera* camera) {
     Camera_UpdateMatrix(camera, 45.0f, 0.1f, 100.0f);
 
     make_billboard_matrix((vec3){0.0f, 2.0f, 0.0f}, camera->cameraMatrix3D, (vec3){1.0f, 1.0f, 1.0f}, model);
-    // make_model_matrix((vec3){0.0f, 2.0f, 0.0f}, (vec3){0.0f, 0.0f, 0.0f}, (vec3){1.0f, 1.0f, 1.0f}, model);
     glUniformMatrix4fv(glGetUniformLocation(shader->ID, "model"), 1, GL_FALSE, (float*)model);
     Mesh_Draw(&billboard, shader, camera);
-    // Mesh_DrawBillboard(&billboard, shader, camera, &tex1);
 
     make_model_matrix((vec3){0.0f, 0.0f, 0.0f}, (vec3){0.0f, 0.0f, 0.0f}, (vec3){1.0f, 1.0f, 1.0f}, model);
     glUniformMatrix4fv(glGetUniformLocation(shader->ID, "model"), 1, GL_FALSE, (float*)model);
@@ -64,7 +62,7 @@ void draw_stuff(Shader* shader, Camera* camera) {
 
     // PLAYER
 
-    make_model_matrix(camera->Position, (vec3){glm_rad(45), glm_rad(45), glm_rad(45)}, (vec3){0.2f, 0.2f, 0.2f}, model);
+    make_model_matrix(camera->Position, (vec3){0.0f, 0.0f, 0.0f}, (vec3){0.2f, 0.2f, 0.2f}, model);
     glUniformMatrix4fv(glGetUniformLocation(shader->ID, "model"), 1, GL_FALSE, (float*)model);
     Mesh_Draw(&capsule, shader, camera);
 }
@@ -88,15 +86,14 @@ int main() {
 
     // SHADERS
     
-    Shader glShaderProgram_default3d = Shader_Init("shaders/vert/default3d.vert", "shaders/frag/default3d.frag", NULL);
-    Shader glShaderProgram_light3d = Shader_Init("shaders/vert/light3d.vert", "shaders/frag/light3d.frag", NULL);
-    Shader shadowMapProgram = Shader_Init("shaders/vert/shadowMap.vert", "shaders/frag/shadowMap.frag", NULL);
+    Shader shader_default = Shader_Init("shaders/vert/default.vert", "shaders/frag/default.frag", NULL);
+    Shader shader_wires = Shader_Init("shaders/vert/default.vert", "shaders/frag/wires.frag", NULL);
+    Shader shader_lights = Shader_Init("shaders/vert/lights.vert", "shaders/frag/lights.frag", NULL);
+    Shader shader_shadowMap = Shader_Init("shaders/vert/shadowMap.vert", "shaders/frag/blank.frag", NULL);
     
-    Shader postFBO = Shader_Init("shaders/framebuffer/framebuffer.vert", "shaders/framebuffer/framebuffer.frag", NULL);
-    Shader pixelate = Shader_Init("shaders/framebuffer/framebuffer.vert", "shaders/framebuffer/pixelate.frag", NULL);
-    Shader outline = Shader_Init("shaders/framebuffer/framebuffer.vert", "shaders/framebuffer/outline.frag", NULL);
-    
-    Shader spriteShad = Shader_Init("shaders/sprite/sprite.vert", "shaders/sprite/sprite.frag", NULL);
+    Shader shader_framebuffer = Shader_Init("shaders/framebuffer/framebuffer.vert", "shaders/framebuffer/framebuffer.frag", NULL);
+    Shader shader_pixelate = Shader_Init("shaders/framebuffer/framebuffer.vert", "shaders/framebuffer/pixelate.frag", NULL);
+    Shader shader_outline = Shader_Init("shaders/framebuffer/framebuffer.vert", "shaders/framebuffer/outline.frag", NULL);
 
     // MESHES
 
@@ -113,9 +110,6 @@ int main() {
 
     VAO quadVAO = VAO_InitQuad();
     VAO bbVAO = VAO_InitBillboardQuad();
-
-    // const char* files[] = { "res/textures/gun.png", "res/textures/gun.png" };
-    // Sprite sprite = Sprite_Init(files, 2);
     
     FBO postProcessingFBO[2];
     postProcessingFBO[0] = FBO_Init(width, height);
@@ -125,7 +119,7 @@ int main() {
     bool postProcessing = false;
     bool wireframe = false;
 
-    glLineWidth(5.0f);
+    glLineWidth(1.0f);
 
     Camera camera = Camera_Init(width, height, 2.5f, 3.0f,(vec3){0.0f, 1.0f, 3.0f}, false);
 
@@ -151,39 +145,29 @@ int main() {
         LightSystem_SetDirectLight(&lightSystem, (vec3){cos(glfwGetTime()/25), -1.0f, sin(glfwGetTime()/25)}, (vec4){1.0f, 1.0f, 1.0f, 1.0f}, 0.5f);
         // LightSystem_AddSpotLight(&lightSystem, (vec3){0.0f, 8.5f, 0.0f}, (vec3){0.1f, -1.0f, 0.0f}, (vec4){1.0f, 1.0f, 1.0f, 1.0f}, 0.90f, 0.95f, 0.5f);
 
-        LightSystem_MakeShadowMaps(&lightSystem, &shadowMapProgram, &camera, draw_stuff);
-
+        if (!wireframe) LightSystem_MakeShadowMaps(&lightSystem, &shader_shadowMap, &camera, draw_stuff);
+            
         glViewport(0, 0, width, height);
         FBO_Bind(&postProcessingFBO[ping]);
         glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        // glDisable(GL_DEPTH_TEST);
-        // Texture_Bind(&textures[0]);
-        // Shader_Activate(&glShaderProgram_raymarch);
-        // glUniform1f(glGetUniformLocation(glShaderProgram_raymarch.ID, "time"), glfwGetTime());
-        // glUniform3fv(glGetUniformLocation(glShaderProgram_raymarch.ID, "camPos"), 1, (float*)&camera.Position);
-        // glUniform3fv(glGetUniformLocation(glShaderProgram_raymarch.ID, "u_cameraOrientation"), 1, (float*)&camera.Orientation);
-        // VAO_Bind(&quadVAO);
-        // glDrawElements(GL_TRIANGLES, sizeof(QUADindices)/sizeof(int), GL_UNSIGNED_INT, 0);
-
         glEnable(GL_CULL_FACE);
         glCullFace(GL_FRONT);
         glFrontFace(GL_CCW);
         glEnable(GL_DEPTH_TEST);
-        
-        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-        if (wireframe || glfwGetKey(window, GLFW_KEY_4) == GLFW_PRESS) {
+
+        if (!wireframe) {
+            glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+            LightSystem_SetUniforms(&shader_default, &lightSystem);
+            draw_stuff(&shader_default, &camera);
+            LightSystem_DrawLights(&lightSystem, &light, &shader_lights, &camera);
+        } else {
             glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+            LightSystem_SetUniforms(&shader_wires, &lightSystem);
+            draw_stuff(&shader_wires, &camera);
+            LightSystem_DrawLights(&lightSystem, &light, &shader_wires, &camera);
         }
-
-        LightSystem_SetUniforms(&glShaderProgram_default3d, &lightSystem);
-
-        draw_stuff(&glShaderProgram_default3d, &camera);
-        
-        LightSystem_DrawLights(&lightSystem, &light, &glShaderProgram_light3d, &camera);
-
-        glDisable(GL_DEPTH_TEST);
 
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
@@ -196,16 +180,16 @@ int main() {
         if (postProcessing || glfwGetKey(window, GLFW_KEY_3) == GLFW_PRESS) {
             
             FBO_Bind(&postProcessingFBO[ping]);
-            Shader_Activate(&pixelate);
-            FBO_BindTexture(&postProcessingFBO[!ping], &pixelate);
-            glUniform1f(glGetUniformLocation(pixelate.ID, "pixelSize"), 4.f);
+            Shader_Activate(&shader_pixelate);
+            FBO_BindTexture(&postProcessingFBO[!ping], &shader_pixelate);
+            glUniform1f(glGetUniformLocation(shader_pixelate.ID, "pixelSize"), 4.f);
             VAO_DrawQuad(&quadVAO);
             ping = !ping;
         }
         
         FBO_Unbind();
-        Shader_Activate(&postFBO);
-        FBO_BindTexture(&postProcessingFBO[!ping], &postFBO);
+        Shader_Activate(&shader_framebuffer);
+        FBO_BindTexture(&postProcessingFBO[!ping], &shader_framebuffer);
         VAO_DrawQuad(&quadVAO);
 
         glfwSwapBuffers(window);

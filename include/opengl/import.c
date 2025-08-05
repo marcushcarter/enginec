@@ -1,51 +1,44 @@
 #include "import.h"
 #include <stdlib.h>
 #include <string.h>
+#include "error.h"
 
 int find_or_add_vertex(Vertex* vertices, int* verticesCount, Vertex v) {
     for (int i = 0; i < *verticesCount; i++) {
         if (memcmp(&vertices[i], &v, sizeof(Vertex)) == 0) {
-            return i;  // Already exists
+            return i;
         }
     }
 
-    // Not found, add new
     int index = (*verticesCount)++;
     vertices[index] = v;
     return index;
 }
 
 int count_face_vertices(const char* line) {
-    const char* ptr = line + 2;  // skip "f "
+    const char* ptr = line + 2;
     int count = 0;
 
     while (*ptr) {
-        // Skip any leading whitespace
         while (*ptr == ' ' || *ptr == '\t' || *ptr == '\r' || *ptr == '\n') ptr++;
         if (*ptr == '\0') break;
 
-        // Token start
         const char* token_start = ptr;
 
-        // Move to end of token
         while (*ptr && *ptr != ' ' && *ptr != '\t' && *ptr != '\r' && *ptr != '\n') ptr++;
 
-        // Parse the token without modifying the string
         char token[64];
         size_t len = ptr - token_start;
         if (len >= sizeof(token)) len = sizeof(token) - 1;
         memcpy(token, token_start, len);
         token[len] = '\0';
 
-        // Count if it's a valid vertex (vi, vi/vti, etc.)
         int vi, vti, vni;
         if (sscanf(token, "%d/%d/%d", &vi, &vti, &vni) == 3 ||
             sscanf(token, "%d//%d", &vi, &vni) == 2 ||
             sscanf(token, "%d/%d", &vi, &vti) == 2 ||
             sscanf(token, "%d", &vi) == 1) {
             count++;
-        } else {
-            printf("Warning: malformed face token '%s'\n", token);
         }
     }
 
@@ -75,24 +68,44 @@ Mesh Import_loadMeshFromOBJ(const char* obj_path) {
 
     FILE* file = fopen(obj_path, "r");
     if (!file) {
-        printf("%s:1:error: could not open file\n", obj_path);
-        return mesh;
+        MSG_ERROR(obj_path, 1, "could not open file");
+        exit(1);
     }
 
     vec3* positions = malloc(sizeof(vec3) * 100000);
     int positionsCount = 0;
+    if (!positions) {
+        MSG_FATAL(obj_path, 1, "could not allocate memory for mesh positions");
+        exit(1);
+    }
     
     vec3* normals = malloc(sizeof(vec3) * 100000);
     int normalsCount = 0;
+    if (!normals) {
+        MSG_FATAL(obj_path, 1, "could not allocate memory for mesh normals");
+        exit(1);
+    }
     
     vec2* uvs = malloc(sizeof(vec2) * 100000);
     int uvsCount = 0;
+    if (!uvs) {
+        MSG_FATAL(obj_path, 1, "could not allocate memory for mesh uvs");
+        exit(1);
+    }
 
     Vertex* vertices = malloc(sizeof(Vertex) * 100000);
     int verticesCount = 0;
+    if (!vertices) {
+        MSG_FATAL(obj_path, 1, "could not allocate memory for mesh vertices");
+        exit(1);
+    }
     
     GLuint* indices =  malloc(sizeof(GLuint) * 100000);
     int indicesCount = 0;
+    if (!indices) {
+        MSG_FATAL(obj_path, 1, "could not allocate memory for mesh indices");
+        exit(1);
+    }
 
     const char** textures;
     int texturesCount = 0;
@@ -102,7 +115,13 @@ Mesh Import_loadMeshFromOBJ(const char* obj_path) {
 
     while (fgets(line, sizeof(line), file)) {
         lineNum++;
-        if (line[0] == '#') continue;
+        
+        if ( 
+            line[0] == '#' || 
+            line[0] == '\n' || 
+            strncmp(line, "o ", 2) == 0 || 
+            strncmp(line, "s ", 2) == 0
+        ) continue;
 
         if (strncmp(line, "mtllib ", 7) == 0) {
             char mtl_file[256] = {0};
@@ -119,7 +138,7 @@ Mesh Import_loadMeshFromOBJ(const char* obj_path) {
             if (sscanf(line, "v %f %f %f", &v[0], &v[1], &v[2]) == 3) {
                 glm_vec3_copy(v, positions[positionsCount++]);
             } else {
-                printf("%s:%d:error: broken position vertex\n", obj_path, lineNum);
+                MSG_ERROR(obj_path, lineNum, "broken position vertex");
                 continue;
             }
 
@@ -129,7 +148,7 @@ Mesh Import_loadMeshFromOBJ(const char* obj_path) {
             if (sscanf(line, "vt %f %f", &vt[0], &vt[1]) == 2) {
                 glm_vec2_copy(vt, uvs[uvsCount++]);
             } else {
-                printf("%s:%d:error: broken uv vertex\n", obj_path, lineNum);
+                MSG_ERROR(obj_path, lineNum, "broken uv vertex");
                 continue;
             }
 
@@ -139,7 +158,7 @@ Mesh Import_loadMeshFromOBJ(const char* obj_path) {
             if (sscanf(line, "vn %f %f %f", &vn[0], &vn[1], &vn[2]) == 3) {
                 glm_vec3_copy(vn, normals[normalsCount++]);
             } else {
-                printf("%s:%d:error: broken normal vertex\n", obj_path, lineNum);
+                MSG_ERROR(obj_path, lineNum, "broken normal vertex");
                 continue;
             }
 
@@ -189,7 +208,7 @@ Mesh Import_loadMeshFromOBJ(const char* obj_path) {
                     glm_vec2_copy((vec2){0.0f,0.0f}, verts[numVerts].texUV);
 
                 } else {
-                    printf("%s:%d:error: broken face vertex\n", obj_path, lineNum);
+                    MSG_ERROR(obj_path, lineNum, "broken face vertex '%s'", token);
                 }
 
                 token = strtok(NULL, " \t\r\n");
@@ -209,7 +228,8 @@ Mesh Import_loadMeshFromOBJ(const char* obj_path) {
             free(verts);
             
         } else {
-            printf("%s:%d:warning: unknown command -> %s", obj_path, lineNum, line);
+            line[strcspn(line, "\n")] = '\0';
+            MSG_WARNING(obj_path, lineNum, "unsupported OBJ directive '%s'", line);
             continue;
         }
 
@@ -234,24 +254,22 @@ Mesh Import_loadMeshFromOBJ(const char* obj_path) {
     free(vertices);
     free(indices);
 
-    printf("%s:%d: succesfully loaded model\n", obj_path, lineNum);
+    MSG_INFO(obj_path, lineNum, "model loaded succesfully");
     return mesh;
 }
 
 const char** Mesh_getTexturesFromMTL(const char* mtl_path, int* outCount) {
 
-    const int maxTextures = 50;
-    const char** textures = malloc(maxTextures * sizeof(char*));
-    if (!textures) {
-        printf("%s:1:error: could not allocate memory for textures\n", mtl_path);
-        exit(1);
-    }
-
-    int count = 0;
-
     FILE* file = fopen(mtl_path, "r");
     if (!file) {
-        printf("%s:1:error: could not open file\n", mtl_path);
+        MSG_ERROR(mtl_path, 1, "could not open file");
+        exit(1);
+    }
+    
+    const char** textures = malloc(sizeof(char*) * 50);
+    int count = 0;
+    if (!textures) {
+        MSG_FATAL(mtl_path, 1, "could not allocate memory for mesh textures");
         exit(1);
     }
 
@@ -260,12 +278,16 @@ const char** Mesh_getTexturesFromMTL(const char* mtl_path, int* outCount) {
 
     while (fgets(line, sizeof(line), file)) {
         lineNum++;
-        if (line[0] == '#') continue;
+        
+        if ( 
+            line[0] == '#' || 
+            line[0] == '\n'
+        ) continue;
 
         if (strncmp(line, "map_Kd ", 7) == 0) {
 
-            char fileRelPath[256] = {0};
-            sscanf(line + 7, "%255[^\n]", fileRelPath);
+            char fileRelPath[256];
+            sscanf(line, "map_Kd %s", fileRelPath);
 
             char texturePath[512];
             replacePathSuffix(mtl_path, fileRelPath, texturePath, sizeof(texturePath));
@@ -274,16 +296,19 @@ const char** Mesh_getTexturesFromMTL(const char* mtl_path, int* outCount) {
             textures[count++] = strdup("diffuse");
 
         } else if (strncmp(line, "map_Ks ", 7) == 0) {
-            char fileRelPath[256] = {0};
-            sscanf(line + 7, "%255[^\n]", fileRelPath);
+            
+            char fileRelPath[256];
+            sscanf(line, "map_Ks %s", fileRelPath);
 
             char texturePath[512];
             replacePathSuffix(mtl_path, fileRelPath, texturePath, sizeof(texturePath));
 
             textures[count++] = strdup(texturePath);
             textures[count++] = strdup("specular");
+        
         } else {
-            printf("%s:%d:warning: unknown command -> %s", mtl_path, lineNum, line);
+            line[strcspn(line, "\n")] = '\0';
+            MSG_WARNING(mtl_path, lineNum, "unsupported MTL directive '%s'", line);
             continue;
         }
     }

@@ -14,7 +14,7 @@ CIMGUI_SRCS:= $(wildcard include/cimgui/*.cpp)
 
 ALL_SRCS:= $(SRCS) $(IMGUI_SRCS) $(CIMGUI_SRCS)
 
-OUT := opengl.exe
+OUT := opengl
 
 # === Targets ===
 

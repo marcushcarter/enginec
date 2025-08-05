@@ -7,8 +7,6 @@ Mesh Mesh_Init(VertexVector vertices, GLuintVector indices, TextureVector textur
     mesh.indices = indices;
     mesh.textures = textures;
 
-    // printf("%d faces in mesh\n", indices.size/3);
-
     VAO VAO1 = VAO_Init();
     VAO_Bind(&VAO1);
     VBO VBO1 = VBO_Init(&vertices);
