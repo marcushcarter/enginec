@@ -15,13 +15,11 @@ Camera Camera_Init(int width, int height, float speed, float sensitivity, vec3 p
 
     camera.speed = speed;
     camera.sensitivity = sensitivity;
-    camera.is2D = is2D;
     camera.zoom = 1.0f;
 
     mat4 mat;
     glm_mat4_identity(mat);
-    glm_mat4_copy(mat, camera.cameraMatrix3D);
-    glm_mat4_copy(mat, camera.cameraMatrix2D);
+    glm_mat4_copy(mat, camera.cameraMatrix);
 
     return camera;
 }
@@ -43,34 +41,13 @@ void Camera_UpdateMatrix(Camera* camera, float FOVdeg, float nearPlane, float fa
     glm_lookat(camera->Position, target, camera->Up, view);
     glm_perspective(glm_rad(fov), (float)camera->width / (float)camera->height, nearPlane, farPlane, projection);
     glm_mat4_mul(projection, view, projView);
-    glm_mat4_copy(projView, camera->cameraMatrix3D);
-
-    // skybox matrix
-
-    mat4 viewNoTranslation;
-    glm_mat4_copy(view, viewNoTranslation);
-    viewNoTranslation[3][0] = 0.0f;
-    viewNoTranslation[3][1] = 0.0f;
-    viewNoTranslation[3][2] = 0.0f;
-    glm_mat4_mul(projection, viewNoTranslation, projView);
-    glm_mat4_copy(projView, camera->skyboxMatrix);
-
-    // 2d matrix
-
-    glm_mat4_identity(view);
-    glm_translate(view, (vec3){-camera->Position[0], -camera->Position[1], 0.0f});
-    glm_ortho(0.0f, (float)camera->width / camera->zoom, (float)camera->height / camera->zoom, 0.0f, -1.0f, 1.0f, ortho);
-    glm_mat4_mul(ortho, view, projView);
-    glm_mat4_copy(projView, camera->cameraMatrix2D);
+    glm_mat4_copy(projView, camera->cameraMatrix);
+    glm_mat4_copy(view, camera->viewMatrix);
     
 }
 
 void Camera_Matrix(Camera* camera, Shader* shader, const char* uniform) {
-    if (!camera->is2D) {
-        glUniformMatrix4fv(glGetUniformLocation(shader->ID, uniform), 1, GL_FALSE, (float*)camera->cameraMatrix3D);
-    } else {
-        glUniformMatrix4fv(glGetUniformLocation(shader->ID, uniform), 1, GL_FALSE, (float*)camera->cameraMatrix2D);
-    }
+    glUniformMatrix4fv(glGetUniformLocation(shader->ID, uniform), 1, GL_FALSE, (float*)camera->cameraMatrix);
 }
 
 void Camera_MatrixCustom(Shader* shader, const char* uniform, mat4 matrix) {

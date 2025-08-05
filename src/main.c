@@ -52,10 +52,9 @@ void draw_stuff(Shader* shader, Camera* camera) {
     
     Camera_UpdateMatrix(camera, 45.0f, 0.1f, 100.0f);
 
-    // make_billboard_matrix((vec3){0.0f, 2.0f, 0.0f}, camera->cameraMatrix3D, (vec3){1.0f, 1.0f, 1.0f}, model);
-    // make_model_matrix((vec3){0.0f, 2.0f, 0.0f}, (vec3){0.0f, 0.0f, 0.0f}, (vec3){1.0f, 1.0f, 1.0f}, model);
-    // glUniformMatrix4fv(glGetUniformLocation(shader->ID, "model"), 1, GL_FALSE, (float*)model);
-    // Mesh_Draw(&billboard, shader, camera);
+    make_billboard_matrix((vec3){0.0f, (sin(glfwGetTime()))+1*2, 0.0f}, camera->viewMatrix, (vec3){1.0f, 1.0f, 1.0f}, model);
+    glUniformMatrix4fv(glGetUniformLocation(shader->ID, "model"), 1, GL_FALSE, (float*)model);
+    Mesh_Draw(&billboard, shader, camera);
 
     make_model_matrix((vec3){0.0f, 0.0f, 0.0f}, (vec3){0.0f, 0.0f, 0.0f}, (vec3){1.0f, 1.0f, 1.0f}, model);
     glUniformMatrix4fv(glGetUniformLocation(shader->ID, "model"), 1, GL_FALSE, (float*)model);
@@ -141,8 +140,8 @@ int main() {
         Camera_UpdateMatrix(&camera, 45.0f, 0.1f, 100.0f);
         
         LightSystem_Clear(&lightSystem);
-        LightSystem_AddPointLight(&lightSystem, (vec3){sin(glfwGetTime()), 0.5f, cos(glfwGetTime())}, (vec4){1.0f, 0.1f, 0.05f, 1.0f}, 1.0f, 0.04f, 0.5f);
-        LightSystem_AddPointLight(&lightSystem, (vec3){-sin(glfwGetTime()), 0.5f, -cos(glfwGetTime())}, (vec4){0.2f, 1.0f, 0.2f, 1.0f}, 1.0f, 0.04f, 0.5f);
+        // LightSystem_AddPointLight(&lightSystem, (vec3){sin(glfwGetTime()), 0.5f, cos(glfwGetTime())}, (vec4){1.0f, 0.1f, 0.05f, 1.0f}, 1.0f, 0.04f, 0.5f);
+        // LightSystem_AddPointLight(&lightSystem, (vec3){-sin(glfwGetTime()), 0.5f, -cos(glfwGetTime())}, (vec4){0.2f, 1.0f, 0.2f, 1.0f}, 1.0f, 0.04f, 0.5f);
         LightSystem_SetDirectLight(&lightSystem, (vec3){cos(glfwGetTime()/15), -0.4f, sin(glfwGetTime()/15)}, (vec4){1.0f, 1.0f, 1.0f, 1.0f}, 0.5f);
         // LightSystem_AddSpotLight(&lightSystem, (vec3){0.0f, 8.5f, 0.0f}, (vec3){0.1f, -1.0f, 0.0f}, (vec4){1.0f, 1.0f, 1.0f, 1.0f}, 0.90f, 0.95f, 0.5f);
 

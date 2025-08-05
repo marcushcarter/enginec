@@ -9,15 +9,10 @@
 #include "opengl/joystick.h"
 
 typedef struct {
-    bool is2D;
     int width, height;
     float zoom;
-    vec3 Position;
-    vec3 Orientation;
-    vec3 Up;
-    mat4 cameraMatrix3D;
-    mat4 cameraMatrix2D;
-    mat4 skyboxMatrix;
+    vec3 Position, Orientation, Up;
+    mat4 cameraMatrix, viewMatrix;
     float speed, sensitivity;
 } Camera;
 
