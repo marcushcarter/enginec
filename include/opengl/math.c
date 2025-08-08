@@ -57,17 +57,20 @@ void print_mat4(mat4 m) {
     }
 }
 
+void print_Camera(Camera* camera) {
+    printf("pos: %f %f %f dir: %f %f %f zoom: %f fov: %f\n", camera->Position[0], camera->Position[1], camera->Position[2], camera->Orientation[0], camera->Orientation[1], camera->Orientation[2], camera->zoom, camera->fov);
+}
+
 void orientation_to_euler(vec3 orientation, vec3 outEuler) {
-    // Ensure orientation is normalized
+
     vec3 dir;
     glm_vec3_normalize_to(orientation, dir);
 
-    // Calculate yaw and pitch
-    float yaw = atan2f(dir[0], -dir[2]);     // around Y axis
-    float pitch = asinf(dir[1]);            // around X axis
-    float roll = 0.0f;                      // zero roll
+    float yaw = atan2f(-dir[0], -dir[2]);
+    float pitch = asinf(dir[1]);
+    float roll = 0.0f;
 
-    outEuler[0] = pitch;   // rotation X (pitch)
-    outEuler[1] = yaw;     // rotation Y (yaw)
-    outEuler[2] = roll;    // rotation Z (roll)
+    outEuler[0] = pitch;
+    outEuler[1] = yaw;
+    outEuler[2] = roll;
 }

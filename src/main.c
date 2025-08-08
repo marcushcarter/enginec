@@ -45,7 +45,7 @@ float get_delta_time() {
 
 Texture tex1;
 
-Mesh scene1, capsule, light, billboard;
+Mesh scene1, capsule, light, billboard, cameraMesh;
 
 Camera* activeCamera = NULL;
 
@@ -54,7 +54,7 @@ CameraVector cameras;
 void draw_stuff(Shader* shader, Camera* camera) {
     mat4 model;
     
-    Camera_UpdateMatrix(camera, 45.0f, 0.1f, 100.0f);
+    Camera_UpdateMatrix(camera);
 
     make_billboard_matrix((vec3){0.0f, 1.5f, 0.0f}, camera->viewMatrix, (vec3){0.5f, 0.5f, 0.5f}, model);
     glUniformMatrix4fv(glGetUniformLocation(shader->ID, "model"), 1, GL_FALSE, (float*)model);
@@ -93,7 +93,7 @@ int main() {
     // SHADERS
     
     Shader shader_default = Shader_Init("shaders/vert/default.vert", "shaders/frag/default.frag", NULL);
-    Shader shader_wires = Shader_Init("shaders/vert/default.vert", "shaders/frag/wires.frag", NULL);
+    Shader shader_color = Shader_Init("shaders/vert/default.vert", "shaders/frag/color.frag", NULL);
     Shader shader_lights = Shader_Init("shaders/vert/lights.vert", "shaders/frag/lights.frag", NULL);
     Shader shader_shadowMap = Shader_Init("shaders/vert/shadowMap.vert", "shaders/frag/blank.frag", NULL);
     
@@ -109,6 +109,7 @@ int main() {
     capsule = Import_loadMeshFromOBJ("res/models/capsule.obj");
     scene1 = Import_loadMeshFromOBJ("res/models/Untitled.obj");
     billboard = Import_loadMeshFromOBJ("res/models/billboard.obj");
+    cameraMesh = Import_loadMeshFromOBJ("res/models/Camera/Camera.obj");
 
     tex1 = Texture_Init("res/textures/box.png", "diffuse", 0);
 
@@ -127,22 +128,20 @@ int main() {
 
     glLineWidth(2.0f);
 
-    // Camera defaultCamera = Camera_InitStack(width, height, 2.5f, 3.0f,(vec3){0.0f, 1.0f, 3.0f});
-    // Camera secondCam = Camera_InitStack(width, height, 2.5f, 3.0f,(vec3){0.0f, 1.0f, 3.0f});
-
     LightSystem lightSystem = LightSystem_Init(0.15f);
 
     // CAMERA VECTOR TESTING
+
     CameraVector_Init(&cameras);
-    Camera* cam1 = Camera_InitHeap(width, height, 2.5f, 3.0f,(vec3){0.0f, 1.0f, 3.0f});
+    Camera* cam1 = Camera_InitHeap(width, height, 45.0f, 0.1f, 100.0f, (vec3){0.0f, 1.0f, 3.0f}, (vec3){0.0f, 0.0f, -1.0f});
     CameraVector_Push(&cameras, cam1);
-    Camera* cam2 = Camera_InitHeap(width, height, 2.5f, 3.0f,(vec3){0.0f, 1.0f, 3.0f});
+    Camera* cam2 = Camera_InitHeap(width, height, 45.0f, 0.1f, 100.0f, (vec3){-1.93f, 0.73f, -1.75f}, (vec3){0.67f, -0.12f, 0.73f});
+    CameraVector_Push(&cameras, cam2);
+    Camera* cam3 = Camera_InitHeap(width, height, 45.0f, 0.1f, 100.0f, (vec3){2.23f, 3.01f, 2.9f}, (vec3){-0.49f, -0.6f, -0.63f});
     CameraVector_Push(&cameras, cam2);
 
     activeCamera = CameraVector_Get(&cameras, 0);
-
-    // Camera* cam = Camera_InitHeap(800, 600, 0.05f, 100.0f, position);
-    // CameraVector_Push(&cameras, cam);
+    int camNum = 0;
     
     while(!glfwWindowShouldClose(window)) {
 
@@ -155,15 +154,22 @@ int main() {
         if (joystickIsPressed(&joysticks[0], 7)) postProcessing = !postProcessing;
         if (joystickIsPressed(&joysticks[0], 6)) wireframe = !wireframe;
         
-        Camera_Inputs(CameraVector_Get(&cameras, 0), window, &joysticks[0], dt);
-        Camera_UpdateMatrix(CameraVector_Get(&cameras, 0), 45.0f, 0.1f, 100.0f);
+        Camera_Inputs(activeCamera, window, &joysticks[0], dt);
+        Camera_UpdateMatrix(activeCamera);
 
-        if (glfwGetKey(window, GLFW_KEY_5)) {
-            activeCamera = CameraVector_Get(&cameras, 0);
+        if (joystickIsPressed(&joysticks[0], 5)) {
+            camNum += 1;
+            camNum = camNum % cameras.size;
+            activeCamera = CameraVector_Get(&cameras, camNum);
         }
-        
-        if (glfwGetKey(window, GLFW_KEY_6)) {
-            activeCamera = CameraVector_Get(&cameras, 1);
+        if (joystickIsPressed(&joysticks[0], 4)) {
+            camNum -= 1;
+            camNum = camNum % cameras.size;
+            activeCamera = CameraVector_Get(&cameras, camNum);
+        }
+
+        if (joystickIsPressed(&joysticks[0], 10)) {
+            print_Camera(activeCamera);
         }
         
         LightSystem_Clear(&lightSystem);
@@ -185,22 +191,26 @@ int main() {
         glEnable(GL_DEPTH_TEST);
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
+    
         if (!wireframe) {
-            // Camera_Draws(&cameras, &capsule, &wireframe, activeCamera);
             glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+
             LightSystem_SetUniforms(&shader_default, &lightSystem);
             draw_stuff(&shader_default, activeCamera);
             LightSystem_Draw(&lightSystem, &light, &shader_lights, activeCamera);
         } else {
-            // Camera_Draws(&cameras, &capsule, &wireframe, activeCamera);
             glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-            LightSystem_SetUniforms(&shader_wires, &lightSystem);
-            draw_stuff(&shader_wires, activeCamera);
-            LightSystem_Draw(&lightSystem, &light, &shader_wires, activeCamera);
+
+            Shader_Activate(&shader_color);
+            glUniform3fv(glGetUniformLocation(shader_color.ID, "color"), 1, (float[]){1.0f, 0.647f, 0.0f});
+            LightSystem_SetUniforms(&shader_color, &lightSystem);
+            draw_stuff(&shader_color, activeCamera);
+            LightSystem_Draw(&lightSystem, &light, &shader_color, activeCamera);
         }
 
-        CameraVector_Draw(&cameras, &capsule, &shader_wires, activeCamera);
+        Shader_Activate(&shader_color);
+        glUniform3fv(glGetUniformLocation(shader_color.ID, "color"), 1, (float[]){1.0f, 1.0f, 1.0f});
+        CameraVector_Draw(&cameras, &cameraMesh, &shader_color, activeCamera);
 
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
