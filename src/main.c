@@ -4,47 +4,43 @@
 #include <cglm/cglm.h>
 #include <stb_image/stb_image.h>
 #include <stb_image/stb_image_resize.h>
-// #include <microui/microui.h>
-
-#define NK_INCLUDE_FIXED_TYPES
-#define NK_IMPLEMENTATION
-#include <nuklear/nuklear.h>
-
-#include <stdio.h>
-#include <math.h>
-#include <time.h>
-
-#include "opengl/opengl.h"
 
 unsigned int width = 1600;
 unsigned int height = 1000;
 
+#include "opengl/opengl.h"
+
+#define MAX_VERTEX_BUFFER 512 * 1024
+#define MAX_ELEMENT_BUFFER 128 * 1024
+#define NK_INCLUDE_FIXED_TYPES
+#define NK_INCLUDE_STANDARD_IO
+#define NK_INCLUDE_STANDARD_VARARGS
+#define NK_INCLUDE_DEFAULT_ALLOCATOR
+#define NK_INCLUDE_VERTEX_BUFFER_OUTPUT
+#define NK_INCLUDE_FONT_BAKING
+#define NK_INCLUDE_DEFAULT_FONT
+#define NK_IMPLEMENTATION
+#define NK_GLFW_GL4_IMPLEMENTATION
+#define NK_KEYSTATE_BASED_INPUT
+#include "nuklear/nuklear.h"
+#include "nuklear/nuklear_glfw_gl4.h"
+
+#include <stdio.h>
+#include <math.h>
+#include <time.h>
+#include "mylib/delta.h"
+
 // -----------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-clock_t previous_time = 0;
-float dt;
+// void keyboard_event(struct nk_input* in) {
+//     if (in->keyboard.keys[NK_KEY_ENTER].down && in->keyboard.keys[NK_KEY_ENTER].clicked) {
+//         printf("Key Enter was pressed\n");
+//         return;
+//     }
+//     return;
+// }
 
-int frame_count = 0;
-float fps_timer = 0.0f;
-float fps = 0.0f;
-
-float get_delta_time() {
-    clock_t current_time = clock();
-    float delta_time = (float)(current_time - previous_time) / CLOCKS_PER_SEC;
-    previous_time = current_time;
-
-    frame_count++;
-    fps_timer += delta_time;
-
-    if (fps_timer >= 1.0f) {
-        fps = frame_count / fps_timer;
-        frame_count = 0;
-        fps_timer = 0.0f;
-        // printf("FPS: %.2f\n", fps);
-    }
-
-    return delta_time;
-}
+static void eror_callback(int e, const char *d) { printf("Error %d: %s", e, d); }
 
 // -----------------------------------------------------------------------------------------------------------------------------------------------------------------
 
@@ -83,6 +79,9 @@ int main() {
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+#ifdef APPLE
+    glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
+#endif
 
     GLFWwindow* window = glfwCreateWindow(width, height, "opengl window", NULL, NULL);
     if (window == NULL) {
@@ -94,6 +93,12 @@ int main() {
 
     gladLoadGL();
     glViewport(0, 0, width, height);
+
+    struct nk_context* ctx = nk_glfw3_init(window, NK_GLFW3_INSTALL_CALLBACKS, MAX_VERTEX_BUFFER, MAX_ELEMENT_BUFFER);
+
+    {struct nk_font_atlas* atlas;
+    nk_glfw3_font_stash_begin(&atlas);
+    nk_glfw3_font_stash_end();}
 
     // SHADERS
     
@@ -156,7 +161,9 @@ int main() {
         snprintf(buffer, sizeof(buffer), "opengl window: %f FPS", fps);
         glfwSetWindowTitle(window, buffer);
 
+        glfwPollEvents();
         glfwJoystickEvents();
+
         if (joystickIsPressed(&joysticks[0], 7)) postProcessing = !postProcessing;
         if (joystickIsPressed(&joysticks[0], 6)) wireframe = !wireframe;
         
@@ -239,16 +246,48 @@ int main() {
             VAO_DrawQuad(&quadVAO);
             ping = !ping;
         }
+
+        
+        // nk_glfw3_new_frame();
+        // /* GUI */
+        // if (nk_begin(ctx, "Demo", nk_rect(0, 0, 200, 200), 0)) {
+        //     nk_layout_row_dynamic(ctx, 120, 1);
+        //     nk_label(ctx, "Hello, world!", NK_TEXT_CENTERED);
+
+        //     nk_layout_row_static(ctx, 30, 80, 1);
+        //     if (nk_button_label(ctx, "button"))
+        //         fprintf(stdout, "button pressed\n");
+        // }
+        // nk_end(ctx);
+
+        // glDisable(GL_DEPTH_TEST);
+        // glEnable(GL_BLEND);
+        // glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        // FBO_Bind(&postProcessingFBO[ping]);
+        // nk_glfw3_render(NK_ANTI_ALIASING_OFF);
+        // ping = !ping;
         
         FBO_Unbind();
         Shader_Activate(&shader_framebuffer);
         FBO_BindTexture(&postProcessingFBO[!ping], &shader_framebuffer);
         VAO_DrawQuad(&quadVAO);
 
+        nk_glfw3_new_frame();
+        if (nk_begin(ctx, "Demo", nk_rect(0, 0, 200, 200), 0)) {
+            nk_layout_row_dynamic(ctx, 120, 1);
+            nk_label(ctx, "Hello, world!", NK_TEXT_CENTERED);
+
+            nk_layout_row_static(ctx, 30, 80, 1);
+            if (nk_button_label(ctx, "button"))
+                fprintf(stdout, "button pressed\n");
+        }
+        nk_end(ctx);
+        nk_glfw3_render(NK_ANTI_ALIASING_OFF);
+
         glfwSwapBuffers(window);
-        glfwPollEvents();
     }
 
+    nk_glfw3_shutdown();
     glfwDestroyWindow(window);
     glfwTerminate();
     return 0;
