@@ -13,8 +13,8 @@ void CameraVector_Draw(CameraVector* cameras, Mesh* mesh, Shader* shader, Camera
     
         Camera* cam = cameras->data[i];
 
-        orientation_to_euler(cam->Orientation, ori);
-        make_model_matrix(cam->Position, ori, (vec3){0.25f * cam->width/1000 * cam->fov/45, 0.25f * cam->height/1000, 0.2f * cam->zoom}, model);
+        orientation_to_euler(cam->direction, ori);
+        make_model_matrix(cam->position, ori, (vec3){0.25f * cam->width/1000 * cam->fov/45, 0.25f * cam->height/1000, 0.2f * cam->zoom}, model);
         glUniformMatrix4fv(glGetUniformLocation(shader->ID, "model"), 1, GL_FALSE, (float*)model);
         Mesh_Draw(mesh, shader, camera);
 

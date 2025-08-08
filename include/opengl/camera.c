@@ -8,8 +8,8 @@ Camera Camera_InitStack(int width, int height, float fov, float nearPlane, float
 
     camera.width = width;
     camera.height = height;
-    glm_vec3_copy(position, camera.Position);
-    glm_vec3_copy(direction, camera.Orientation);
+    glm_vec3_copy(position, camera.position);
+    glm_vec3_copy(direction, camera.direction);
 
     vec3 up = { 0.0f, 1.0f, 0.0f };
 
@@ -33,8 +33,8 @@ Camera* Camera_InitHeap(int width, int height, float fov, float nearPlane, float
 
     camera->width = width;
     camera->height = height;
-    glm_vec3_copy(position, camera->Position);
-    glm_vec3_copy(direction, camera->Orientation);
+    glm_vec3_copy(position, camera->position);
+    glm_vec3_copy(direction, camera->direction);
 
     vec3 up = { 0.0f, 1.0f, 0.0f };
 
@@ -62,8 +62,8 @@ void Camera_UpdateMatrix(Camera* camera) {
     float fov = camera->fov;
 
     vec3 target;
-    glm_vec3_add(camera->Position, camera->Orientation, target);
-    glm_lookat(camera->Position, target, camera->Up, view);
+    glm_vec3_add(camera->position, camera->direction, target);
+    glm_lookat(camera->position, target, camera->Up, view);
     glm_perspective(glm_rad(fov), (float)camera->width / (float)camera->height, camera->nearPlane, camera->farPlane, projection);
     glm_mat4_mul(projection, view, projView);
     glm_mat4_copy(projView, camera->cameraMatrix);
@@ -110,7 +110,7 @@ void Camera_Inputs(Camera* camera, GLFWwindow* window, Joystick* js, float dt) {
     vec3 v_forward, v_right, v_up, v_move;
     glm_vec3_zero(v_move);
 
-    glm_vec3_copy(camera->Orientation, v_forward);
+    glm_vec3_copy(camera->direction, v_forward);
     v_forward[1] = 0.0f;
     glm_vec3_normalize(v_forward);
 
@@ -123,9 +123,9 @@ void Camera_Inputs(Camera* camera, GLFWwindow* window, Joystick* js, float dt) {
     // DIRECTION VECTORS
 
     vec3 d_up = { 0.0f, 1.0f, 0.0f };
-    vec3 d_right, d_Orientation;
+    vec3 d_right, d_direction;
 
-    glm_vec3_cross(d_up, camera->Orientation, d_right);
+    glm_vec3_cross(d_up, camera->direction, d_right);
     glm_vec3_normalize(d_right);
 
     // MOVEMENT
@@ -160,20 +160,20 @@ void Camera_Inputs(Camera* camera, GLFWwindow* window, Joystick* js, float dt) {
     // CAMERA ROTATION
 
     if (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS) {
-        rotate_vec3_axis(camera->Orientation, d_up, dt*sensitivity, d_Orientation);
-        glm_vec3_normalize_to(d_Orientation, camera->Orientation);
+        rotate_vec3_axis(camera->direction, d_up, dt*sensitivity, d_direction);
+        glm_vec3_normalize_to(d_direction, camera->direction);
     }
     if (glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS) {
-        rotate_vec3_axis(camera->Orientation, d_up, -dt*sensitivity, d_Orientation);
-        glm_vec3_normalize_to(d_Orientation, camera->Orientation);
+        rotate_vec3_axis(camera->direction, d_up, -dt*sensitivity, d_direction);
+        glm_vec3_normalize_to(d_direction, camera->direction);
     }
     if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS) {
-        rotate_vec3_axis(camera->Orientation, d_right, -dt*sensitivity, d_Orientation);
-        glm_vec3_normalize_to(d_Orientation, camera->Orientation);
+        rotate_vec3_axis(camera->direction, d_right, -dt*sensitivity, d_direction);
+        glm_vec3_normalize_to(d_direction, camera->direction);
     }
     if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS) {
-        rotate_vec3_axis(camera->Orientation, d_right, dt*sensitivity, d_Orientation);
-        glm_vec3_normalize_to(d_Orientation, camera->Orientation);
+        rotate_vec3_axis(camera->direction, d_right, dt*sensitivity, d_direction);
+        glm_vec3_normalize_to(d_direction, camera->direction);
     }
 
     
@@ -184,7 +184,7 @@ void Camera_Inputs(Camera* camera, GLFWwindow* window, Joystick* js, float dt) {
         camera->fov -= 10*dt;
     }
     
-    glm_vec3_add(camera->Position, v_move, camera->Position);
+    glm_vec3_add(camera->position, v_move, camera->position);
 
     if (js->present && js != NULL) {
 
@@ -208,15 +208,19 @@ void Camera_Inputs(Camera* camera, GLFWwindow* window, Joystick* js, float dt) {
         // CAMERA ROTATION
 
         if (fabsf(js->axes[2]) > js->deadzone) {
-            rotate_vec3_axis(camera->Orientation, d_up, -dt*sensitivity*js->axes[2], d_Orientation);
-            glm_vec3_normalize_to(d_Orientation, camera->Orientation);
+            rotate_vec3_axis(camera->direction, d_up, -dt*sensitivity*js->axes[2], d_direction);
+            glm_vec3_normalize_to(d_direction, camera->direction);
         }
         if (fabsf(js->axes[3]) > js->deadzone) {
-            rotate_vec3_axis(camera->Orientation, d_right, dt*sensitivity*js->axes[3], d_Orientation);
-            glm_vec3_normalize_to(d_Orientation, camera->Orientation);
+            rotate_vec3_axis(camera->direction, d_right, dt*sensitivity*js->axes[3], d_direction);
+            glm_vec3_normalize_to(d_direction, camera->direction);
         }
         
-        glm_vec3_add(camera->Position, v_move, camera->Position);
+        glm_vec3_add(camera->position, v_move, camera->position);
     }
 
 }
+
+// void Camera_SetVectors(Camera* camera, vec3 position, vec3 direction) {}
+
+// void Camera_Transform(Camera* camera, vec3 position, vec3 direction) {}

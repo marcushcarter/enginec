@@ -12,7 +12,7 @@ typedef struct {
     int width, height;
     float zoom, fov;
     float nearPlane, farPlane;
-    vec3 Position, Orientation, Up;
+    vec3 position, direction, Up;
     mat4 cameraMatrix, viewMatrix;
 } Camera;
 

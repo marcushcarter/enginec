@@ -128,6 +128,15 @@ Camera* CameraVector_Get(CameraVector* vec, size_t index) {
     return (index < vec->size) ? vec->data[index] : NULL;
 }
 
+void CameraVector_Remove(CameraVector* vec, Camera* cam) {
+    for (size_t i = 0; i < vec->size; i++) {
+        if (vec->data[i] == cam) {
+            CameraVector_RemoveAt(vec, i);
+            return;
+        }
+    }
+}
+
 void CameraVector_RemoveAt(CameraVector* vec, size_t index) {
     if (index >= vec->size) return;
     free(vec->data[index]);
@@ -135,6 +144,15 @@ void CameraVector_RemoveAt(CameraVector* vec, size_t index) {
         vec->data[i] = vec->data[i + 1];
     }
     vec->size--;
+}
+
+size_t CameraVector_IndexOf(CameraVector* vec, Camera* cam) {
+    for (size_t i = 0; i < vec->size; i++) {
+        if (vec->data[i] == cam) {
+            return i;
+        }
+    }
+    return SIZE_MAX;
 }
 
 void CameraVector_Free(CameraVector* vec) {

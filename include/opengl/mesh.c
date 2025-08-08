@@ -66,7 +66,7 @@ void Mesh_Draw(Mesh* mesh, Shader* shader, Camera* camera) {
             Texture_Bind(&mesh->textures.data[i]);
         }
     }
-    glUniform3fv(glGetUniformLocation(shader->ID, "camPos"), 1, (float*)camera->Position); 
+    glUniform3fv(glGetUniformLocation(shader->ID, "camPos"), 1, (float*)camera->position); 
     Camera_Matrix(camera, shader, "camMatrix");
 
     glDrawElements(GL_TRIANGLES, mesh->indices.size, GL_UNSIGNED_INT, 0);
@@ -79,7 +79,7 @@ void Mesh_DrawBillboard(Mesh* mesh, Shader* shader, Camera* camera, Texture* tex
     Texture_texUnit(shader, "diffuse0", texture->unit);
     Texture_Bind(texture);
 
-    glUniform3fv(glGetUniformLocation(shader->ID, "camPos"), 1, (float*)camera->Position); 
+    glUniform3fv(glGetUniformLocation(shader->ID, "camPos"), 1, (float*)camera->position); 
     Camera_Matrix(camera, shader, "camMatrix");
 
     glDrawElements(GL_TRIANGLES, mesh->indices.size, GL_UNSIGNED_INT, 0);

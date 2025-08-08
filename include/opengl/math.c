@@ -58,7 +58,7 @@ void print_mat4(mat4 m) {
 }
 
 void print_Camera(Camera* camera) {
-    printf("pos: %f %f %f dir: %f %f %f zoom: %f fov: %f\n", camera->Position[0], camera->Position[1], camera->Position[2], camera->Orientation[0], camera->Orientation[1], camera->Orientation[2], camera->zoom, camera->fov);
+    printf("pos: %f %f %f dir: %f %f %f zoom: %f fov: %f\n", camera->position[0], camera->position[1], camera->position[2], camera->direction[0], camera->direction[1], camera->direction[2], camera->zoom, camera->fov);
 }
 
 void orientation_to_euler(vec3 orientation, vec3 outEuler) {

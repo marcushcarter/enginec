@@ -66,7 +66,7 @@ void draw_stuff(Shader* shader, Camera* camera) {
 
     // PLAYER
 
-    make_model_matrix(camera->Position, (vec3){0.0f, 0.0f, 0.0f}, (vec3){0.2f, 0.2f, 0.2f}, model);
+    make_model_matrix(camera->position, (vec3){0.0f, 0.0f, 0.0f}, (vec3){0.2f, 0.2f, 0.2f}, model);
     glUniformMatrix4fv(glGetUniformLocation(shader->ID, "model"), 1, GL_FALSE, (float*)model);
     Mesh_Draw(&capsule, shader, camera);
 
@@ -138,12 +138,14 @@ int main() {
     Camera* cam2 = Camera_InitHeap(width, height, 45.0f, 0.1f, 100.0f, (vec3){-1.93f, 0.73f, -1.75f}, (vec3){0.67f, -0.12f, 0.73f});
     CameraVector_Push(&cameras, cam2);
     Camera* cam3 = Camera_InitHeap(width, height, 45.0f, 0.1f, 100.0f, (vec3){2.23f, 3.01f, 2.9f}, (vec3){-0.49f, -0.6f, -0.63f});
-    CameraVector_Push(&cameras, cam2);
+    CameraVector_Push(&cameras, cam3);
 
     activeCamera = CameraVector_Get(&cameras, 0);
     int camNum = 0;
     
     while(!glfwWindowShouldClose(window)) {
+
+        // printf("%d\n", cameras.size);
 
         dt = get_delta_time();
         char buffer[256];
@@ -167,9 +169,13 @@ int main() {
             camNum = camNum % cameras.size;
             activeCamera = CameraVector_Get(&cameras, camNum);
         }
-
         if (joystickIsPressed(&joysticks[0], 10)) {
-            print_Camera(activeCamera);
+            Camera* newCam = Camera_InitHeap(width, height, 45.0f, 0.1f, 100.0f, (vec3){0.0f, 1.0f, 0.0f}, (vec3){0.0f, 0.0f, -1.0f});
+            CameraVector_Push(&cameras, newCam); // Adds a new camera
+        }
+        if (joystickIsPressed(&joysticks[0], 12) && cameras.size > 0 && CameraVector_IndexOf(&cameras, activeCamera) != 0) {
+            CameraVector_Remove(&cameras, activeCamera);
+            activeCamera = CameraVector_Get(&cameras, 0);
         }
         
         LightSystem_Clear(&lightSystem);

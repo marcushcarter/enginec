@@ -56,7 +56,9 @@ typedef struct {
 void CameraVector_Init(CameraVector* vec);
 void CameraVector_Push(CameraVector* vec, Camera* cam);
 Camera* CameraVector_Get(CameraVector* vec, size_t index);
+void CameraVector_Remove(CameraVector* vec, Camera* cam);
 void CameraVector_RemoveAt(CameraVector* vec, size_t index);
+size_t CameraVector_IndexOf(CameraVector* vec, Camera* cam);
 void CameraVector_Free(CameraVector* vec);
 
 #endif
