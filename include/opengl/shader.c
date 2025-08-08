@@ -26,7 +26,7 @@ char* get_file_contents(const char* filename) {
     long length = ftell(file);
     rewind(file);
 
-    char* buffer = malloc(length + 1);
+    char* buffer = (char*)malloc(length + 1);
 
     fread(buffer, 1, length, file);
     buffer[length] = '\0';

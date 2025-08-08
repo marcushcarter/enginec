@@ -38,7 +38,9 @@
         "string.h": "c",
         "stb_image_resize.h": "c",
         "texture.h": "c",
-        "chrono": "c"
+        "chrono": "c",
+        "cameravector.h": "c",
+        "nuklear.h": "c"
     },
     "C_Cpp.errorSquiggles": "disabled"
 }

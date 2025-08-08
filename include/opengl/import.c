@@ -72,35 +72,35 @@ Mesh Import_loadMeshFromOBJ(const char* obj_path) {
         exit(1);
     }
 
-    vec3* positions = malloc(sizeof(vec3) * 100000);
+    vec3* positions = (vec3*)malloc(sizeof(vec3) * 100000);
     int positionsCount = 0;
     if (!positions) {
         MSG_FATAL(obj_path, 1, "could not allocate memory for mesh positions");
         exit(1);
     }
     
-    vec3* normals = malloc(sizeof(vec3) * 100000);
+    vec3* normals = (vec3*)malloc(sizeof(vec3) * 100000);
     int normalsCount = 0;
     if (!normals) {
         MSG_FATAL(obj_path, 1, "could not allocate memory for mesh normals");
         exit(1);
     }
     
-    vec2* uvs = malloc(sizeof(vec2) * 100000);
+    vec2* uvs = (vec2*)malloc(sizeof(vec2) * 100000);
     int uvsCount = 0;
     if (!uvs) {
         MSG_FATAL(obj_path, 1, "could not allocate memory for mesh uvs");
         exit(1);
     }
 
-    Vertex* vertices = malloc(sizeof(Vertex) * 100000);
+    Vertex* vertices = (Vertex*)malloc(sizeof(Vertex) * 100000);
     int verticesCount = 0;
     if (!vertices) {
         MSG_FATAL(obj_path, 1, "could not allocate memory for mesh vertices");
         exit(1);
     }
     
-    GLuint* indices =  malloc(sizeof(GLuint) * 100000);
+    GLuint* indices =  (GLuint*)malloc(sizeof(GLuint) * 100000);
     int indicesCount = 0;
     if (!indices) {
         MSG_FATAL(obj_path, 1, "could not allocate memory for mesh indices");
@@ -168,7 +168,7 @@ Mesh Import_loadMeshFromOBJ(const char* obj_path) {
 
             char* token = strtok(line+2, " \t\r\n");
             
-            Vertex* verts = malloc(sizeof(Vertex) * faceVertCount);
+            Vertex* verts = (Vertex*)malloc(sizeof(Vertex) * faceVertCount);
             int numVerts = 0;
 
             while (token != NULL) {
@@ -266,7 +266,7 @@ const char** Mesh_getTexturesFromMTL(const char* mtl_path, int* outCount) {
         exit(1);
     }
     
-    const char** textures = malloc(sizeof(char*) * 50);
+    const char** textures = (const char**)malloc(sizeof(char*) * 50);
     int count = 0;
     if (!textures) {
         MSG_FATAL(mtl_path, 1, "could not allocate memory for mesh textures");

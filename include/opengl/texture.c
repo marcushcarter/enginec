@@ -5,7 +5,7 @@
 Texture Texture_Init(const char* imageFile, const char* texType, GLuint slot) {
     Texture texture;
 
-    texture.type = malloc(strlen(texType) + 1);
+    texture.type = (char*)malloc(strlen(texType) + 1);
     if (!texture.type) {
         MSG_FATAL(imageFile, 1, "could not allocate memory for texture type");
         exit(1);

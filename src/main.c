@@ -4,6 +4,11 @@
 #include <cglm/cglm.h>
 #include <stb_image/stb_image.h>
 #include <stb_image/stb_image_resize.h>
+// #include <microui/microui.h>
+
+#define NK_INCLUDE_FIXED_TYPES
+#define NK_IMPLEMENTATION
+#include <nuklear/nuklear.h>
 
 #include <stdio.h>
 #include <math.h>
@@ -47,7 +52,7 @@ Texture tex1;
 
 Mesh scene1, capsule, light, billboard, cameraMesh;
 
-Camera* activeCamera = NULL;
+Camera* viewedCamera = NULL;
 
 CameraVector cameras;
 
@@ -140,12 +145,11 @@ int main() {
     Camera* cam3 = Camera_InitHeap(width, height, 45.0f, 0.1f, 100.0f, (vec3){2.23f, 3.01f, 2.9f}, (vec3){-0.49f, -0.6f, -0.63f});
     CameraVector_Push(&cameras, cam3);
 
-    activeCamera = CameraVector_Get(&cameras, 0);
+    viewedCamera = CameraVector_Get(&cameras, 0);
     int camNum = 0;
-    
-    while(!glfwWindowShouldClose(window)) {
 
-        // printf("%d\n", cameras.size);
+    printf("seconds to compile %.2fs\n", glfwGetTime());
+    while(!glfwWindowShouldClose(window)) {
 
         dt = get_delta_time();
         char buffer[256];
@@ -156,35 +160,35 @@ int main() {
         if (joystickIsPressed(&joysticks[0], 7)) postProcessing = !postProcessing;
         if (joystickIsPressed(&joysticks[0], 6)) wireframe = !wireframe;
         
-        Camera_Inputs(activeCamera, window, &joysticks[0], dt);
-        Camera_UpdateMatrix(activeCamera);
+        Camera_Inputs(viewedCamera, window, &joysticks[0], dt);
+        Camera_UpdateMatrix(viewedCamera);
 
         if (joystickIsPressed(&joysticks[0], 5)) {
             camNum += 1;
             camNum = camNum % cameras.size;
-            activeCamera = CameraVector_Get(&cameras, camNum);
+            viewedCamera = CameraVector_Get(&cameras, camNum);
         }
         if (joystickIsPressed(&joysticks[0], 4)) {
             camNum -= 1;
             camNum = camNum % cameras.size;
-            activeCamera = CameraVector_Get(&cameras, camNum);
+            viewedCamera = CameraVector_Get(&cameras, camNum);
         }
         if (joystickIsPressed(&joysticks[0], 10)) {
-            Camera* newCam = Camera_InitHeap(width, height, 45.0f, 0.1f, 100.0f, (vec3){0.0f, 1.0f, 0.0f}, (vec3){0.0f, 0.0f, -1.0f});
+            Camera* newCam = Camera_InitHeap(width, height, 45.0f, 0.1f, 100.0f, (vec3){0.0f, 1.0f, 0.0f}, viewedCamera->direction);
             CameraVector_Push(&cameras, newCam); // Adds a new camera
         }
-        if (joystickIsPressed(&joysticks[0], 12) && cameras.size > 0 && CameraVector_IndexOf(&cameras, activeCamera) != 0) {
-            CameraVector_Remove(&cameras, activeCamera);
-            activeCamera = CameraVector_Get(&cameras, 0);
+        if (joystickIsPressed(&joysticks[0], 12) && cameras.size > 0 && CameraVector_IndexOf(&cameras, viewedCamera) != 0) {
+            CameraVector_Remove(&cameras, viewedCamera);
+            viewedCamera = CameraVector_Get(&cameras, 0);
         }
         
         LightSystem_Clear(&lightSystem);
         // LightSystem_AddPointLight(&lightSystem, (vec3){sin(glfwGetTime()), 0.5f, cos(glfwGetTime())}, (vec4){1.0f, 0.1f, 0.05f, 1.0f}, 1.0f, 0.04f, 0.5f);
         // LightSystem_AddPointLight(&lightSystem, (vec3){-sin(glfwGetTime()), 0.5f, -cos(glfwGetTime())}, (vec4){0.2f, 1.0f, 0.2f, 1.0f}, 1.0f, 0.04f, 0.5f);
-        LightSystem_SetDirectLight(&lightSystem, (vec3){cos(glfwGetTime()/15), -0.4f, sin(glfwGetTime()/15)}, (vec4){1.0f, 1.0f, 1.0f, 1.0f}, 0.5f);
+        LightSystem_SetDirectLight(&lightSystem, (vec3){cosf(glfwGetTime()/15), -0.4f, sinf(glfwGetTime()/15)}, (vec4){1.0f, 1.0f, 1.0f, 1.0f}, 0.5f);
         // LightSystem_AddSpotLight(&lightSystem, (vec3){0.0f, 8.5f, 0.0f}, (vec3){0.1f, -1.0f, 0.0f}, (vec4){1.0f, 1.0f, 1.0f, 1.0f}, 0.90f, 0.95f, 0.5f);
 
-        if (!wireframe) LightSystem_MakeShadowMaps(&lightSystem, &shader_shadowMap, activeCamera, draw_stuff);
+        if (!wireframe) LightSystem_MakeShadowMaps(&lightSystem, &shader_shadowMap, viewedCamera, draw_stuff);
             
         glViewport(0, 0, width, height);
         FBO_Bind(&postProcessingFBO[ping]);
@@ -202,21 +206,21 @@ int main() {
             glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
             LightSystem_SetUniforms(&shader_default, &lightSystem);
-            draw_stuff(&shader_default, activeCamera);
-            LightSystem_Draw(&lightSystem, &light, &shader_lights, activeCamera);
+            draw_stuff(&shader_default, viewedCamera);
+            LightSystem_Draw(&lightSystem, &light, &shader_lights, viewedCamera);
         } else {
             glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
             Shader_Activate(&shader_color);
             glUniform3fv(glGetUniformLocation(shader_color.ID, "color"), 1, (float[]){1.0f, 0.647f, 0.0f});
             LightSystem_SetUniforms(&shader_color, &lightSystem);
-            draw_stuff(&shader_color, activeCamera);
-            LightSystem_Draw(&lightSystem, &light, &shader_color, activeCamera);
+            draw_stuff(&shader_color, viewedCamera);
+            LightSystem_Draw(&lightSystem, &light, &shader_color, viewedCamera);
         }
 
         Shader_Activate(&shader_color);
         glUniform3fv(glGetUniformLocation(shader_color.ID, "color"), 1, (float[]){1.0f, 1.0f, 1.0f});
-        CameraVector_Draw(&cameras, &cameraMesh, &shader_color, activeCamera);
+        CameraVector_Draw(&cameras, &cameraMesh, &shader_color, viewedCamera);
 
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
