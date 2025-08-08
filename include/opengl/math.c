@@ -56,3 +56,18 @@ void print_mat4(mat4 m) {
         printf("]\n");
     }
 }
+
+void orientation_to_euler(vec3 orientation, vec3 outEuler) {
+    // Ensure orientation is normalized
+    vec3 dir;
+    glm_vec3_normalize_to(orientation, dir);
+
+    // Calculate yaw and pitch
+    float yaw = atan2f(dir[0], -dir[2]);     // around Y axis
+    float pitch = asinf(dir[1]);            // around X axis
+    float roll = 0.0f;                      // zero roll
+
+    outEuler[0] = pitch;   // rotation X (pitch)
+    outEuler[1] = yaw;     // rotation Y (yaw)
+    outEuler[2] = roll;    // rotation Z (roll)
+}

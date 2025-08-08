@@ -16,5 +16,6 @@
 #include "vector.h"
 #include "math.h"
 #include "geometry.h"
+#include "cameraVector.h"
 
 #endif

@@ -49,6 +49,8 @@ Mesh scene1, capsule, light, billboard;
 
 Camera* activeCamera = NULL;
 
+CameraVector cameras;
+
 void draw_stuff(Shader* shader, Camera* camera) {
     mat4 model;
     
@@ -67,6 +69,8 @@ void draw_stuff(Shader* shader, Camera* camera) {
     make_model_matrix(camera->Position, (vec3){0.0f, 0.0f, 0.0f}, (vec3){0.2f, 0.2f, 0.2f}, model);
     glUniformMatrix4fv(glGetUniformLocation(shader->ID, "model"), 1, GL_FALSE, (float*)model);
     Mesh_Draw(&capsule, shader, camera);
+
+
 }
 
 int main() {
@@ -119,7 +123,7 @@ int main() {
     int ping = 0;
 
     bool postProcessing = false;
-    bool wireframe = false;
+    bool wireframe = true;
 
     glLineWidth(2.0f);
 
@@ -129,7 +133,6 @@ int main() {
     LightSystem lightSystem = LightSystem_Init(0.15f);
 
     // CAMERA VECTOR TESTING
-    CameraVector cameras;
     CameraVector_Init(&cameras);
     Camera* cam1 = Camera_InitHeap(width, height, 2.5f, 3.0f,(vec3){0.0f, 1.0f, 3.0f});
     CameraVector_Push(&cameras, cam1);
@@ -152,17 +155,15 @@ int main() {
         if (joystickIsPressed(&joysticks[0], 7)) postProcessing = !postProcessing;
         if (joystickIsPressed(&joysticks[0], 6)) wireframe = !wireframe;
         
-        Camera_Inputs(activeCamera, window, &joysticks[0], dt);
-        Camera_UpdateMatrix(activeCamera, 45.0f, 0.1f, 100.0f);
+        Camera_Inputs(CameraVector_Get(&cameras, 0), window, &joysticks[0], dt);
+        Camera_UpdateMatrix(CameraVector_Get(&cameras, 0), 45.0f, 0.1f, 100.0f);
 
         if (glfwGetKey(window, GLFW_KEY_5)) {
             activeCamera = CameraVector_Get(&cameras, 0);
-            // activeCamera = &defaultCamera;
         }
         
         if (glfwGetKey(window, GLFW_KEY_6)) {
             activeCamera = CameraVector_Get(&cameras, 1);
-            // activeCamera = &secondCam;
         }
         
         LightSystem_Clear(&lightSystem);
@@ -186,16 +187,20 @@ int main() {
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
         if (!wireframe) {
+            // Camera_Draws(&cameras, &capsule, &wireframe, activeCamera);
             glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
             LightSystem_SetUniforms(&shader_default, &lightSystem);
             draw_stuff(&shader_default, activeCamera);
             LightSystem_Draw(&lightSystem, &light, &shader_lights, activeCamera);
         } else {
+            // Camera_Draws(&cameras, &capsule, &wireframe, activeCamera);
             glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
             LightSystem_SetUniforms(&shader_wires, &lightSystem);
             draw_stuff(&shader_wires, activeCamera);
             LightSystem_Draw(&lightSystem, &light, &shader_wires, activeCamera);
         }
+
+        CameraVector_Draw(&cameras, &capsule, &shader_wires, activeCamera);
 
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 

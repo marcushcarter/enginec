@@ -1,4 +1,7 @@
 #include "camera.h"
+#include "vector.h"
+#include "math.h"
+#include "mesh.h"
 
 Camera Camera_InitStack(int width, int height, float speed, float sensitivity, vec3 position) {
     Camera camera;
