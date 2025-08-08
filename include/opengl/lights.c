@@ -207,7 +207,7 @@ void LightSystem_MakeShadowMaps(LightSystem* lightSystem, Shader* lightShader, C
     // glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
-void LightSystem_DrawLights(LightSystem* lightSystem, Mesh* mesh, Shader* shader, Camera* camera) {
+void LightSystem_Draw(LightSystem* lightSystem, Mesh* mesh, Shader* shader, Camera* camera) {
     
     Shader_Activate(shader);
 

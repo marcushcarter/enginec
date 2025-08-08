@@ -1,6 +1,6 @@
 #include "camera.h"
 
-Camera Camera_Init(int width, int height, float speed, float sensitivity, vec3 position, bool is2D) {
+Camera Camera_InitStack(int width, int height, float speed, float sensitivity, vec3 position) {
     Camera camera;
 
     camera.width = width;
@@ -20,6 +20,28 @@ Camera Camera_Init(int width, int height, float speed, float sensitivity, vec3 p
     mat4 mat;
     glm_mat4_identity(mat);
     glm_mat4_copy(mat, camera.cameraMatrix);
+
+    return camera;
+}
+
+Camera* Camera_InitHeap(int width, int height, float speed, float sensitivity, vec3 position) {
+    Camera* camera = (Camera*)malloc(sizeof(Camera));
+
+    camera->width = width;
+    camera->height = height;
+    glm_vec3_copy(position, camera->Position);
+
+    vec3 orientation = { 0.0f, 0.0f, -1.0f };
+    vec3 up = { 0.0f, 1.0f, 0.0f };
+
+    glm_vec3_copy(orientation, camera->Orientation);
+    glm_vec3_copy(up, camera->Up);
+
+    camera->speed = speed;
+    camera->sensitivity = sensitivity;
+    camera->zoom = 1.0f;
+
+    glm_mat4_identity(camera->cameraMatrix);
 
     return camera;
 }

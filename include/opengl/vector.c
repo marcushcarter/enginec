@@ -2,13 +2,11 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define INITIAL_VERTEX_CAPACITY 8
-#define INITIAL_UINT_CAPACITY   8
-#define INITIAL_TEXTURE_CAPACITY 8
-
 // ==============================
 // VertexVector
 // ==============================
+
+#define INITIAL_VERTEX_CAPACITY 8
 
 void VertexVector_Init(VertexVector* vec) {
     vec->data = (Vertex*)malloc(sizeof(Vertex) * INITIAL_VERTEX_CAPACITY);
@@ -42,10 +40,12 @@ void VertexVector_Copy(Vertex* vertices, size_t count, VertexVector* outVec) {
 // GLuintVector
 // ==============================
 
+#define INITIAL_GLUINT_CAPACITY   8
+
 void GLuintVector_Init(GLuintVector* vec) {
-    vec->data = (GLuint*)malloc(sizeof(GLuint) * INITIAL_UINT_CAPACITY);
+    vec->data = (GLuint*)malloc(sizeof(GLuint) * INITIAL_GLUINT_CAPACITY);
     vec->size = 0;
-    vec->capacity = INITIAL_UINT_CAPACITY;
+    vec->capacity = INITIAL_GLUINT_CAPACITY;
 }
 
 void GLuintVector_Push(GLuintVector* vec, GLuint value) {
@@ -74,6 +74,8 @@ void GLuintVector_Copy(GLuint* data, size_t count, GLuintVector* outVec) {
 // TextureVector
 // ==============================
 
+#define INITIAL_TEXTURE_CAPACITY 8
+
 void TextureVector_Init(TextureVector* vec) {
     vec->data = (Texture*)malloc(sizeof(Texture) * INITIAL_TEXTURE_CAPACITY);
     vec->size = 0;
@@ -100,4 +102,46 @@ void TextureVector_Copy(Texture* textures, size_t count, TextureVector* outVec) 
     for (size_t i = 0; i < count; i++) {
         TextureVector_Push(outVec, textures[i]);
     }
+}
+
+// ==============================
+// CameraVector
+// ==============================
+
+#define INITIAL_CAMERA_CAPACITY 10
+
+void CameraVector_Init(CameraVector* vec) {
+    vec->data = (Camera**)malloc(sizeof(Camera*) * INITIAL_CAMERA_CAPACITY);
+    vec->size = 0;
+    vec->capacity = INITIAL_CAMERA_CAPACITY;
+}
+
+void CameraVector_Push(CameraVector* vec, Camera* cam) {
+    if (vec->size >= vec->capacity) {
+        vec->capacity *= 2;
+        vec->data = (Camera**)realloc(vec->data, sizeof(Camera*) * vec->capacity);
+    }
+    vec->data[vec->size++] = cam;
+}
+
+Camera* CameraVector_Get(CameraVector* vec, size_t index) {
+    return (index < vec->size) ? vec->data[index] : NULL;
+}
+
+void CameraVector_RemoveAt(CameraVector* vec, size_t index) {
+    if (index >= vec->size) return;
+    free(vec->data[index]);
+    for (size_t i = index; i < vec->size - 1; i++) {
+        vec->data[i] = vec->data[i + 1];
+    }
+    vec->size--;
+}
+
+void CameraVector_Free(CameraVector* vec) {
+    for (size_t i = 0; i < vec->size; i++) {
+        free(vec->data[i]);
+    }
+    free(vec->data);
+    vec->data = NULL;
+    vec->size = vec->capacity = 0;
 }

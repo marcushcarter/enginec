@@ -16,7 +16,8 @@ typedef struct {
     float speed, sensitivity;
 } Camera;
 
-Camera Camera_Init(int width, int height, float speed, float sensitivity, vec3 position, bool is2D);
+Camera Camera_InitStack(int width, int height, float speed, float sensitivity, vec3 position);
+Camera* Camera_InitHeap(int width, int height, float speed, float sensitivity, vec3 position);
 void Camera_UpdateMatrix(Camera* camera, float FOVdeg, float nearPlane, float farPlane);
 void Camera_UpdateMatrix2D(Camera* camera);
 void Camera_Matrix(Camera* camera, Shader* shader, const char* uniform);

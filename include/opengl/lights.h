@@ -68,7 +68,7 @@ void LightSystem_Merge(LightSystem* dest, LightSystem* a, LightSystem* b);
 void LightSystem_SetDirectLight(LightSystem* lightSystem, vec3 direction, vec4 color, float specular);
 void LightSystem_AddPointLight(LightSystem* lightSystem, vec3 position, vec4 color, float a, float b, float specular);
 void LightSystem_AddSpotLight(LightSystem* lightSystem, vec3 position, vec3 direction, vec4 color, float innerConeCos, float outerConeCos, float specular);
-void LightSystem_DrawLights(LightSystem* lightSystem, Mesh* mesh, Shader* shader, Camera* camera);
+void LightSystem_Draw(LightSystem* lightSystem, Mesh* mesh, Shader* shader, Camera* camera);
 
 // GLuint Light_CreateShadowMap2D(int width, int height);
 // GLuint Light_CreateShadowMapCube(int size);

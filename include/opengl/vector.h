@@ -3,7 +3,8 @@
 
 #include <cglm/cglm.h>
 #include <glad/glad.h>
-#include "opengl/texture.h"
+#include "texture.h"
+#include "camera.h"
 
 
 typedef struct {
@@ -46,5 +47,16 @@ void TextureVector_Push(TextureVector* vec, Texture value);
 void TextureVector_Free(TextureVector* vec);
 void TextureVector_Copy(Texture* textures, size_t count, TextureVector* outVec);
 
+typedef struct {
+    Camera** data;
+    size_t size;
+    size_t capacity;
+} CameraVector;
+
+void CameraVector_Init(CameraVector* vec);
+void CameraVector_Push(CameraVector* vec, Camera* cam);
+Camera* CameraVector_Get(CameraVector* vec, size_t index);
+void CameraVector_RemoveAt(CameraVector* vec, size_t index);
+void CameraVector_Free(CameraVector* vec);
 
 #endif
