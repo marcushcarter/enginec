@@ -81,6 +81,40 @@ FBO FBO_InitMultiSample(int width, int height, int samples) {
     return fb;
 }
 
+void FBO_Resize(FBO* fbo, int width, int height) {
+    fbo->width = width;
+    fbo->height = height;
+
+    // Delete old texture and renderbuffer
+    glDeleteTextures(1, &fbo->texture);
+    glDeleteRenderbuffers(1, &fbo->rbo);
+
+    // Create new texture
+    glBindFramebuffer(GL_FRAMEBUFFER, fbo->fbo);
+
+    glGenTextures(1, &fbo->texture);
+    glBindTexture(GL_TEXTURE_2D, fbo->texture);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0,
+                 GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
+                           GL_TEXTURE_2D, fbo->texture, 0);
+
+    // Create new renderbuffer
+    glGenRenderbuffers(1, &fbo->rbo);
+    glBindRenderbuffer(GL_RENDERBUFFER, fbo->rbo);
+    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, width, height);
+    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT,
+                              GL_RENDERBUFFER, fbo->rbo);
+
+    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
+        printf("ERROR: Resized framebuffer is not complete!\n");
+    }
+
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+}
+
 void FBO_Bind(FBO* fb) {
     glBindFramebuffer(GL_FRAMEBUFFER, fb->fbo);
     glClear(GL_COLOR_BUFFER_BIT);
@@ -106,6 +140,12 @@ void FBO_Delete(FBO* fb) {
 void FBO_Draw(FBO* fb) {
     VAO_Bind(&fb->vao);
     glDrawArrays(GL_TRIANGLES, 0, 6);
+}
+
+void FBO_Clear(int width, int height) {
+    glViewport(0, 0, width, height);
+    glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 }
 
 ShadowMapFBO ShadowMapFBO_Init(int width, int height, int layers) {

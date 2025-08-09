@@ -3,28 +3,53 @@
 
 #include <time.h>
 
-clock_t previous_time = 0;
-float dt;
+#define FPS_HISTORY_COUNT 20
 
-int frame_count = 0;
-float fps_timer = 0.0f;
-float fps = 0.0f;
+typedef struct {
+    clock_t previousTime;
+    clock_t currentTime;
+    float dt;
 
-float get_delta_time() {
-    clock_t current_time = clock();
-    float delta_time = (float)(current_time - previous_time) / CLOCKS_PER_SEC;
-    previous_time = current_time;
+    int frameCount;
+    int frameCountFPS;
 
-    frame_count++;
-    fps_timer += delta_time;
+    float fpsTimer;
+    float fps;
+    float ms;
 
-    if (fps_timer >= 1.0f) {
-        fps = frame_count / fps_timer;
-        frame_count = 0;
-        fps_timer = 0.0f;
+    float fpsHistory[FPS_HISTORY_COUNT];
+    int fpsHistoryIndex;
+    int fpsHistoryCount;
+
+} DeltaTime;
+
+DeltaTime delta;
+
+
+float deltaTimeUpdate() {
+    delta.currentTime = clock();
+    delta.dt = (float)(delta.currentTime - delta.previousTime) / CLOCKS_PER_SEC;
+    delta.previousTime = delta.currentTime;
+
+    delta.frameCount++;
+    delta.frameCountFPS++;
+    delta.fpsTimer += delta.dt;
+
+    if (delta.fpsTimer >= 1.0f) {
+        delta.fps = delta.frameCountFPS / delta.fpsTimer;
+        delta.ms = 1000 / delta.fps;
+
+        delta.fpsHistory[delta.fpsHistoryIndex] = delta.fps;
+        delta.fpsHistoryIndex = (delta.fpsHistoryIndex + 1) % FPS_HISTORY_COUNT;
+        if (delta.fpsHistoryCount < FPS_HISTORY_COUNT)
+            delta.fpsHistoryCount++;
+
+        delta.frameCountFPS = 0;
+        delta.fpsTimer = 0.0f;
     }
 
-    return delta_time;
+    return delta.dt;
+
 }
 
 #endif

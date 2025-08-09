@@ -211,24 +211,17 @@ void LightSystem_Draw(LightSystem* lightSystem, Mesh* mesh, Shader* shader, Came
     
     Shader_Activate(shader);
 
-    vec3 lightScale = { 1.0f, 1.0f, 1.0f };
-
+    vec3 lightScale = { 0.1f, 0.1f, 0.1f };
     mat4 lightModel;
-    glm_mat4_identity(lightModel);
-    vec3 lightPos;
-    glm_vec3_scale(lightSystem->directlight.direction, -DIRECT_LIGHT_DIST, lightPos);
-    glm_translate(lightModel, lightPos);
-    glm_scale(lightModel, lightScale);
-
-    Shader_Activate(shader);
-    glUniformMatrix4fv(glGetUniformLocation(shader->ID, "model"), 1, GL_FALSE, (float*)lightModel);
-    glUniform4fv(glGetUniformLocation(shader->ID, "lightColor"), 1, (float*)lightSystem->directlight.color);   
-    Mesh_Draw(mesh, shader, camera);
-
-    glm_vec3_copy((vec3){ 0.1f, 0.1f, 0.1f }, lightScale);
+    
+    // glm_mat4_identity(lightModel);
+    // glm_translate(lightModel, (vec3){ 0.0f, 2.0f, 0.0f });
+    // glm_scale(lightModel, lightScale);
+    // glUniformMatrix4fv(glGetUniformLocation(shader->ID, "model"), 1, GL_FALSE, (float*)lightModel);
+    // glUniform4fv(glGetUniformLocation(shader->ID, "lightColor"), 1, (float*)lightSystem->directlight.color);   
+    // Mesh_Draw(mesh, shader, camera); 
 
     for (int i = 0; i < lightSystem->numPointLights; i++) {
-        mat4 lightModel;
         glm_mat4_identity(lightModel);
         glm_translate(lightModel, lightSystem->pointlights[i].position);
         glm_scale(lightModel, lightScale);
@@ -238,7 +231,6 @@ void LightSystem_Draw(LightSystem* lightSystem, Mesh* mesh, Shader* shader, Came
     }
     
     for (int i = 0; i < lightSystem->numSpotLights; i++) {
-        mat4 lightModel;
         glm_mat4_identity(lightModel);
         glm_translate(lightModel, lightSystem->spotlights[i].position);
         glm_scale(lightModel, lightScale);

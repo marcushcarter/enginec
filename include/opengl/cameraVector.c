@@ -9,7 +9,7 @@ void CameraVector_Draw(CameraVector* cameras, Mesh* mesh, Shader* shader, Camera
     vec3 ori;
 
     for (size_t i = 0; i < cameras->size; i++) {
-        if (CameraVector_Get(cameras, i) == camera) continue;
+        if (CameraVector_Get(cameras, i) == camera || CameraVector_Get(cameras, i) == 0) continue;
     
         Camera* cam = cameras->data[i];
 

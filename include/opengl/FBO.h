@@ -18,12 +18,14 @@ typedef struct {
 
 FBO FBO_Init(int width, int height);
 FBO FBO_InitMultiSample(int width, int height, int samples);
+void FBO_Resize(FBO* fbo, int newWidth, int newHeight);
 FBO FBO_InitShadowMap(int width, int height, float clampColor[4]);
 void FBO_Bind(FBO* fb);
 void FBO_BindTexture(FBO* fb, Shader* shader);
 void FBO_Unbind();
 void FBO_Delete(FBO* fb);
 void FBO_Draw(FBO* fb);
+void FBO_Clear(int width, int height);
 
 typedef struct {
     GLuint fbo;

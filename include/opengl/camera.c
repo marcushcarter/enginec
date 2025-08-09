@@ -51,7 +51,7 @@ Camera* Camera_InitHeap(int width, int height, float fov, float nearPlane, float
     return camera;
 }
 
-void Camera_UpdateMatrix(Camera* camera) {
+void Camera_UpdateMatrix(Camera* camera, int width, int height) {
     mat4 view;
     mat4 projection;
     mat4 ortho;
@@ -70,6 +70,8 @@ void Camera_UpdateMatrix(Camera* camera) {
     glm_mat4_copy(view, camera->viewMatrix);
     
 }
+
+// void Camera_Resize(Camera* camera, int width, int height)
 
 void Camera_Matrix(Camera* camera, Shader* shader, const char* uniform) {
     glUniformMatrix4fv(glGetUniformLocation(shader->ID, uniform), 1, GL_FALSE, (float*)camera->cameraMatrix);

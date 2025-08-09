@@ -11,6 +11,7 @@ uniform sampler2D diffuse0;
 uniform sampler2D specular0;
 uniform vec3 camPos;
 uniform float ambient;
+uniform int sampleRadius;
 
 struct DirectLight {
     vec3 direction;
@@ -78,7 +79,6 @@ vec3 calcDirectLight(DirectLight light, vec3 normal, vec3 viewDirection, int ind
         float currentDepth = lightCoords.z;
         float bias = max(0.002f * (1.0f - dot(normal, lightDirection)), 0.00002f);
 
-        int sampleRadius = 2;
         vec2 pixelSize = 1.0 / vec2(textureSize(directShadowMapArray, index).xy);
         for (int y = -sampleRadius; y <= sampleRadius; y++) {
             for (int x = -sampleRadius; x <= sampleRadius; x++) {
@@ -146,7 +146,6 @@ vec3 calcSpotLight(SpotLight light, vec3 normal, vec3 viewDirection, int index) 
         float currentDepth = lightCoords.z;
         float bias = max(0.005f * (1.0f - dot(normal, lightDirection)), 0.002f);
 
-        int sampleRadius = 2;
         vec2 pixelSize = 1.0 / vec2(textureSize(spotShadowMapArray, index).xy);
         for (int y = -sampleRadius; y <= sampleRadius; y++) {
             for (int x = -sampleRadius; x <= sampleRadius; x++) {

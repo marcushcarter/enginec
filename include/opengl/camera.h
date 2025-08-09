@@ -19,7 +19,7 @@ typedef struct {
 Camera Camera_InitStack(int width, int height, float fov, float nearPlane, float farPlane, vec3 position, vec3 direction);
 Camera* Camera_InitHeap(int width, int height, float fov, float nearPlane, float farPlane, vec3 position, vec3 direction);
 
-void Camera_UpdateMatrix(Camera* camera);
+void Camera_UpdateMatrix(Camera* camera, int width, int height);
 
 void Camera_Matrix(Camera* camera, Shader* shader, const char* uniform);
 void Camera_MatrixCustom(Shader* shader, const char* uniform, mat4 matrix);
