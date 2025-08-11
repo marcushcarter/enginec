@@ -337,4 +337,28 @@ void LightSystem_AddPointLight(LightSystem* lightSystem, vec3 position, vec4 col
 void LightSystem_AddSpotLight(LightSystem* lightSystem, vec3 position, vec3 direction, vec4 color, float innerConeCos, float outerConeCos, float specular);
 void LightSystem_Draw(LightSystem* lightSystem, Mesh* mesh, Shader* shader, Camera* camera);
 
+typedef enum {
+    ENGINE_EDITOR,
+    ENGINE_SCENE_EXPANDED,
+    ENGINE_SCENE_HIDDEN
+} EngineState;
+
+typedef struct {
+    GLFWwindow* window;
+    int width, height;
+    const char* title;
+
+    // keys
+    // mouse
+    // joystick
+
+    DeltaTime delta;
+
+    Camera* selectedCamera;
+    CameraVector cameras;
+
+    // bool vsync;
+
+} Engine2;
+
 #endif

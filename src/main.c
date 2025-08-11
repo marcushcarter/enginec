@@ -1,19 +1,10 @@
-
-#include <glad/glad.h>
-#include <GLFW/glfw3.h>
-#include <cglm/cglm.h>
-#include <stb_image/stb_image.h>
-#include <stb_image/stb_image_resize.h>
+#include "engine/engine.h"
+#include "engine/geometry.h"
 
 #define WINDOW_WIDTH 1440
 #define WINDOW_HEIGHT 900
 
 int sceneWidth, sceneHeight, sceneX, sceneY;
-
-// #include "opengl/opengl.h"
-
-#include "engine/engine.h"
-#include "engine/geometry.h"
 
 #define MAX_VERTEX_BUFFER 512 * 1024
 #define MAX_ELEMENT_BUFFER 128 * 1024
@@ -38,57 +29,42 @@ struct nk_image my_image;
 
 // -----------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-typedef enum {
-    ENGINE_EDITOR,
-    ENGINE_SCENE_EXPANDED,
-    ENGINE_SCENE_HIDDEN
-} EngineState;
-
-typedef struct Engine {
-    GLFWwindow* window;
-    int windowWidth, windowHeight;
-
-    struct nk_context* ctx;
-
-    FBO FBOs[2];
-    
-    EngineState state;
-
-    Camera* selectedCamera;
-    CameraVector cameras;
-
-} Engine;
-
-Engine engine;
+struct nk_context* ctx;
 
 // -----------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 Mesh scene1, capsule, light, billboard, cameraMesh;
 Texture tex1;
 
-// Camera* engine.selectedCamera = NULL;
+GLFWwindow* window;
+int windowWidth, windowHeight;
 
-// FBO engine.FBOs[2];
+FBO FBOs[2];
+    
+EngineState state;
+
+Camera* selectedCamera;
+CameraVector cameras;
 
 // -----------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 void nuklear_ui(struct nk_context* ctx);
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
-    engine.windowWidth = width;
-    engine.windowHeight = height;
+    windowWidth = width;
+    windowHeight = height;
 
     glViewport(0, 0, width, height);
 
-    FBO_Resize(&engine.FBOs[0], width, height);
-    FBO_Resize(&engine.FBOs[1], width, height);
+    FBO_Resize(&FBOs[0], width, height);
+    FBO_Resize(&FBOs[1], width, height);
 
 }
 
 void draw_stuff(Shader* shader, Camera* camera) {
     mat4 model;
     
-    // Camera_UpdateMatrix(camera, engine.windowWidth, engine.windowHeight);
+    // Camera_UpdateMatrix(camera, windowWidth, windowHeight);
 
     // make_billboard_matrix((vec3){0.0f, 1.5f, 0.0f}, camera->viewMatrix, (vec3){0.5f, 0.5f, 0.5f}, model);
     // glUniformMatrix4fv(glGetUniformLocation(shader->ID, "model"), 1, GL_FALSE, (float*)model);
@@ -109,19 +85,19 @@ int main() {
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 #endif
 
-    engine.window = glfwCreateWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "Engine", NULL, NULL);
-    if (engine.window == NULL) {
+    window = glfwCreateWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "Engine", NULL, NULL);
+    if (window == NULL) {
         printf("window failed to create\n");
         glfwTerminate();
         return -1;
     }
-    glfwMakeContextCurrent(engine.window);
+    glfwMakeContextCurrent(window);
 
     gladLoadGL();
-    glfwGetFramebufferSize(engine.window, &engine.windowWidth, &engine.windowHeight);
-    framebuffer_size_callback(engine.window, engine.windowWidth, engine.windowHeight);
+    glfwGetFramebufferSize(window, &windowWidth, &windowHeight);
+    framebuffer_size_callback(window, windowWidth, windowHeight);
 
-    engine.ctx = nk_glfw3_init(engine.window, NK_GLFW3_INSTALL_CALLBACKS, MAX_VERTEX_BUFFER, MAX_ELEMENT_BUFFER);
+    ctx = nk_glfw3_init(window, NK_GLFW3_INSTALL_CALLBACKS, MAX_VERTEX_BUFFER, MAX_ELEMENT_BUFFER);
 
     {   struct nk_font_atlas* atlas;
         nk_glfw3_font_stash_begin(&atlas);
@@ -154,8 +130,8 @@ int main() {
     VAO quadVAO = VAO_InitQuad();
     VAO bbVAO = VAO_InitBillboardQuad();
     
-    engine.FBOs[0] = FBO_Init(engine.windowWidth, engine.windowHeight);
-    engine.FBOs[1] = FBO_Init(engine.windowWidth, engine.windowHeight);
+    FBOs[0] = FBO_Init(windowWidth, windowHeight);
+    FBOs[1] = FBO_Init(windowWidth, windowHeight);
     int ping = 0;
 
     bool postProcessing = false;
@@ -168,21 +144,21 @@ int main() {
 
     // CAMERA VECTOR TESTING
 
-    CameraVector_Init(&engine.cameras);
-    Camera* cam = Camera_InitHeap(engine.windowWidth, engine.windowHeight, 45.0f, 0.1f, 100.0f, (vec3){-1.93f, 0.73f, -1.75f}, (vec3){0.67f, -0.12f, 0.73f});
-    CameraVector_Push(&engine.cameras, cam);
-    engine.selectedCamera = CameraVector_Get(&engine.cameras, 0);
+    CameraVector_Init(&cameras);
+    Camera* cam = Camera_InitHeap(windowWidth, windowHeight, 45.0f, 0.1f, 100.0f, (vec3){-1.93f, 0.73f, -1.75f}, (vec3){0.67f, -0.12f, 0.73f});
+    CameraVector_Push(&cameras, cam);
+    selectedCamera = CameraVector_Get(&cameras, 0);
 
     printf("seconds to load objects %.2fs\n", glfwGetTime());
 
-    while(!glfwWindowShouldClose(engine.window)) {
+    while(!glfwWindowShouldClose(window)) {
         
         float dt = deltaTimeUpdate();
         char buffer[256];
         snprintf(buffer, sizeof(buffer), "Engine %.1f fps %.2f ms", delta.fps, delta.ms);
-        glfwSetWindowTitle(engine.window, buffer);
+        glfwSetWindowTitle(window, buffer);
         
-        glfwSetFramebufferSizeCallback(engine.window, framebuffer_size_callback);
+        glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
 
         glfwPollEvents();
         glfwJoystickEvents();
@@ -193,23 +169,23 @@ int main() {
         LightSystem_AddPointLight(&lightSystem, (vec3){-sin(glfwGetTime()), 0.5f, -cos(glfwGetTime())}, (vec4){0.2f, 1.0f, 0.2f, 1.0f}, 1.0f, 0.04f, 0.5f);
         // LightSystem_AddSpotLight(&lightSystem, (vec3){0.0f, 8.5f, 0.0f}, (vec3){0.1f, -1.0f, 0.0f}, (vec4){1.0f, 1.0f, 1.0f, 1.0f}, 0.90f, 0.95f, 0.5f);
 
-        if (engine.state == ENGINE_SCENE_EXPANDED) {
+        if (state == ENGINE_SCENE_EXPANDED) {
 
-            sceneWidth  = engine.windowWidth;
-            sceneHeight = engine.windowHeight - 30;
+            sceneWidth  = windowWidth;
+            sceneHeight = windowHeight - 30;
             sceneX = 0;
             sceneY = 0;
 
-            engine.selectedCamera->width = sceneWidth;
-            engine.selectedCamera->height = sceneHeight;
+            selectedCamera->width = sceneWidth;
+            selectedCamera->height = sceneHeight;
             
-            Camera_Inputs(engine.selectedCamera, engine.window, &joysticks[0], dt);
-            Camera_UpdateMatrix(engine.selectedCamera, engine.windowWidth, engine.windowHeight);
+            Camera_Inputs(selectedCamera, window, &joysticks[0], dt);
+            Camera_UpdateMatrix(selectedCamera, windowWidth, windowHeight);
             
-            LightSystem_MakeShadowMaps(&lightSystem, &shader_shadowMap, engine.selectedCamera, draw_stuff);
+            LightSystem_MakeShadowMaps(&lightSystem, &shader_shadowMap, selectedCamera, draw_stuff);
             
-            FBO_Bind(&engine.FBOs[ping]);
-            glViewport(0, 0, engine.windowWidth, engine.windowHeight);
+            FBO_Bind(&FBOs[ping]);
+            glViewport(0, 0, windowWidth, windowHeight);
             glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -224,18 +200,18 @@ int main() {
 
             LightSystem_SetUniforms(&shader_default, &lightSystem);
                 glUniform1i(glGetUniformLocation(shader_default.ID, "sampleRadius"), 2);
-            draw_stuff(&shader_default, engine.selectedCamera);
-            LightSystem_Draw(&lightSystem, &light, &shader_lights, engine.selectedCamera);
+            draw_stuff(&shader_default, selectedCamera);
+            LightSystem_Draw(&lightSystem, &light, &shader_lights, selectedCamera);
             
             ping = !ping;
             glDisable(GL_DEPTH_TEST);
             glDisable(GL_CULL_FACE);
             
-            if (postProcessing || glfwGetKey(engine.window, GLFW_KEY_3) == GLFW_PRESS) {
+            if (postProcessing || glfwGetKey(window, GLFW_KEY_3) == GLFW_PRESS) {
                 
-                FBO_Bind(&engine.FBOs[ping]);
+                FBO_Bind(&FBOs[ping]);
                 Shader_Activate(&shader_pixelate);
-                FBO_BindTexture(&engine.FBOs[!ping], &shader_pixelate);
+                FBO_BindTexture(&FBOs[!ping], &shader_pixelate);
                 glUniform1f(glGetUniformLocation(shader_pixelate.ID, "pixelSize"), 4.f);
                 VAO_DrawQuad(&quadVAO);
                 ping = !ping;
@@ -245,45 +221,45 @@ int main() {
             // render everything including fbos, shadows with no delay etc
         }
 
-        if (engine.state == ENGINE_EDITOR) {
-            sceneWidth  = engine.windowWidth * 10 / 16;
-            sceneHeight = engine.windowHeight * 7 / 10 - 30;
-            sceneX = (engine.windowWidth - sceneWidth) / 2 - engine.windowWidth * 1 / 16;
-            sceneY = engine.windowHeight - sceneHeight - 30;
+        if (state == ENGINE_EDITOR) {
+            sceneWidth  = windowWidth * 10 / 16;
+            sceneHeight = windowHeight * 7 / 10 - 30;
+            sceneX = (windowWidth - sceneWidth) / 2 - windowWidth * 1 / 16;
+            sceneY = windowHeight - sceneHeight - 30;
 
-            engine.selectedCamera->width = sceneWidth;
-            engine.selectedCamera->height = sceneHeight;
+            selectedCamera->width = sceneWidth;
+            selectedCamera->height = sceneHeight;
             
-            Camera_Inputs(engine.selectedCamera, engine.window, &joysticks[0], dt);
-            Camera_UpdateMatrix(engine.selectedCamera, engine.windowWidth, engine.windowHeight);
+            Camera_Inputs(selectedCamera, window, &joysticks[0], dt);
+            Camera_UpdateMatrix(selectedCamera, windowWidth, windowHeight);
 
             // if (joystickIsPressed(&joysticks[0], 5)) {
             //     camNum += 1;
-            //     camNum = camNum % engine.cameras.size;
-            //     engine.selectedCamera = CameraVector_Get(&engine.cameras, camNum);
+            //     camNum = camNum % cameras.size;
+            //     selectedCamera = CameraVector_Get(&cameras, camNum);
             // }
             // if (joystickIsPressed(&joysticks[0], 4)) {
             //     camNum -= 1;
-            //     camNum = camNum % engine.cameras.size;
-            //     engine.selectedCamera = CameraVector_Get(&engine.cameras, camNum);
+            //     camNum = camNum % cameras.size;
+            //     selectedCamera = CameraVector_Get(&cameras, camNum);
             // }
             // if (joystickIsPressed(&joysticks[0], 10)) {
-            //     Camera* newCam = Camera_InitHeap(engine.windowWidth, engine.windowHeight, 45.0f, 0.1f, 100.0f, (vec3){0.0f, 1.0f, 0.0f}, engine.selectedCamera->direction);
-            //     CameraVector_Push(&engine.cameras, newCam);
+            //     Camera* newCam = Camera_InitHeap(windowWidth, windowHeight, 45.0f, 0.1f, 100.0f, (vec3){0.0f, 1.0f, 0.0f}, selectedCamera->direction);
+            //     CameraVector_Push(&cameras, newCam);
             // }
-            // if (joystickIsPressed(&joysticks[0], 12) && engine.cameras.size > 0 && CameraVector_IndexOf(&engine.cameras, engine.selectedCamera) != 0) {
-            //     CameraVector_Remove(&engine.cameras, engine.selectedCamera);
-            //     engine.selectedCamera = CameraVector_Get(&engine.cameras, 0);
+            // if (joystickIsPressed(&joysticks[0], 12) && cameras.size > 0 && CameraVector_IndexOf(&cameras, selectedCamera) != 0) {
+            //     CameraVector_Remove(&cameras, selectedCamera);
+            //     selectedCamera = CameraVector_Get(&cameras, 0);
             // }
             
             if (joystickIsPressed(&joysticks[0], 10)) postProcessing = !postProcessing;
             if (joystickIsPressed(&joysticks[0], 11)) wireframe = !wireframe;
 
             if (!wireframe && (delta.frameCount % shadowMapFreq == 0)) 
-                LightSystem_MakeShadowMaps(&lightSystem, &shader_shadowMap, engine.selectedCamera, draw_stuff);
+                LightSystem_MakeShadowMaps(&lightSystem, &shader_shadowMap, selectedCamera, draw_stuff);
                 
-            FBO_Bind(&engine.FBOs[ping]);
-            glViewport(0, 0, engine.windowWidth, engine.windowHeight);
+            FBO_Bind(&FBOs[ping]);
+            glViewport(0, 0, windowWidth, windowHeight);
             glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -299,21 +275,21 @@ int main() {
 
                 LightSystem_SetUniforms(&shader_default, &lightSystem);
                 glUniform1i(glGetUniformLocation(shader_default.ID, "sampleRadius"), 0);
-                draw_stuff(&shader_default, engine.selectedCamera);
-                LightSystem_Draw(&lightSystem, &light, &shader_lights, engine.selectedCamera);
+                draw_stuff(&shader_default, selectedCamera);
+                LightSystem_Draw(&lightSystem, &light, &shader_lights, selectedCamera);
             } else {
                 glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
                 Shader_Activate(&shader_color);
                 glUniform3fv(glGetUniformLocation(shader_color.ID, "color"), 1, (float[]){1.0f, 0.647f, 0.0f});
                 LightSystem_SetUniforms(&shader_color, &lightSystem);
-                draw_stuff(&shader_color, engine.selectedCamera);
-                LightSystem_Draw(&lightSystem, &light, &shader_color, engine.selectedCamera);
+                draw_stuff(&shader_color, selectedCamera);
+                LightSystem_Draw(&lightSystem, &light, &shader_color, selectedCamera);
             }
 
             Shader_Activate(&shader_color);
             glUniform3fv(glGetUniformLocation(shader_color.ID, "color"), 1, (float[]){1.0f, 1.0f, 1.0f});
-            CameraVector_Draw(&engine.cameras, &cameraMesh, &shader_color, engine.selectedCamera);
+            CameraVector_Draw(&cameras, &cameraMesh, &shader_color, selectedCamera);
 
             glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
@@ -323,11 +299,11 @@ int main() {
             glDisable(GL_DEPTH_TEST);
             glDisable(GL_CULL_FACE);
             
-            if (postProcessing || glfwGetKey(engine.window, GLFW_KEY_3) == GLFW_PRESS) {
+            if (postProcessing || glfwGetKey(window, GLFW_KEY_3) == GLFW_PRESS) {
                 
-                FBO_Bind(&engine.FBOs[ping]);
+                FBO_Bind(&FBOs[ping]);
                 Shader_Activate(&shader_pixelate);
-                FBO_BindTexture(&engine.FBOs[!ping], &shader_pixelate);
+                FBO_BindTexture(&FBOs[!ping], &shader_pixelate);
                 glUniform1f(glGetUniformLocation(shader_pixelate.ID, "pixelSize"), 4.f);
                 VAO_DrawQuad(&quadVAO);
                 ping = !ping;
@@ -335,30 +311,30 @@ int main() {
 
         }
 
-        if (engine.state == ENGINE_SCENE_HIDDEN) {
-            sceneWidth  = engine.windowWidth * 8 / 16;
-            sceneHeight = engine.windowHeight * 0.55 - 30;
-            sceneX = (engine.windowWidth - sceneWidth) / 2 - engine.windowWidth * 1 / 16;
-            sceneY = engine.windowHeight - sceneHeight - 30;
+        if (state == ENGINE_SCENE_HIDDEN) {
+            sceneWidth  = windowWidth * 8 / 16;
+            sceneHeight = windowHeight * 0.55 - 30;
+            sceneX = (windowWidth - sceneWidth) / 2 - windowWidth * 1 / 16;
+            sceneY = windowHeight - sceneHeight - 30;
         }
 
         FBO_Unbind();
-        glViewport(0, 0, engine.windowWidth, engine.windowHeight);
+        glViewport(0, 0, windowWidth, windowHeight);
         glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         glViewport(sceneX, sceneY, sceneWidth, sceneHeight);
         Shader_Activate(&shader_framebuffer);
-        FBO_BindTexture(&engine.FBOs[!ping], &shader_framebuffer);
+        FBO_BindTexture(&FBOs[!ping], &shader_framebuffer);
         VAO_DrawQuad(&quadVAO);
-        glViewport(0, 0, engine.windowWidth, engine.windowHeight);
+        glViewport(0, 0, windowWidth, windowHeight);
 
-        nuklear_ui(engine.ctx);
+        nuklear_ui(ctx);
 
-        glfwSwapBuffers(engine.window);
+        glfwSwapBuffers(window);
 
     }
 
-    glfwDestroyWindow(engine.window);
+    glfwDestroyWindow(window);
     nk_glfw3_shutdown();
     glfwTerminate();
     return 0;
@@ -369,7 +345,7 @@ void nuklear_ui(struct nk_context* ctx) {
     nk_glfw3_new_frame();
     
     /* TOOLBAR */
-    if (nk_begin(ctx, "Toolbar", nk_rect(0, 0, engine.windowWidth, 30), NK_WINDOW_BORDER | NK_WINDOW_NO_SCROLLBAR )) {
+    if (nk_begin(ctx, "Toolbar", nk_rect(0, 0, windowWidth, 30), NK_WINDOW_BORDER | NK_WINDOW_NO_SCROLLBAR )) {
         nk_layout_row_static(ctx, 30, 60, 5); // 5 buttons per row
 
         if (nk_button_label(ctx, "File")) { /* New, Open, Save, Save As, Save Copy, Save Incremental, Import, Export, Quit */ }
@@ -379,28 +355,28 @@ void nuklear_ui(struct nk_context* ctx) {
     }
     nk_end(ctx);
 
-    if (engine.state != ENGINE_SCENE_EXPANDED) {
+    if (state != ENGINE_SCENE_EXPANDED) {
 
         /* RIGHT PANEL */
-        if (nk_begin(ctx, "Right Panel", nk_rect(sceneX + sceneWidth, 30, engine.windowWidth - (sceneX + sceneWidth), engine.windowHeight), NK_WINDOW_BORDER | NK_WINDOW_TITLE )) {}
+        if (nk_begin(ctx, "Right Panel", nk_rect(sceneX + sceneWidth, 30, windowWidth - (sceneX + sceneWidth), windowHeight), NK_WINDOW_BORDER | NK_WINDOW_TITLE )) {}
         nk_end(ctx);
         
         /* Top Left PANEL */
-        if (nk_begin(ctx, "Top Left Panel", nk_rect(0, 30, sceneX, (engine.windowHeight - 30)/2), NK_WINDOW_BORDER | NK_WINDOW_TITLE )) {}
+        if (nk_begin(ctx, "Top Left Panel", nk_rect(0, 30, sceneX, (windowHeight - 30)/2), NK_WINDOW_BORDER | NK_WINDOW_TITLE )) {}
         nk_end(ctx);
 
         /* Bottom Left Panel */
-        if (nk_begin(ctx, "Bot Left Panel", nk_rect(0, 30 + (engine.windowHeight - 30)/2, sceneX, (engine.windowHeight - 30)/2), NK_WINDOW_BORDER | NK_WINDOW_TITLE )) {}
+        if (nk_begin(ctx, "Bot Left Panel", nk_rect(0, 30 + (windowHeight - 30)/2, sceneX, (windowHeight - 30)/2), NK_WINDOW_BORDER | NK_WINDOW_TITLE )) {}
         nk_end(ctx);
 
-        if (engine.state == ENGINE_SCENE_HIDDEN) {
+        if (state == ENGINE_SCENE_HIDDEN) {
             /* Middle Panel */
             if (nk_begin(ctx, "Middle Panel", nk_rect(sceneX, 30, sceneWidth, sceneHeight), NK_WINDOW_BORDER | NK_WINDOW_TITLE | NK_WINDOW_MINIMIZABLE )) {}
             nk_end(ctx);
         }
 
         /* Bottom Panel */
-        if (nk_begin(ctx, "Bottom Panel", nk_rect(sceneX, sceneHeight + 30, sceneWidth, engine.windowHeight - sceneHeight - 30), NK_WINDOW_BORDER | NK_WINDOW_TITLE )) {}
+        if (nk_begin(ctx, "Bottom Panel", nk_rect(sceneX, sceneHeight + 30, sceneWidth, windowHeight - sceneHeight - 30), NK_WINDOW_BORDER | NK_WINDOW_TITLE )) {}
         nk_end(ctx);
     
     }
@@ -440,7 +416,7 @@ void nuklear_ui(struct nk_context* ctx) {
     //     // next one
     //     nk_layout_row_dynamic(ctx, 20, 2);
 
-    //     snprintf(buf_fps, sizeof(buf_fps), "w:%d h:%d", engine.windowWidth, engine.windowHeight);
+    //     snprintf(buf_fps, sizeof(buf_fps), "w:%d h:%d", windowWidth, windowHeight);
     //     nk_label(ctx, buf_fps, NK_TEXT_LEFT);
 
     //     // snprintf(buf_dt, sizeof(buf_dt), "Delta Time: %.2f ms", delta.ms);
@@ -451,15 +427,15 @@ void nuklear_ui(struct nk_context* ctx) {
     
     //     nk_layout_row_static(ctx, 30, 80, 1);
     //     if (nk_button_label(ctx, "EDITOR"))
-    //         engine.state = ENGINE_EDITOR;
+    //         state = ENGINE_EDITOR;
             
     //     nk_layout_row_static(ctx, 30, 80, 1);
     //     if (nk_button_label(ctx, "SCENE"))
-    //         engine.state = ENGINE_SCENE_EXPANDED;
+    //         state = ENGINE_SCENE_EXPANDED;
             
     //     nk_layout_row_static(ctx, 30, 80, 1);
     //     if (nk_button_label(ctx, "NONE"))
-    //         engine.state = ENGINE_SCENE_HIDDEN;
+    //         state = ENGINE_SCENE_HIDDEN;
 
     // }
     // nk_end(ctx);

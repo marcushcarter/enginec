@@ -5,15 +5,16 @@ CXX := g++
 CXXFLAGS := -g -lm 
 
 # === Paths ===
-INCLUDES := -Iinclude
+INCLUDES := -Iinclude -I.
 LDFLAGS := -Llib -lglfw3dll
 
 # === Files ===
-SRCS := $(wildcard src/*.c) $(wildcard include/engine/*.c) 
+SRCS := $(wildcard src/*.c) 
+ENGINE_SCRS := $(wildcard engine/*.c)
 OPENGL_SRCS := $(wildcard include/stb_image/*.c) $(wildcard include/glad/*.c)
 NUKLEAR_SRC := $(wildcard include/nuklear/*.c)
 
-ALL_SRCS:= $(SRCS) $(OPENGL_SRCS) $(NUKLEAR_SRC)
+ALL_SRCS:= $(SRCS) $(OPENGL_SRCS) $(NUKLEAR_SRC) $(ENGINE_SCRS)
 
 OUT := opengl
 
@@ -28,6 +29,10 @@ build:
 	$(CC) -mwindows $(CXXFLAGS) $(INCLUDES) $(ALL_SRCS) -o $(OUT) $(LDFLAGS)
 #	"C:/Program Files/Git/bin/git.exe" add .
 #	"C:/Program Files/Git/bin/git.exe" restore --staged Makefile
+
+library:
+	$(CC) -c $(INCLUDES) engine/engine.c 
+	ar rcs libengine.a engine.o
 
 run:
 	./$(OUT)
