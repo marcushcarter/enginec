@@ -41,7 +41,11 @@
         "chrono": "c",
         "cameravector.h": "c",
         "nuklear.h": "c",
-        "opengl.h": "c"
+        "opengl.h": "c",
+        "delta.h": "c",
+        "stdbool.h": "c",
+        "error.h": "c",
+        "errno.h": "c"
     },
     "C_Cpp.errorSquiggles": "disabled"
 }

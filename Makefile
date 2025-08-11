@@ -10,7 +10,7 @@ LDFLAGS := -Llib -lglfw3dll
 
 # === Files ===
 SRCS := $(wildcard src/*.c) $(wildcard include/engine/*.c) 
-OPENGL_SRCS := $(wildcard include/stb_image/*.c) $(wildcard include/glad/*.c) $(wildcard include/opengl/*.c)
+OPENGL_SRCS := $(wildcard include/stb_image/*.c) $(wildcard include/glad/*.c)
 NUKLEAR_SRC := $(wildcard include/nuklear/*.c)
 
 ALL_SRCS:= $(SRCS) $(OPENGL_SRCS) $(NUKLEAR_SRC)
