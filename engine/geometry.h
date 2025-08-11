@@ -1,7 +1,7 @@
 #ifndef GEOMETRY_H
 #define GEOMETRY_H
 
-#include "engine.h"
+#include "engine_internal.h"
 
 extern Vertex pyramidVertices[];
 extern GLuint pyramidIndices[];

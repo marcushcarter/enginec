@@ -1,4 +1,5 @@
-#include "engine/engine.h"
+#include "engine/engine_internal.h"
+#include "engine/engine_api.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1794,7 +1795,7 @@ void LightSystem_Merge(LightSystem* dest, LightSystem* a, LightSystem* b) {
 // ==============================
 
 // ==============================
-// JOYSTICK
+// ENGINE
 // ==============================
 
 

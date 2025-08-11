@@ -1,4 +1,4 @@
-#include "engine/engine.h"
+#include "engine/engine_internal.h"
 #include "engine/geometry.h"
 
 #define WINDOW_WIDTH 1440

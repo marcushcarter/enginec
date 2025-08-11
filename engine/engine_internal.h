@@ -359,6 +359,6 @@ typedef struct {
 
     // bool vsync;
 
-} Engine2;
+} BE_Engine;
 
 #endif

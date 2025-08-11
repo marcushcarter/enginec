@@ -46,7 +46,8 @@
         "stdbool.h": "c",
         "error.h": "c",
         "errno.h": "c",
-        "geometry.h": "c"
+        "geometry.h": "c",
+        "engine_internal.h": "c"
     },
     "C_Cpp.errorSquiggles": "disabled"
 }
