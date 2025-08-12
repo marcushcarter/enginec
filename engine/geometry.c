@@ -1,6 +1,6 @@
 #include "geometry.h"
 
-Vertex pyramidVertices[] = {
+BE_Vertex pyramidVertices[] = {
     { { -0.5f,  0.0f,  0.5f }, {  0.0f, -1.0f,  0.0f }, { 0.83f, 0.70f, 0.44f }, { 0.0f, 0.0f } },
     { { -0.5f,  0.0f, -0.5f }, {  0.0f, -1.0f,  0.0f }, { 0.83f, 0.70f, 0.44f }, { 0.0f, 1.0f } },
     { {  0.5f,  0.0f, -0.5f }, {  0.0f, -1.0f,  0.0f }, { 0.83f, 0.70f, 0.44f }, { 1.0f, 1.0f } },
@@ -32,10 +32,10 @@ GLuint pyramidIndices[] = {
     13, 14, 15,
 };
 
-size_t pyramidVertexCount = sizeof(pyramidVertices) / sizeof(Vertex);
+size_t pyramidVertexCount = sizeof(pyramidVertices) / sizeof(BE_Vertex);
 size_t pyramidIndexCount = sizeof(pyramidIndices) / sizeof(GLuint);
 
-Vertex cubeVertices[] = {
+BE_Vertex cubeVertices[] = {
     { { -1.0f, -1.0f,  1.0f }, {  0.0f, -1.0f,  0.0f }, { 1.0f, 0.0f, 0.0f }, { 0.0f, 0.0f } },
     { { -1.0f, -1.0f, -1.0f }, {  0.0f, -1.0f,  0.0f }, { 0.0f, 1.0f, 0.0f }, { 0.0f, 1.0f } },
     { {  1.0f, -1.0f, -1.0f }, {  0.0f, -1.0f,  0.0f }, { 0.0f, 0.0f, 1.0f }, { 1.0f, 1.0f } },
@@ -61,10 +61,10 @@ GLuint cubeIndices[] = {
     4, 6, 7
 };
 
-size_t cubeVertexCount = sizeof(cubeVertices) / sizeof(Vertex);
+size_t cubeVertexCount = sizeof(cubeVertices) / sizeof(BE_Vertex);
 size_t cubeIndexCount = sizeof(cubeIndices) / sizeof(GLuint);
 
-Vertex planeVertices[] = {
+BE_Vertex planeVertices[] = {
     { { -1.0f,  0.0f,  1.0f }, { 0.0f, 1.0f, 0.0f }, { 0.0f, 1.0f, 0.0f }, { 0.0f, 0.0f } },
     { { -1.0f,  0.0f, -1.0f }, { 0.0f, 1.0f, 0.0f }, { 0.0f, 1.0f, 0.0f }, { 0.0f, 1.0f } },
     { {  1.0f,  0.0f, -1.0f }, { 0.0f, 1.0f, 0.0f }, { 1.0f, 1.0f, 0.0f }, { 1.0f, 1.0f } },
@@ -76,5 +76,5 @@ GLuint planeIndices[] = {
     0, 2, 3,
 };
 
-size_t planeVertexCount = sizeof(planeVertices) / sizeof(Vertex);
+size_t planeVertexCount = sizeof(planeVertices) / sizeof(BE_Vertex);
 size_t planeIndexCount = sizeof(planeIndices) / sizeof(GLuint);

@@ -33,18 +33,26 @@ struct nk_context* ctx;
 
 // -----------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-Mesh scene1, capsule, light, billboard, cameraMesh;
-Texture tex1;
+BE_Mesh scene1, capsule, light, billboard, cameraMesh;
+BE_Texture tex1;
 
 GLFWwindow* window;
 int windowWidth, windowHeight;
 
-FBO FBOs[2];
+BE_FBO FBOs[2];
     
-EngineState state;
+BE_EngineState state;
 
-Camera* selectedCamera;
-CameraVector cameras;
+BE_Camera* selectedCamera;
+BE_CameraVector cameras;
+
+BE_FrameStats timer;
+
+BE_Joystick joystick;
+
+bool postProcessing = false;
+bool wireframe = false;
+int shadowMapFreq = 8;
 
 // -----------------------------------------------------------------------------------------------------------------------------------------------------------------
 
@@ -56,23 +64,23 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
 
     glViewport(0, 0, width, height);
 
-    FBO_Resize(&FBOs[0], width, height);
-    FBO_Resize(&FBOs[1], width, height);
+    BE_FBOResize(&FBOs[0], width, height);
+    BE_FBOResize(&FBOs[1], width, height);
 
 }
 
-void draw_stuff(Shader* shader, Camera* camera) {
+void draw_stuff(BE_Shader* shader, BE_Camera* camera) {
     mat4 model;
     
-    // Camera_UpdateMatrix(camera, windowWidth, windowHeight);
+    // BE_CameraUpdateMatrix(camera, windowWidth, windowHeight);
 
-    // make_billboard_matrix((vec3){0.0f, 1.5f, 0.0f}, camera->viewMatrix, (vec3){0.5f, 0.5f, 0.5f}, model);
+    // BE_MatrixMakeBillboard((vec3){0.0f, 1.5f, 0.0f}, camera->viewMatrix, (vec3){0.5f, 0.5f, 0.5f}, model);
     // glUniformMatrix4fv(glGetUniformLocation(shader->ID, "model"), 1, GL_FALSE, (float*)model);
-    // Mesh_Draw(&billboard, shader, camera);
+    // BE_MeshDraw(&billboard, shader, camera);
 
-    make_model_matrix((vec3){0.0f, 0.0f, 0.0f}, (vec3){0.0f, 0.0f, 0.0f}, (vec3){1.0f, 1.0f, 1.0f}, model);
+    BE_MatrixMakeModel((vec3){0.0f, 0.0f, 0.0f}, (vec3){0.0f, 0.0f, 0.0f}, (vec3){1.0f, 1.0f, 1.0f}, model);
     glUniformMatrix4fv(glGetUniformLocation(shader->ID, "model"), 1, GL_FALSE, (float*)model);
-    Mesh_Draw(&scene1, shader, camera);
+    BE_MeshDraw(&scene1, shader, camera);
 
 }
 
@@ -106,68 +114,66 @@ int main() {
 
     // SHADERS
     
-    Shader shader_default = Shader_Init("shaders/vert/default.vert", "shaders/frag/default.frag", NULL);
-    Shader shader_color = Shader_Init("shaders/vert/default.vert", "shaders/frag/color.frag", NULL);
-    Shader shader_lights = Shader_Init("shaders/vert/lights.vert", "shaders/frag/lights.frag", NULL);
-    Shader shader_shadowMap = Shader_Init("shaders/vert/shadowMap.vert", "shaders/frag/blank.frag", NULL);
+    BE_Shader shader_default = BE_ShaderInit("shaders/vert/default.vert", "shaders/frag/default.frag", NULL);
+    BE_Shader shader_color = BE_ShaderInit("shaders/vert/default.vert", "shaders/frag/color.frag", NULL);
+    BE_Shader shader_lights = BE_ShaderInit("shaders/vert/lights.vert", "shaders/frag/lights.frag", NULL);
+    BE_Shader shader_shadowMap = BE_ShaderInit("shaders/vert/shadowMap.vert", "shaders/frag/blank.frag", NULL);
     
-    Shader shader_framebuffer = Shader_Init("shaders/framebuffer/framebuffer.vert", "shaders/framebuffer/framebuffer.frag", NULL);
-    Shader shader_pixelate = Shader_Init("shaders/framebuffer/framebuffer.vert", "shaders/framebuffer/pixelate.frag", NULL);
-    Shader shader_outline = Shader_Init("shaders/framebuffer/framebuffer.vert", "shaders/framebuffer/outline.frag", NULL);
+    BE_Shader shader_framebuffer = BE_ShaderInit("shaders/framebuffer/framebuffer.vert", "shaders/framebuffer/framebuffer.frag", NULL);
+    BE_Shader shader_pixelate = BE_ShaderInit("shaders/framebuffer/framebuffer.vert", "shaders/framebuffer/pixelate.frag", NULL);
+    BE_Shader shader_outline = BE_ShaderInit("shaders/framebuffer/framebuffer.vert", "shaders/framebuffer/outline.frag", NULL);
 
     // MESHES
 
     const char* lighttextures[] = { "res/textures/box.png", "diffuse" };
-    light = Mesh_InitFromData(lighttextures, 1, cubeVertices, cubeVertexCount, cubeIndices, cubeIndexCount);
+    light = BE_MeshInitFromData(lighttextures, 1, cubeVertices, cubeVertexCount, cubeIndices, cubeIndexCount);
 
-    capsule = Import_loadMeshFromOBJ("res/models/capsule.obj");
-    scene1 = Import_loadMeshFromOBJ("res/models/Untitled.obj");
-    billboard = Import_loadMeshFromOBJ("res/models/billboard.obj");
-    cameraMesh = Import_loadMeshFromOBJ("res/models/Camera/Camera.obj");
+    capsule = BE_LoadOBJToMesh("res/models/capsule.obj");
+    scene1 = BE_LoadOBJToMesh("res/models/Untitled.obj");
+    billboard = BE_LoadOBJToMesh("res/models/billboard.obj");
+    cameraMesh = BE_LoadOBJToMesh("res/models/Camera/Camera.obj");
 
-    tex1 = Texture_Init("res/textures/box.png", "diffuse", 0);
+    tex1 = BE_TextureInit("res/textures/box.png", "diffuse", 0);
 
-    VAO quadVAO = VAO_InitQuad();
-    VAO bbVAO = VAO_InitBillboardQuad();
+    BE_VAO quadVAO = BE_VAOInitQuad();
+    BE_VAO bbVAO = BE_VAOInitBillboardQuad();
     
-    FBOs[0] = FBO_Init(windowWidth, windowHeight);
-    FBOs[1] = FBO_Init(windowWidth, windowHeight);
+    FBOs[0] = BE_FBOInit(windowWidth, windowHeight);
+    FBOs[1] = BE_FBOInit(windowWidth, windowHeight);
     int ping = 0;
-
-    bool postProcessing = false;
-    bool wireframe = false;
-    int shadowMapFreq = 8;
 
     glLineWidth(2.0f);
 
-    LightSystem lightSystem = LightSystem_Init(0.15f);
+    BE_LightManager lightSystem = BE_LightManagerInit(0.15f);
 
     // CAMERA VECTOR TESTING
 
-    CameraVector_Init(&cameras);
-    Camera* cam = Camera_InitHeap(windowWidth, windowHeight, 45.0f, 0.1f, 100.0f, (vec3){-1.93f, 0.73f, -1.75f}, (vec3){0.67f, -0.12f, 0.73f});
-    CameraVector_Push(&cameras, cam);
-    selectedCamera = CameraVector_Get(&cameras, 0);
+    BE_CameraVectorInit(&cameras);
+    BE_Camera* cam = BE_CameraInitHeap(windowWidth, windowHeight, 45.0f, 0.1f, 100.0f, (vec3){-1.93f, 0.73f, -1.75f}, (vec3){0.67f, -0.12f, 0.73f});
+    BE_CameraVectorPush(&cameras, cam);
+    selectedCamera = BE_CameraVectorGetByIndex(&cameras, 0);
 
     printf("seconds to load objects %.2fs\n", glfwGetTime());
 
     while(!glfwWindowShouldClose(window)) {
-        
-        float dt = deltaTimeUpdate();
+
+        BE_UpdateFrameTimeInfo(&timer);
+
         char buffer[256];
-        snprintf(buffer, sizeof(buffer), "Engine %.1f fps %.2f ms", delta.fps, delta.ms);
+        snprintf(buffer, sizeof(buffer), "Engine %.1f fps %.2f ms", timer.fps, timer.ms);
         glfwSetWindowTitle(window, buffer);
         
         glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
 
         glfwPollEvents();
-        glfwJoystickEvents();
+        BE_JoystickUpdate(&joystick);
+        // glfwJoystickEvents();
             
-        LightSystem_Clear(&lightSystem);
-        LightSystem_SetDirectLight(&lightSystem, (vec3){cosf(glfwGetTime()/15), -0.4f, sinf(glfwGetTime()/15)}, (vec4){1.0f, 1.0f, 1.0f, 1.0f}, 0.5f);
-        LightSystem_AddPointLight(&lightSystem, (vec3){sin(glfwGetTime()), 0.5f, cos(glfwGetTime())}, (vec4){1.0f, 0.1f, 0.05f, 1.0f}, 1.0f, 0.04f, 0.5f);
-        LightSystem_AddPointLight(&lightSystem, (vec3){-sin(glfwGetTime()), 0.5f, -cos(glfwGetTime())}, (vec4){0.2f, 1.0f, 0.2f, 1.0f}, 1.0f, 0.04f, 0.5f);
-        // LightSystem_AddSpotLight(&lightSystem, (vec3){0.0f, 8.5f, 0.0f}, (vec3){0.1f, -1.0f, 0.0f}, (vec4){1.0f, 1.0f, 1.0f, 1.0f}, 0.90f, 0.95f, 0.5f);
+        BE_LightManagerClear(&lightSystem);
+        BE_LightManagerSetDirectLight(&lightSystem, (vec3){cosf(glfwGetTime()/15), -0.4f, sinf(glfwGetTime()/15)}, (vec4){1.0f, 1.0f, 1.0f, 1.0f}, 0.5f);
+        BE_LightManagerAddPointLight(&lightSystem, (vec3){sin(glfwGetTime()), 0.5f, cos(glfwGetTime())}, (vec4){1.0f, 0.1f, 0.05f, 1.0f}, 1.0f, 0.04f, 0.5f);
+        BE_LightManagerAddPointLight(&lightSystem, (vec3){-sin(glfwGetTime()), 0.5f, -cos(glfwGetTime())}, (vec4){0.2f, 1.0f, 0.2f, 1.0f}, 1.0f, 0.04f, 0.5f);
+        // BE_LightManagerAddSpotLight(&lightSystem, (vec3){0.0f, 8.5f, 0.0f}, (vec3){0.1f, -1.0f, 0.0f}, (vec4){1.0f, 1.0f, 1.0f, 1.0f}, 0.90f, 0.95f, 0.5f);
 
         if (state == ENGINE_SCENE_EXPANDED) {
 
@@ -179,12 +185,12 @@ int main() {
             selectedCamera->width = sceneWidth;
             selectedCamera->height = sceneHeight;
             
-            Camera_Inputs(selectedCamera, window, &joysticks[0], dt);
-            Camera_UpdateMatrix(selectedCamera, windowWidth, windowHeight);
+            BE_CameraInputs(selectedCamera, window, &joystick, timer.dt);
+            BE_CameraUpdateMatrix(selectedCamera, windowWidth, windowHeight);
             
-            LightSystem_MakeShadowMaps(&lightSystem, &shader_shadowMap, selectedCamera, draw_stuff);
+            BE_LightManagerMakeShadowMaps(&lightSystem, &shader_shadowMap, selectedCamera, draw_stuff);
             
-            FBO_Bind(&FBOs[ping]);
+            BE_FBOBind(&FBOs[ping]);
             glViewport(0, 0, windowWidth, windowHeight);
             glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -198,10 +204,10 @@ int main() {
             
             glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
-            LightSystem_SetUniforms(&shader_default, &lightSystem);
+            BE_LightManagerSetUniforms(&shader_default, &lightSystem);
                 glUniform1i(glGetUniformLocation(shader_default.ID, "sampleRadius"), 2);
             draw_stuff(&shader_default, selectedCamera);
-            LightSystem_Draw(&lightSystem, &light, &shader_lights, selectedCamera);
+            BE_LightManagerDraw(&lightSystem, &light, &shader_lights, selectedCamera);
             
             ping = !ping;
             glDisable(GL_DEPTH_TEST);
@@ -209,11 +215,11 @@ int main() {
             
             if (postProcessing || glfwGetKey(window, GLFW_KEY_3) == GLFW_PRESS) {
                 
-                FBO_Bind(&FBOs[ping]);
-                Shader_Activate(&shader_pixelate);
-                FBO_BindTexture(&FBOs[!ping], &shader_pixelate);
+                BE_FBOBind(&FBOs[ping]);
+                BE_ShaderActivate(&shader_pixelate);
+                BE_FBOBindTexture(&FBOs[!ping], &shader_pixelate);
                 glUniform1f(glGetUniformLocation(shader_pixelate.ID, "pixelSize"), 4.f);
-                VAO_DrawQuad(&quadVAO);
+                BE_VAODrawQuad(&quadVAO);
                 ping = !ping;
             }
 
@@ -230,35 +236,35 @@ int main() {
             selectedCamera->width = sceneWidth;
             selectedCamera->height = sceneHeight;
             
-            Camera_Inputs(selectedCamera, window, &joysticks[0], dt);
-            Camera_UpdateMatrix(selectedCamera, windowWidth, windowHeight);
+            BE_CameraInputs(selectedCamera, window, &joystick, timer.dt);
+            BE_CameraUpdateMatrix(selectedCamera, windowWidth, windowHeight);
 
-            // if (joystickIsPressed(&joysticks[0], 5)) {
+            // if (BE_JoystickIsPressed(&joystick, 5)) {
             //     camNum += 1;
             //     camNum = camNum % cameras.size;
-            //     selectedCamera = CameraVector_Get(&cameras, camNum);
+            //     selectedCamera = BE_CameraVectorGetByIndex(&cameras, camNum);
             // }
-            // if (joystickIsPressed(&joysticks[0], 4)) {
+            // if (BE_JoystickIsPressed(&joystick, 4)) {
             //     camNum -= 1;
             //     camNum = camNum % cameras.size;
-            //     selectedCamera = CameraVector_Get(&cameras, camNum);
+            //     selectedCamera = BE_CameraVectorGetByIndex(&cameras, camNum);
             // }
-            // if (joystickIsPressed(&joysticks[0], 10)) {
-            //     Camera* newCam = Camera_InitHeap(windowWidth, windowHeight, 45.0f, 0.1f, 100.0f, (vec3){0.0f, 1.0f, 0.0f}, selectedCamera->direction);
-            //     CameraVector_Push(&cameras, newCam);
+            // if (BE_JoystickIsPressed(&joystick, 10)) {
+            //     Camera* newCam = BE_CameraInitHeap(windowWidth, windowHeight, 45.0f, 0.1f, 100.0f, (vec3){0.0f, 1.0f, 0.0f}, selectedCamera->direction);
+            //     BE_CameraVectorPush(&cameras, newCam);
             // }
-            // if (joystickIsPressed(&joysticks[0], 12) && cameras.size > 0 && CameraVector_IndexOf(&cameras, selectedCamera) != 0) {
-            //     CameraVector_Remove(&cameras, selectedCamera);
-            //     selectedCamera = CameraVector_Get(&cameras, 0);
+            // if (BE_JoystickIsPressed(&joystick, 12) && cameras.size > 0 && BE_CameraVectorGetIndex(&cameras, selectedCamera) != 0) {
+            //     BE_CameraVectorRemove(&cameras, selectedCamera);
+            //     selectedCamera = BE_CameraVectorGetByIndex(&cameras, 0);
             // }
             
-            if (joystickIsPressed(&joysticks[0], 10)) postProcessing = !postProcessing;
-            if (joystickIsPressed(&joysticks[0], 11)) wireframe = !wireframe;
+            if (BE_JoystickIsPressed(&joystick, 10)) postProcessing = !postProcessing;
+            if (BE_JoystickIsPressed(&joystick, 11)) wireframe = !wireframe;
 
-            if (!wireframe && (delta.frameCount % shadowMapFreq == 0)) 
-                LightSystem_MakeShadowMaps(&lightSystem, &shader_shadowMap, selectedCamera, draw_stuff);
+            if (!wireframe && (timer.frameCount % shadowMapFreq == 0)) 
+                BE_LightManagerMakeShadowMaps(&lightSystem, &shader_shadowMap, selectedCamera, draw_stuff);
                 
-            FBO_Bind(&FBOs[ping]);
+            BE_FBOBind(&FBOs[ping]);
             glViewport(0, 0, windowWidth, windowHeight);
             glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -273,23 +279,23 @@ int main() {
             if (!wireframe) {
                 glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
-                LightSystem_SetUniforms(&shader_default, &lightSystem);
+                BE_LightManagerSetUniforms(&shader_default, &lightSystem);
                 glUniform1i(glGetUniformLocation(shader_default.ID, "sampleRadius"), 0);
                 draw_stuff(&shader_default, selectedCamera);
-                LightSystem_Draw(&lightSystem, &light, &shader_lights, selectedCamera);
+                BE_LightManagerDraw(&lightSystem, &light, &shader_lights, selectedCamera);
             } else {
                 glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
-                Shader_Activate(&shader_color);
+                BE_ShaderActivate(&shader_color);
                 glUniform3fv(glGetUniformLocation(shader_color.ID, "color"), 1, (float[]){1.0f, 0.647f, 0.0f});
-                LightSystem_SetUniforms(&shader_color, &lightSystem);
+                BE_LightManagerSetUniforms(&shader_color, &lightSystem);
                 draw_stuff(&shader_color, selectedCamera);
-                LightSystem_Draw(&lightSystem, &light, &shader_color, selectedCamera);
+                BE_LightManagerDraw(&lightSystem, &light, &shader_color, selectedCamera);
             }
 
-            Shader_Activate(&shader_color);
+            BE_ShaderActivate(&shader_color);
             glUniform3fv(glGetUniformLocation(shader_color.ID, "color"), 1, (float[]){1.0f, 1.0f, 1.0f});
-            CameraVector_Draw(&cameras, &cameraMesh, &shader_color, selectedCamera);
+            BE_CameraVectorDraw(&cameras, &cameraMesh, &shader_color, selectedCamera);
 
             glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
@@ -301,11 +307,11 @@ int main() {
             
             if (postProcessing || glfwGetKey(window, GLFW_KEY_3) == GLFW_PRESS) {
                 
-                FBO_Bind(&FBOs[ping]);
-                Shader_Activate(&shader_pixelate);
-                FBO_BindTexture(&FBOs[!ping], &shader_pixelate);
+                BE_FBOBind(&FBOs[ping]);
+                BE_ShaderActivate(&shader_pixelate);
+                BE_FBOBindTexture(&FBOs[!ping], &shader_pixelate);
                 glUniform1f(glGetUniformLocation(shader_pixelate.ID, "pixelSize"), 4.f);
-                VAO_DrawQuad(&quadVAO);
+                BE_VAODrawQuad(&quadVAO);
                 ping = !ping;
             }
 
@@ -318,14 +324,14 @@ int main() {
             sceneY = windowHeight - sceneHeight - 30;
         }
 
-        FBO_Unbind();
+        BE_FBOUnbind();
         glViewport(0, 0, windowWidth, windowHeight);
         glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         glViewport(sceneX, sceneY, sceneWidth, sceneHeight);
-        Shader_Activate(&shader_framebuffer);
-        FBO_BindTexture(&FBOs[!ping], &shader_framebuffer);
-        VAO_DrawQuad(&quadVAO);
+        BE_ShaderActivate(&shader_framebuffer);
+        BE_FBOBindTexture(&FBOs[!ping], &shader_framebuffer);
+        BE_VAODrawQuad(&quadVAO);
         glViewport(0, 0, windowWidth, windowHeight);
 
         nuklear_ui(ctx);
@@ -362,7 +368,14 @@ void nuklear_ui(struct nk_context* ctx) {
         nk_end(ctx);
         
         /* Top Left PANEL */
-        if (nk_begin(ctx, "Top Left Panel", nk_rect(0, 30, sceneX, (windowHeight - 30)/2), NK_WINDOW_BORDER | NK_WINDOW_TITLE )) {}
+        if (nk_begin(ctx, "Top Left Panel", nk_rect(0, 30, sceneX, (windowHeight - 30)/2), NK_WINDOW_BORDER | NK_WINDOW_TITLE )) {
+            nk_layout_row_static(ctx, 30, 150, 1); // 5 buttons per row
+            if (nk_button_label(ctx, "Toggle Pixel Shader")) { postProcessing = !postProcessing; }
+            if (nk_button_label(ctx, "Toggle Wireframe")) { wireframe = !wireframe; }
+            if (nk_slider_int(ctx, 1, &shadowMapFreq, 3, 1)) {
+                // value changed, do something if needed
+            }
+        }
         nk_end(ctx);
 
         /* Bottom Left Panel */
@@ -382,63 +395,63 @@ void nuklear_ui(struct nk_context* ctx) {
     }
     
     /* PERFORMANCE */
-    // if (nk_begin(ctx, "FPS Graph", nk_rect(50, 50, 300, 300), NK_WINDOW_BORDER | NK_WINDOW_MINIMIZABLE | NK_WINDOW_MOVABLE | NK_WINDOW_CLOSABLE )) {
+    if (nk_begin(ctx, "FPS Graph", nk_rect(50, 50, 300, 300), NK_WINDOW_BORDER | NK_WINDOW_MINIMIZABLE | NK_WINDOW_MOVABLE | NK_WINDOW_CLOSABLE )) {
     
-    //     nk_layout_row_dynamic(ctx, 30, 1);
-    //     nk_label(ctx, "FPS Tracker (20s)", NK_TEXT_CENTERED);
-
-    //     // Show units above the graph
-    //     nk_layout_row_dynamic(ctx, 20, 2);
-    //     nk_label(ctx, "FPS", NK_TEXT_LEFT);
-    //     nk_label(ctx, "Time (ms)", NK_TEXT_LEFT);
-
-    //     // Graph area for FPS values
-    //     nk_layout_row_dynamic(ctx, 150, 1);
-    //     nk_chart_begin(ctx, NK_CHART_LINES, delta.fpsHistoryCount, 0.0f, 200.0f);
-    //     int start = (delta.fpsHistoryIndex + FPS_HISTORY_COUNT - delta.fpsHistoryCount) % FPS_HISTORY_COUNT;
-    //     for (int i = 0; i < delta.fpsHistoryCount; i++) {
-    //         int idx = (start + i) % FPS_HISTORY_COUNT;
-    //         nk_chart_push(ctx, delta.fpsHistory[idx]);
-    //     }
-    //     nk_chart_end(ctx);
-
-    //     // Show current FPS and delta time below the graph
-    //     nk_layout_row_dynamic(ctx, 20, 2);
-
-    //     char buf_fps[64];
-    //     snprintf(buf_fps, sizeof(buf_fps), "Current FPS: %.1f fps", delta.fps);
-    //     nk_label(ctx, buf_fps, NK_TEXT_LEFT);
-
-    //     char buf_dt[64];
-    //     snprintf(buf_dt, sizeof(buf_dt), "Delta Time: %.2f ms", delta.ms);
-    //     nk_label(ctx, buf_dt, NK_TEXT_LEFT);
-        
-    //     // next one
-    //     nk_layout_row_dynamic(ctx, 20, 2);
-
-    //     snprintf(buf_fps, sizeof(buf_fps), "w:%d h:%d", windowWidth, windowHeight);
-    //     nk_label(ctx, buf_fps, NK_TEXT_LEFT);
-
-    //     // snprintf(buf_dt, sizeof(buf_dt), "Delta Time: %.2f ms", delta.ms);
-    //     // nk_label(ctx, buf_dt, NK_TEXT_LEFT);
-
-    //     nk_layout_row_dynamic(ctx, 30, 1);
-    //     nk_label(ctx, "buffer2", NK_TEXT_CENTERED);
+        nk_layout_row_dynamic(ctx, 30, 1);
+        nk_label(ctx, "FPS Tracker (20s)", NK_TEXT_CENTERED);
     
-    //     nk_layout_row_static(ctx, 30, 80, 1);
-    //     if (nk_button_label(ctx, "EDITOR"))
-    //         state = ENGINE_EDITOR;
-            
-    //     nk_layout_row_static(ctx, 30, 80, 1);
-    //     if (nk_button_label(ctx, "SCENE"))
-    //         state = ENGINE_SCENE_EXPANDED;
-            
-    //     nk_layout_row_static(ctx, 30, 80, 1);
-    //     if (nk_button_label(ctx, "NONE"))
-    //         state = ENGINE_SCENE_HIDDEN;
-
-    // }
-    // nk_end(ctx);
+        // Show units above the graph
+        nk_layout_row_dynamic(ctx, 20, 2);
+        nk_label(ctx, "FPS", NK_TEXT_LEFT);
+        nk_label(ctx, "Time (ms)", NK_TEXT_LEFT);
+    
+        // Graph area for FPS values
+        nk_layout_row_dynamic(ctx, 150, 1);
+        nk_chart_begin(ctx, NK_CHART_LINES, timer.fpsHistoryCount, 0.0f, 200.0f);
+        int start = (timer.fpsHistoryIndex + FPS_HISTORY_COUNT - timer.fpsHistoryCount) % FPS_HISTORY_COUNT;
+        for (int i = 0; i < timer.fpsHistoryCount; i++) {
+            int idx = (start + i) % FPS_HISTORY_COUNT;
+            nk_chart_push(ctx, timer.fpsHistory[idx]);
+        }
+        nk_chart_end(ctx);
+    
+        // Show current FPS and timer time below the graph
+        nk_layout_row_dynamic(ctx, 20, 2);
+    
+        char buf_fps[64];
+        snprintf(buf_fps, sizeof(buf_fps), "Current FPS: %.1f fps", timer.fps);
+        nk_label(ctx, buf_fps, NK_TEXT_LEFT);
+    
+        char buf_dt[64];
+        snprintf(buf_dt, sizeof(buf_dt), "Delta Time: %.2f ms", timer.ms);
+        nk_label(ctx, buf_dt, NK_TEXT_LEFT);
+    
+        // next one
+        nk_layout_row_dynamic(ctx, 20, 2);
+    
+        snprintf(buf_fps, sizeof(buf_fps), "w:%d h:%d", windowWidth, windowHeight);
+        nk_label(ctx, buf_fps, NK_TEXT_LEFT);
+    
+        // snprintf(buf_dt, sizeof(buf_dt), "Delta Time: %.2f ms", timer.ms);
+        // nk_label(ctx, buf_dt, NK_TEXT_LEFT);
+    
+        nk_layout_row_dynamic(ctx, 30, 1);
+        nk_label(ctx, "buffer2", NK_TEXT_CENTERED);
+    
+        nk_layout_row_static(ctx, 30, 80, 1);
+        if (nk_button_label(ctx, "EDITOR"))
+            state = ENGINE_EDITOR;
+         
+        nk_layout_row_static(ctx, 30, 80, 1);
+        if (nk_button_label(ctx, "SCENE"))
+            state = ENGINE_SCENE_EXPANDED;
+         
+        nk_layout_row_static(ctx, 30, 80, 1);
+        if (nk_button_label(ctx, "NONE"))
+            state = ENGINE_SCENE_HIDDEN;
+    
+    }
+    nk_end(ctx);
 
     nk_glfw3_render(NK_ANTI_ALIASING_OFF);
 

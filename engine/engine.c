@@ -13,42 +13,18 @@
 #define MSG_INFO(file, line, msg, ...)     fprintf(stdout, "%s:%d:\033[37m info:\033[0m " msg "\n", file, line, ##__VA_ARGS__)
 
 // ==============================
-// DELTA TIME
-// ==============================
-
-DeltaTime delta;
-
-float deltaTimeUpdate() {
-    delta.currentTime = clock();
-    delta.dt = (float)(delta.currentTime - delta.previousTime) / CLOCKS_PER_SEC;
-    delta.previousTime = delta.currentTime;
-
-    delta.frameCount++;
-    delta.frameCountFPS++;
-    delta.fpsTimer += delta.dt;
-
-    if (delta.fpsTimer >= 1.0f) {
-        delta.fps = delta.frameCountFPS / delta.fpsTimer;
-        delta.ms = 1000 / delta.fps;
-
-        delta.fpsHistory[delta.fpsHistoryIndex] = delta.fps;
-        delta.fpsHistoryIndex = (delta.fpsHistoryIndex + 1) % FPS_HISTORY_COUNT;
-        if (delta.fpsHistoryCount < FPS_HISTORY_COUNT)
-            delta.fpsHistoryCount++;
-
-        delta.frameCountFPS = 0;
-        delta.fpsTimer = 0.0f;
-    }
-
-    return delta.dt;
-
-}
-
-// ==============================
 // MATH
 // ==============================
 
-void make_model_matrix(vec3 translation, vec3 rotation, vec3 scale, mat4 dest) {
+#define PRINT_MAT4(m) do { \
+    printf("mat4:\n"); \
+    printf("[ %8.3f %8.3f %8.3f %8.3f ]\n", (m)[0][0], (m)[1][0], (m)[2][0], (m)[3][0]); \
+    printf("[ %8.3f %8.3f %8.3f %8.3f ]\n", (m)[0][1], (m)[1][1], (m)[2][1], (m)[3][1]); \
+    printf("[ %8.3f %8.3f %8.3f %8.3f ]\n", (m)[0][2], (m)[1][2], (m)[2][2], (m)[3][2]); \
+    printf("[ %8.3f %8.3f %8.3f %8.3f ]\n", (m)[0][3], (m)[1][3], (m)[2][3], (m)[3][3]); \
+} while(0)
+
+void BE_MatrixMakeModel(vec3 translation, vec3 rotation, vec3 scale, mat4 dest) {
     mat4 trans, rotX, rotY, rotZ, rot, scl;
 
     glm_translate_make(trans, translation);
@@ -67,7 +43,7 @@ void make_model_matrix(vec3 translation, vec3 rotation, vec3 scale, mat4 dest) {
     glm_mat4_mul(trans, rs, dest);
 }
 
-void make_billboard_matrix(vec3 position, mat4 view, vec3 scale, mat4 dest) {
+void BE_MatrixMakeBillboard(vec3 position, mat4 view, vec3 scale, mat4 dest) {
     mat4 model = GLM_MAT4_IDENTITY_INIT;
 
     // Copy camera rotation from view matrix (transpose of upper-left 3x3)
@@ -94,7 +70,7 @@ void make_billboard_matrix(vec3 position, mat4 view, vec3 scale, mat4 dest) {
     glm_mat4_copy(model, dest);
 }
 
-void orientation_to_euler(vec3 orientation, vec3 outEuler) {
+void BE_OritentationToEuler(vec3 orientation, vec3 outEuler) {
 
     vec3 dir;
     glm_vec3_normalize_to(orientation, dir);
@@ -108,15 +84,54 @@ void orientation_to_euler(vec3 orientation, vec3 outEuler) {
     outEuler[2] = roll;
 }
 
-void print_mat4(mat4 m) {
-    printf("mat4:\n");
-    for (int row = 0; row < 4; row++) {
-        printf("[ ");
-        for (int col = 0; col < 4; col++) {
-            printf("%8.3f ", m[col][row]);  // cglm stores matrices column-major
-        }
-        printf("]\n");
+void BE_Vec3RotateAxis(vec3 in, vec3 axis, float angle_rad, vec3 out) {
+    vec3 axis_n;
+    glm_vec3_normalize_to(axis, axis_n);
+
+    float cosA = cosf(angle_rad);
+    float sinA = sinf(angle_rad);
+
+    vec3 term1, term2, term3;
+    glm_vec3_scale(in, cosA, term1);
+
+    glm_vec3_cross(axis_n, in, term2);
+    glm_vec3_scale(term2, sinA, term2);
+
+    float dotAV = glm_vec3_dot(axis_n, in);
+    glm_vec3_scale(axis_n, dotAV * (1.0f - cosA), term3);
+
+    glm_vec3_add(term1, term2, out);
+    glm_vec3_add(out, term3, out);
+}
+
+// ==============================
+// DELTA TIME
+// ==============================
+
+float BE_UpdateFrameTimeInfo(BE_FrameStats* info) {
+    info->currentTime = clock();
+    info->dt = (float)(info->currentTime - info->previousTime) / CLOCKS_PER_SEC;
+    info->previousTime = info->currentTime;
+
+    info->frameCount++;
+    info->frameCountFPS++;
+    info->fpsTimer += info->dt;
+
+    if (info->fpsTimer >= 1.0f) {
+        info->fps = info->frameCountFPS / info->fpsTimer;
+        info->ms = 1000 / info->fps;
+
+        info->fpsHistory[info->fpsHistoryIndex] = info->fps;
+        info->fpsHistoryIndex = (info->fpsHistoryIndex + 1) % FPS_HISTORY_COUNT;
+        if (info->fpsHistoryCount < FPS_HISTORY_COUNT)
+            info->fpsHistoryCount++;
+
+        info->frameCountFPS = 0;
+        info->fpsTimer = 0.0f;
     }
+
+    return info->dt;
+
 }
 
 // ==============================
@@ -125,31 +140,31 @@ void print_mat4(mat4 m) {
 
 #define INITIAL_VERTEX_CAPACITY 8
 
-void VertexVector_Init(VertexVector* vec) {
-    vec->data = (Vertex*)malloc(sizeof(Vertex) * INITIAL_VERTEX_CAPACITY);
+void BE_VertexVectorInit(BE_VertexVector* vec) {
+    vec->data = (BE_Vertex*)malloc(sizeof(BE_Vertex) * INITIAL_VERTEX_CAPACITY);
     vec->size = 0;
     vec->capacity = INITIAL_VERTEX_CAPACITY;
 }
 
-void VertexVector_Push(VertexVector* vec, Vertex value) {
+void BE_VertexVectorPush(BE_VertexVector* vec, BE_Vertex value) {
     if (vec->size >= vec->capacity) {
         vec->capacity *= 2;
-        vec->data = (Vertex*)realloc(vec->data, sizeof(Vertex) * vec->capacity);
+        vec->data = (BE_Vertex*)realloc(vec->data, sizeof(BE_Vertex) * vec->capacity);
     }
     vec->data[vec->size++] = value;
 }
 
-void VertexVector_Free(VertexVector* vec) {
+void BE_VertexVectorFree(BE_VertexVector* vec) {
     free(vec->data);
     vec->data = NULL;
     vec->size = 0;
     vec->capacity = 0;
 }
 
-void VertexVector_Copy(Vertex* vertices, size_t count, VertexVector* outVec) {
-    VertexVector_Init(outVec);
+void BE_VertexVectorCopy(BE_Vertex* vertices, size_t count, BE_VertexVector* outVec) {
+    BE_VertexVectorInit(outVec);
     for (size_t i = 0; i < count; i++) {
-        VertexVector_Push(outVec, vertices[i]);
+        BE_VertexVectorPush(outVec, vertices[i]);
     }
 }
 
@@ -157,13 +172,13 @@ void VertexVector_Copy(Vertex* vertices, size_t count, VertexVector* outVec) {
 // VAO
 // ==============================
 
-VAO VAO_Init() {
-    VAO vao;
+BE_VAO BE_VAOInit() {
+    BE_VAO vao;
     glGenVertexArrays(1, &vao.ID);
     return vao;
 }
 
-VAO VAO_InitQuad() {
+BE_VAO BE_VAOInitQuad() {
     
     GLfloat vertices[] = {
         // positions   // texCoords
@@ -176,18 +191,18 @@ VAO VAO_InitQuad() {
         1.0f,  1.0f,   1.0f, 1.0f   // top-right
     };
     
-    VAO vao = VAO_Init();
-    VAO_Bind(&vao);
-    VBO vbo = VBO_InitRaw(vertices, sizeof(vertices));
-    VAO_LinkAttrib(&vbo, 0, 2, GL_FLOAT, 4 * sizeof(float), (void*)0);
-    VAO_LinkAttrib(&vbo, 1, 2, GL_FLOAT, 4 * sizeof(float), (void*)(2 * sizeof(float)));
-    VAO_Unbind();
-    VBO_Unbind();
+    BE_VAO vao = BE_VAOInit();
+    BE_VAOBind(&vao);
+    BE_VBO vbo = BE_VBOInitFromData(vertices, sizeof(vertices));
+    BE_LinkVertexAttribToVBO(&vbo, 0, 2, GL_FLOAT, 4 * sizeof(float), (void*)0);
+    BE_LinkVertexAttribToVBO(&vbo, 1, 2, GL_FLOAT, 4 * sizeof(float), (void*)(2 * sizeof(float)));
+    BE_VAOUnbind();
+    BE_VBOUnbind();
 
     return vao;
 }
 
-VAO VAO_InitBillboardQuad() {
+BE_VAO BE_VAOInitBillboardQuad() {
     
     GLfloat vertices[] = {
         // positions   // texCoords
@@ -200,31 +215,31 @@ VAO VAO_InitBillboardQuad() {
         1.0f,  1.0f,   1.0f, 1.0f   // top-right
     };
     
-    VAO vao = VAO_Init();
-    VAO_Bind(&vao);
-    VBO vbo = VBO_InitRaw(vertices, sizeof(vertices));
-    VAO_LinkAttrib(&vbo, 0, 3, GL_FLOAT, 5 * sizeof(float), (void*)0);
-    VAO_LinkAttrib(&vbo, 1, 2, GL_FLOAT, 5 * sizeof(float), (void*)(3 * sizeof(float)));
-    VAO_Unbind();
-    VBO_Unbind();
+    BE_VAO vao = BE_VAOInit();
+    BE_VAOBind(&vao);
+    BE_VBO vbo = BE_VBOInitFromData(vertices, sizeof(vertices));
+    BE_LinkVertexAttribToVBO(&vbo, 0, 3, GL_FLOAT, 5 * sizeof(float), (void*)0);
+    BE_LinkVertexAttribToVBO(&vbo, 1, 2, GL_FLOAT, 5 * sizeof(float), (void*)(3 * sizeof(float)));
+    BE_VAOUnbind();
+    BE_VBOUnbind();
 
     return vao;
 }
 
-void VAO_Bind(VAO* vao) {
+void BE_VAOBind(BE_VAO* vao) {
     glBindVertexArray(vao->ID);
 }
 
-void VAO_DrawQuad(VAO* vao) {
-    VAO_Bind(vao);
+void BE_VAODrawQuad(BE_VAO* vao) {
+    BE_VAOBind(vao);
     glDrawArrays(GL_TRIANGLES, 0, 6);
 }
 
-void VAO_Unbind() {
+void BE_VAOUnbind() {
     glBindVertexArray(0);
 }
 
-void VAO_Delete(VAO* vao) {
+void BE_VAODelete(BE_VAO* vao) {
     glBindVertexArray(0);
     glDeleteVertexArrays(1, &vao->ID);
 }
@@ -233,39 +248,39 @@ void VAO_Delete(VAO* vao) {
 // VBO
 // ==============================
 
-VBO VBO_InitRaw(GLfloat* vertices, GLsizeiptr size) {
-    VBO vbo;
+BE_VBO BE_VBOInitFromData(GLfloat* vertices, GLsizeiptr size) {
+    BE_VBO vbo;
     glGenBuffers(1, &vbo.ID);
     glBindBuffer(GL_ARRAY_BUFFER, vbo.ID);
     glBufferData(GL_ARRAY_BUFFER, size, vertices, GL_STATIC_DRAW);
     return vbo;
 }
 
-VBO VBO_Init(VertexVector* vertices) {
-    VBO vbo;
+BE_VBO BE_VBOInitFromVector(BE_VertexVector* vertices) {
+    BE_VBO vbo;
     glGenBuffers(1, &vbo.ID);
     glBindBuffer(GL_ARRAY_BUFFER, vbo.ID);
-    glBufferData(GL_ARRAY_BUFFER, vertices->size * sizeof(Vertex), vertices->data, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, vertices->size * sizeof(BE_Vertex), vertices->data, GL_STATIC_DRAW);
     return vbo;
 }
 
-void VBO_Bind(VBO* vbo) {
+void BE_VBOBind(BE_VBO* vbo) {
     glBindBuffer(GL_ARRAY_BUFFER, vbo->ID);
 }
 
-void VBO_Unbind() {
+void BE_VBOUnbind() {
     glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
-void VBO_Delete(VBO* vbo) {
+void BE_VBODelete(BE_VBO* vbo) {
     glDeleteBuffers(1, &vbo->ID);
 }
 
-void VAO_LinkAttrib(VBO* vbo, GLuint layout, GLuint numComponents, GLenum type, GLsizeiptr stride, void* offset) {
-    VBO_Bind(vbo);
+void BE_LinkVertexAttribToVBO(BE_VBO* vbo, GLuint layout, GLuint numComponents, GLenum type, GLsizeiptr stride, void* offset) {
+    BE_VBOBind(vbo);
     glVertexAttribPointer(layout, numComponents, type, GL_FALSE, stride, offset);
     glEnableVertexAttribArray(layout);
-    VBO_Unbind();
+    BE_VBOUnbind();
 }
 
 // ==============================
@@ -274,13 +289,13 @@ void VAO_LinkAttrib(VBO* vbo, GLuint layout, GLuint numComponents, GLenum type, 
 
 #define INITIAL_GLUINT_CAPACITY   8
 
-void GLuintVector_Init(GLuintVector* vec) {
+void BE_GLuintVectorInit(BE_GLuintVector* vec) {
     vec->data = (GLuint*)malloc(sizeof(GLuint) * INITIAL_GLUINT_CAPACITY);
     vec->size = 0;
     vec->capacity = INITIAL_GLUINT_CAPACITY;
 }
 
-void GLuintVector_Push(GLuintVector* vec, GLuint value) {
+void BE_GLuintVectorPush(BE_GLuintVector* vec, GLuint value) {
     if (vec->size >= vec->capacity) {
         vec->capacity *= 2;
         vec->data = (GLuint*)realloc(vec->data, sizeof(GLuint) * vec->capacity);
@@ -288,17 +303,17 @@ void GLuintVector_Push(GLuintVector* vec, GLuint value) {
     vec->data[vec->size++] = value;
 }
 
-void GLuintVector_Free(GLuintVector* vec) {
+void BE_GLuintVectorFree(BE_GLuintVector* vec) {
     free(vec->data);
     vec->data = NULL;
     vec->size = 0;
     vec->capacity = 0;
 }
 
-void GLuintVector_Copy(GLuint* data, size_t count, GLuintVector* outVec) {
-    GLuintVector_Init(outVec);
+void BE_GLuintVectorCopy(GLuint* data, size_t count, BE_GLuintVector* outVec) {
+    BE_GLuintVectorInit(outVec);
     for (size_t i = 0; i < count; i++) {
-        GLuintVector_Push(outVec, data[i]);
+        BE_GLuintVectorPush(outVec, data[i]);
     }
 }
 
@@ -306,31 +321,31 @@ void GLuintVector_Copy(GLuint* data, size_t count, GLuintVector* outVec) {
 // EBO
 // ==============================
 
-EBO EBO_InitRaw(GLuint* indices, GLsizeiptr size) {
-    EBO ebo;
+BE_EBO BE_EBOInitFromData(GLuint* indices, GLsizeiptr size) {
+    BE_EBO ebo;
     glGenBuffers(1, &ebo.ID);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo.ID);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, size, indices, GL_STATIC_DRAW);
     return ebo;
 }
 
-EBO EBO_Init(GLuintVector* indices) {
-    EBO ebo;
+BE_EBO BE_EBOInitFromVector(BE_GLuintVector* indices) {
+    BE_EBO ebo;
     glGenBuffers(1, &ebo.ID);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo.ID);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices->size * sizeof(GLuint), indices->data, GL_STATIC_DRAW);
     return ebo;
 }
 
-void EBO_Bind(EBO* ebo) {
+void BE_EBOBind(BE_EBO* ebo) {
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo->ID);
 }
 
-void EBO_Unbind() {
+void BE_EBOUnbind() {
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 }
 
-void EBO_Delete(EBO* ebo) {
+void BE_EBODelete(BE_EBO* ebo) {
     glDeleteBuffers(1, &ebo->ID);
 }
 
@@ -338,7 +353,7 @@ void EBO_Delete(EBO* ebo) {
 // Shader
 // ==============================
 
-char* get_file_contents(const char* filename) {
+char* BE_GetFileContents(const char* filename) {
     FILE* file = fopen(filename, "rb");
 
     fseek(file, 0, SEEK_END);
@@ -355,7 +370,7 @@ char* get_file_contents(const char* filename) {
 
 }
 
-void Shader_compileErrors(unsigned int shader, const char* type) {
+void BE_ShaderGetCompileErrors(unsigned int shader, const char* type) {
     GLint hasCompiled;
     char infolog[1024];
     if (strcmp(type, "PROGRAM") != 0) {
@@ -373,30 +388,30 @@ void Shader_compileErrors(unsigned int shader, const char* type) {
     }
 }
 
-Shader Shader_Init(const char* vertexFile, const char* fragmentFile, const char* geometryFile) {
-    Shader shader = {0};
+BE_Shader BE_ShaderInit(const char* vertexFile, const char* fragmentFile, const char* geometryFile) {
+    BE_Shader shader = {0};
 
-    const char* vertexSource = get_file_contents(vertexFile);
-    const char* fragmentSource = get_file_contents(fragmentFile);
+    const char* vertexSource = BE_GetFileContents(vertexFile);
+    const char* fragmentSource = BE_GetFileContents(fragmentFile);
     const char* geometrySource = NULL;
 
     GLuint vertexShader = glCreateShader(GL_VERTEX_SHADER);
     glShaderSource(vertexShader, 1, &vertexSource, NULL);
     glCompileShader(vertexShader);
-    Shader_compileErrors(vertexShader, "VERTEX");
+    BE_ShaderGetCompileErrors(vertexShader, "VERTEX");
     
     GLuint fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
     glShaderSource(fragmentShader, 1, &fragmentSource, NULL);
     glCompileShader(fragmentShader);
-    Shader_compileErrors(fragmentShader, "FRAGMENT");
+    BE_ShaderGetCompileErrors(fragmentShader, "FRAGMENT");
 
     GLuint geometryShader = 0;
     if (geometryFile != NULL) {
-        geometrySource = get_file_contents(geometryFile);
+        geometrySource = BE_GetFileContents(geometryFile);
         geometryShader = glCreateShader(GL_GEOMETRY_SHADER);
         glShaderSource(geometryShader, 1, &geometrySource, NULL);
         glCompileShader(geometryShader);
-        Shader_compileErrors(geometryShader, "GEOMETRY");
+        BE_ShaderGetCompileErrors(geometryShader, "GEOMETRY");
     }
 
     shader.ID = glCreateProgram();
@@ -404,7 +419,7 @@ Shader Shader_Init(const char* vertexFile, const char* fragmentFile, const char*
     glAttachShader(shader.ID, fragmentShader);
     if (geometryFile != NULL) glAttachShader(shader.ID, geometryShader);
     glLinkProgram(shader.ID);
-    Shader_compileErrors(shader.ID, "PROGRAM");
+    BE_ShaderGetCompileErrors(shader.ID, "PROGRAM");
 
     glDeleteShader(vertexShader);
     glDeleteShader(fragmentShader);
@@ -418,11 +433,11 @@ Shader Shader_Init(const char* vertexFile, const char* fragmentFile, const char*
 
 }
 
-void Shader_Activate(Shader* shader) {
+void BE_ShaderActivate(BE_Shader* shader) {
     glUseProgram(shader->ID);
 }
 
-void Shader_Delete(Shader* shader) {
+void BE_ShaderDelete(BE_Shader* shader) {
     glDeleteProgram(shader->ID);
 }
 
@@ -430,8 +445,8 @@ void Shader_Delete(Shader* shader) {
 // FBO
 // ==============================
 
-FBO FBO_Init(int width, int height) {
-    FBO fb;
+BE_FBO BE_FBOInit(int width, int height) {
+    BE_FBO fb;
     fb.width = width;
     fb.height = height;
 
@@ -469,19 +484,19 @@ FBO FBO_Init(int width, int height) {
          1.0f,  1.0f,   1.0f, 1.0f   // top-right
     };
 
-    fb.vao = VAO_Init();
-    VAO_Bind(&fb.vao);
-    fb.vbo = VBO_InitRaw(vertices, sizeof(vertices));
-    VAO_LinkAttrib(&fb.vbo, 0, 2, GL_FLOAT, 4 * sizeof(float), (void*)0);
-    VAO_LinkAttrib(&fb.vbo, 1, 2, GL_FLOAT, 4 * sizeof(float), (void*)(2 * sizeof(float)));
-    VAO_Unbind();
-    VBO_Unbind();
+    fb.vao = BE_VAOInit();
+    BE_VAOBind(&fb.vao);
+    fb.vbo = BE_VBOInitFromData(vertices, sizeof(vertices));
+    BE_LinkVertexAttribToVBO(&fb.vbo, 0, 2, GL_FLOAT, 4 * sizeof(float), (void*)0);
+    BE_LinkVertexAttribToVBO(&fb.vbo, 1, 2, GL_FLOAT, 4 * sizeof(float), (void*)(2 * sizeof(float)));
+    BE_VAOUnbind();
+    BE_VBOUnbind();
     
     return fb;
 
 }
 
-void FBO_Resize(FBO* fbo, int width, int height) {
+void BE_FBOResize(BE_FBO* fbo, int width, int height) {
     fbo->width = width;
     fbo->height = height;
 
@@ -515,34 +530,34 @@ void FBO_Resize(FBO* fbo, int width, int height) {
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
-void FBO_Bind(FBO* fb) {
+void BE_FBOBind(BE_FBO* fb) {
     glBindFramebuffer(GL_FRAMEBUFFER, fb->fbo);
     glClear(GL_COLOR_BUFFER_BIT);
 }
 
-void FBO_BindTexture(FBO* fb, Shader* shader) {
+void BE_FBOBindTexture(BE_FBO* fb, BE_Shader* shader) {
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, fb->texture);
     glUniform1i(glGetUniformLocation(shader->ID, "screenTexture"), 0);
 }
 
-void FBO_Unbind() {
+void BE_FBOUnbind() {
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
-void FBO_Delete(FBO* fb) {
+void BE_FBODelete(BE_FBO* fb) {
     glDeleteFramebuffers(1, &fb->fbo);
     glDeleteTextures(1, &fb->texture);
     glDeleteRenderbuffers(1, &fb->rbo);
-    *fb = (FBO){0};
+    *fb = (BE_FBO){0};
 }
 
 // ==============================
 // Texture
 // ==============================
 
-Texture Texture_Init(const char* imageFile, const char* texType, GLuint slot) {
-    Texture texture;
+BE_Texture BE_TextureInit(const char* imageFile, const char* texType, GLuint slot) {
+    BE_Texture texture;
 
     texture.type = (char*)malloc(strlen(texType) + 1);
     if (!texture.type) {
@@ -588,22 +603,22 @@ Texture Texture_Init(const char* imageFile, const char* texType, GLuint slot) {
     return texture;
 }
 
-void Texture_texUnit(Shader* shader, const char* uniform, GLuint unit) {
+void BE_TextureSetUniformUnit(BE_Shader* shader, const char* uniform, GLuint unit) {
     GLuint tex0Uni = glGetUniformLocation(shader->ID, uniform);
-    Shader_Activate(shader);
+    BE_ShaderActivate(shader);
     glUniform1i(tex0Uni, unit);
 }
 
-void Texture_Bind(Texture* texture) {
+void BE_TextureBind(BE_Texture* texture) {
     glActiveTexture(GL_TEXTURE0 + texture->unit);
     glBindTexture(GL_TEXTURE_2D, texture->ID);
 }
 
-void Texture_Unbind() {
+void BE_TextureUnbind() {
     glBindTexture(GL_TEXTURE_2D, 0);
 }
 
-void Texture_Delete(Texture* texture) {
+void BE_TextureDelete(BE_Texture* texture) {
     glDeleteTextures(1, &texture->ID);
 }
 
@@ -613,31 +628,31 @@ void Texture_Delete(Texture* texture) {
 
 #define INITIAL_TEXTURE_CAPACITY 8
 
-void TextureVector_Init(TextureVector* vec) {
-    vec->data = (Texture*)malloc(sizeof(Texture) * INITIAL_TEXTURE_CAPACITY);
+void BE_TextureVectorInit(BE_TextureVector* vec) {
+    vec->data = (BE_Texture*)malloc(sizeof(BE_Texture) * INITIAL_TEXTURE_CAPACITY);
     vec->size = 0;
     vec->capacity = INITIAL_TEXTURE_CAPACITY;
 }
 
-void TextureVector_Push(TextureVector* vec, Texture value) {
+void BE_TextureVectorPush(BE_TextureVector* vec, BE_Texture value) {
     if (vec->size >= vec->capacity) {
         vec->capacity *= 2;
-        vec->data = (Texture*)realloc(vec->data, sizeof(Texture) * vec->capacity);
+        vec->data = (BE_Texture*)realloc(vec->data, sizeof(BE_Texture) * vec->capacity);
     }
     vec->data[vec->size++] = value;
 }
 
-void TextureVector_Free(TextureVector* vec) {
+void BE_TextureVectorFree(BE_TextureVector* vec) {
     free(vec->data);
     vec->data = NULL;
     vec->size = 0;
     vec->capacity = 0;
 }
 
-void TextureVector_Copy(Texture* textures, size_t count, TextureVector* outVec) {
-    TextureVector_Init(outVec);
+void BE_TextureVectorCopy(BE_Texture* textures, size_t count, BE_TextureVector* outVec) {
+    BE_TextureVectorInit(outVec);
     for (size_t i = 0; i < count; i++) {
-        TextureVector_Push(outVec, textures[i]);
+        BE_TextureVectorPush(outVec, textures[i]);
     }
 }
 
@@ -645,98 +660,58 @@ void TextureVector_Copy(Texture* textures, size_t count, TextureVector* outVec) 
 // JOYSTICK
 // ==============================
 
-Joystick joysticks[MAX_JOYSTICKS];
-int joystickCount = MAX_JOYSTICKS;
+void BE_JoystickUpdate(BE_Joystick* joystick) {
 
-void glfwJoystickEvents(void) {
+    if (!glfwJoystickPresent(joystick->id)) {
+        if (joystick->present) {
+            printf("Player %d controller disconnected\n", joystick->id + 1);
+            *joystick = (BE_Joystick){0};
+        }
+        return;
+    }
+
+    if (!joystick->present) {
+        joystick->present = 1;
+        joystick->name = glfwGetJoystickName(joystick->id);
+        joystick->deadzone = 0.05f;
+        memset(joystick->lbuttons, 0, sizeof(joystick->lbuttons));
+        printf("Player %d controller connected: %s\n", joystick->id + 1, joystick->name);
+    }
+
+    if (joystick->buttons) {
+        for (int b = 0; b < joystick->buttonCount && b < 16; b++) {
+            joystick->lbuttons[b] = joystick->buttons[b];
+        }
+    }
     
-    for (int i = 0; i < joystickCount; i++) {
-        Joystick* js = &joysticks[i];
-        if (js->present && js->buttons) {
-            for (int b = 0; b < js->buttonCount && b < 16; b++) {
-                js->lbuttons[b] = js->buttons[b];
-            }
-        }
-    }
+    joystick->axes = glfwGetJoystickAxes(joystick->id, &joystick->axisCount);
+    joystick->buttons = glfwGetJoystickButtons(joystick->id, &joystick->buttonCount);
+    joystick->hats = glfwGetJoystickHats(joystick->id, &joystick->hatCount);
 
-    for (int jid = 0; jid <= GLFW_JOYSTICK_LAST; jid++) {
-        if (!glfwJoystickPresent(jid)) continue;
-
-        const unsigned char* buttons;
-        int buttonCount;
-        buttons = glfwGetJoystickButtons(jid, &buttonCount);
-        if (!buttons || buttonCount <= 7 /*|| !buttons[7]*/) continue;
-
-        int alreadyAssigned = 0;
-        for (int i = 0; i < joystickCount; i++) {
-            if (joysticks[i].present && joysticks[i].id == jid) {
-                alreadyAssigned = 1;
-                break;
-            }
-        }
-
-        if (!alreadyAssigned) {
-            for (int i = 0; i < joystickCount; i++) {
-                if (!joysticks[i].present) {
-                    Joystick* js = &joysticks[i];
-
-                    js->id = jid;
-                    js->present = 1;
-                    js->name = glfwGetJoystickName(jid);
-                    js->axes = glfwGetJoystickAxes(jid, &js->axisCount);
-                    js->buttons = buttons;
-                    js->buttonCount = buttonCount;
-                    js->hats = glfwGetJoystickHats(jid, &js->hatCount);
-                    js->deadzone = 0.05f;
-
-                    memset(js->lbuttons, 0, buttonCount);
-
-                    printf("Player %d controller connected\n", js->id+1);
-
-                    break;
-                }
-            }
-        }
-    }
-
-    for (int i = 0; i < joystickCount; i++) {
-        Joystick* js = &joysticks[i];
-        if (!js->present) continue;
-
-        if (!glfwJoystickPresent(js->id)) {
-            printf("Player %d controller disonnected\n", js->id+1);
-            *js = (Joystick){0}; // reset the struct
-            continue;
-        }
-
-        js->axes = glfwGetJoystickAxes(js->id, &js->axisCount);
-        js->buttons = glfwGetJoystickButtons(js->id, &js->buttonCount);
-        js->hats = glfwGetJoystickHats(js->id, &js->hatCount);
-    }
 }
 
-int joystickIsPressed(Joystick* js, int button) {
-    return js->buttons && js->buttons[button] && !js->lbuttons[button];
+int BE_JoystickIsPressed(BE_Joystick* joystick, int button) {
+    return joystick->buttons && joystick->buttons[button] && !joystick->lbuttons[button];
 }
 
-int joystickIsReleased(Joystick* js, int button) {
-    return js->buttons && !js->buttons[button] && js->lbuttons[button];
+int BE_JoystickIsReleased(BE_Joystick* joystick, int button) {
+    return joystick->buttons && !joystick->buttons[button] && joystick->lbuttons[button];
 }
 
-int joystickIsHeld(Joystick* js, int button) {
-    return js->buttons && js->buttons[button];
+int BE_JoystickIsHeld(BE_Joystick* joystick, int button) {
+    return joystick->buttons && joystick->buttons[button];
 }
 
-float joystickGetAxis(Joystick* js, int axis) {
-    return js->axes && js->axes[axis];
+float BE_JoystickGetAxis(BE_Joystick* joystick, int axis) {
+    return joystick->axes && joystick->axes[axis];
 }
 
 // ==============================
 // CAMERA
 // ==============================
 
-Camera Camera_InitStack(int width, int height, float fov, float nearPlane, float farPlane, vec3 position, vec3 direction) {
-    Camera camera;
+BE_Camera BE_CameraInitStack(int width, int height, float fov, float nearPlane, float farPlane, vec3 position, vec3 direction) {
+    BE_Camera camera;
 
     camera.width = width;
     camera.height = height;
@@ -760,8 +735,8 @@ Camera Camera_InitStack(int width, int height, float fov, float nearPlane, float
     return camera;
 }
 
-Camera* Camera_InitHeap(int width, int height, float fov, float nearPlane, float farPlane, vec3 position, vec3 direction) {
-    Camera* camera = (Camera*)malloc(sizeof(Camera));
+BE_Camera* BE_CameraInitHeap(int width, int height, float fov, float nearPlane, float farPlane, vec3 position, vec3 direction) {
+    BE_Camera* camera = (BE_Camera*)malloc(sizeof(BE_Camera));
 
     camera->width = width;
     camera->height = height;
@@ -783,7 +758,7 @@ Camera* Camera_InitHeap(int width, int height, float fov, float nearPlane, float
     return camera;
 }
 
-void Camera_UpdateMatrix(Camera* camera, int width, int height) {
+void BE_CameraUpdateMatrix(BE_Camera* camera, int width, int height) {
     mat4 view;
     mat4 projection;
     mat4 ortho;
@@ -803,41 +778,21 @@ void Camera_UpdateMatrix(Camera* camera, int width, int height) {
     
 }
 
-void Camera_Matrix(Camera* camera, Shader* shader, const char* uniform) {
+void BE_CameraApplyMatrix(BE_Camera* camera, BE_Shader* shader, const char* uniform) {
     glUniformMatrix4fv(glGetUniformLocation(shader->ID, uniform), 1, GL_FALSE, (float*)camera->cameraMatrix);
 }
 
-void Camera_MatrixCustom(Shader* shader, const char* uniform, mat4 matrix) {
+void BE_CameraApplyCustomMatrix(BE_Shader* shader, const char* uniform, mat4 matrix) {
     glUniformMatrix4fv(glGetUniformLocation(shader->ID, uniform), 1, GL_FALSE, (float*)matrix);
 }
 
-void rotate_vec3_axis(vec3 in, vec3 axis, float angle_rad, vec3 out) {
-    vec3 axis_n;
-    glm_vec3_normalize_to(axis, axis_n);
-
-    float cosA = cosf(angle_rad);
-    float sinA = sinf(angle_rad);
-
-    vec3 term1, term2, term3;
-    glm_vec3_scale(in, cosA, term1);
-
-    glm_vec3_cross(axis_n, in, term2);
-    glm_vec3_scale(term2, sinA, term2);
-
-    float dotAV = glm_vec3_dot(axis_n, in);
-    glm_vec3_scale(axis_n, dotAV * (1.0f - cosA), term3);
-
-    glm_vec3_add(term1, term2, out);
-    glm_vec3_add(out, term3, out);
-}
-
-void Camera_Inputs(Camera* camera, GLFWwindow* window, Joystick* js, float dt) {
+void BE_CameraInputs(BE_Camera* camera, GLFWwindow* window, BE_Joystick* joystick, float dt) {
 
     // MOVEMENT VECTORS
 
     float speed = 2.5f;
     float sensitivity = 3.0f;
-    // if (js && js->buttons[8]) speed = 5.0f;
+    // if (joystick && joystick->buttons[8]) speed = 5.0f;
 
     vec3 v_forward, v_right, v_up, v_move;
     glm_vec3_zero(v_move);
@@ -892,19 +847,19 @@ void Camera_Inputs(Camera* camera, GLFWwindow* window, Joystick* js, float dt) {
     // CAMERA ROTATION
 
     if (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS) {
-        rotate_vec3_axis(camera->direction, d_up, dt*sensitivity, d_direction);
+        BE_Vec3RotateAxis(camera->direction, d_up, dt*sensitivity, d_direction);
         glm_vec3_normalize_to(d_direction, camera->direction);
     }
     if (glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS) {
-        rotate_vec3_axis(camera->direction, d_up, -dt*sensitivity, d_direction);
+        BE_Vec3RotateAxis(camera->direction, d_up, -dt*sensitivity, d_direction);
         glm_vec3_normalize_to(d_direction, camera->direction);
     }
     if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS) {
-        rotate_vec3_axis(camera->direction, d_right, -dt*sensitivity, d_direction);
+        BE_Vec3RotateAxis(camera->direction, d_right, -dt*sensitivity, d_direction);
         glm_vec3_normalize_to(d_direction, camera->direction);
     }
     if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS) {
-        rotate_vec3_axis(camera->direction, d_right, dt*sensitivity, d_direction);
+        BE_Vec3RotateAxis(camera->direction, d_right, dt*sensitivity, d_direction);
         glm_vec3_normalize_to(d_direction, camera->direction);
     }
 
@@ -918,33 +873,33 @@ void Camera_Inputs(Camera* camera, GLFWwindow* window, Joystick* js, float dt) {
     
     glm_vec3_add(camera->position, v_move, camera->position);
 
-    if (js->present && js != NULL) {
+    if (joystick->present && joystick != NULL) {
 
-        if (fabsf(js->axes[1]) > js->deadzone) {
-            glm_vec3_scale(v_forward, -speed*dt*js->axes[1], v_vector);
+        if (fabsf(joystick->axes[1]) > joystick->deadzone) {
+            glm_vec3_scale(v_forward, -speed*dt*joystick->axes[1], v_vector);
             glm_vec3_add(v_move, v_vector, v_move);
         }
-        if (fabsf(js->axes[0]) > js->deadzone) {
-            glm_vec3_scale(v_right, speed*dt*js->axes[0], v_vector);
+        if (fabsf(joystick->axes[0]) > joystick->deadzone) {
+            glm_vec3_scale(v_right, speed*dt*joystick->axes[0], v_vector);
             glm_vec3_add(v_move, v_vector, v_move);
         }
-        if (js->buttons[0] || joystickIsHeld(js, 0)) {
+        if (joystick->buttons[0] || BE_JoystickIsHeld(joystick, 0)) {
             glm_vec3_scale(v_up, -speed*dt, v_vector);
             glm_vec3_add(v_move, v_vector, v_move);
         }
-        if (js->buttons[1] || js->buttons[9]) {
+        if (joystick->buttons[1] || joystick->buttons[9]) {
             glm_vec3_scale(v_up, speed*dt, v_vector);
             glm_vec3_add(v_move, v_vector, v_move);
         }
 
         // CAMERA ROTATION
 
-        if (fabsf(js->axes[2]) > js->deadzone) {
-            rotate_vec3_axis(camera->direction, d_up, -dt*sensitivity*js->axes[2], d_direction);
+        if (fabsf(joystick->axes[2]) > joystick->deadzone) {
+            BE_Vec3RotateAxis(camera->direction, d_up, -dt*sensitivity*joystick->axes[2], d_direction);
             glm_vec3_normalize_to(d_direction, camera->direction);
         }
-        if (fabsf(js->axes[3]) > js->deadzone) {
-            rotate_vec3_axis(camera->direction, d_right, dt*sensitivity*js->axes[3], d_direction);
+        if (fabsf(joystick->axes[3]) > joystick->deadzone) {
+            BE_Vec3RotateAxis(camera->direction, d_right, dt*sensitivity*joystick->axes[3], d_direction);
             glm_vec3_normalize_to(d_direction, camera->direction);
         }
         
@@ -953,7 +908,7 @@ void Camera_Inputs(Camera* camera, GLFWwindow* window, Joystick* js, float dt) {
 
 }
 
-void print_Camera(Camera* camera) {
+void BE_CameraPrint(BE_Camera* camera) {
     printf("pos: %f %f %f dir: %f %f %f zoom: %f fov: %f\n", camera->position[0], camera->position[1], camera->position[2], camera->direction[0], camera->direction[1], camera->direction[2], camera->zoom, camera->fov);
 }
 
@@ -963,34 +918,25 @@ void print_Camera(Camera* camera) {
 
 #define INITIAL_CAMERA_CAPACITY 8
 
-void CameraVector_Init(CameraVector* vec) {
-    vec->data = (Camera**)malloc(sizeof(Camera*) * INITIAL_CAMERA_CAPACITY);
+void BE_CameraVectorInit(BE_CameraVector* vec) {
+    vec->data = (BE_Camera**)malloc(sizeof(BE_Camera*) * INITIAL_CAMERA_CAPACITY);
     vec->size = 0;
     vec->capacity = INITIAL_CAMERA_CAPACITY;
 }
 
-void CameraVector_Push(CameraVector* vec, Camera* cam) {
+void BE_CameraVectorPush(BE_CameraVector* vec, BE_Camera* cam) {
     if (vec->size >= vec->capacity) {
         vec->capacity *= 2;
-        vec->data = (Camera**)realloc(vec->data, sizeof(Camera*) * vec->capacity);
+        vec->data = (BE_Camera**)realloc(vec->data, sizeof(BE_Camera*) * vec->capacity);
     }
     vec->data[vec->size++] = cam;
 }
 
-Camera* CameraVector_Get(CameraVector* vec, size_t index) {
+BE_Camera* BE_CameraVectorGetByIndex(BE_CameraVector* vec, size_t index) {
     return (index < vec->size) ? vec->data[index] : NULL;
 }
 
-void CameraVector_Remove(CameraVector* vec, Camera* cam) {
-    for (size_t i = 0; i < vec->size; i++) {
-        if (vec->data[i] == cam) {
-            CameraVector_RemoveAt(vec, i);
-            return;
-        }
-    }
-}
-
-void CameraVector_RemoveAt(CameraVector* vec, size_t index) {
+void BE_CameraVectorRemoveAtIndex(BE_CameraVector* vec, size_t index) {
     if (index >= vec->size) return;
     free(vec->data[index]);
     for (size_t i = index; i < vec->size - 1; i++) {
@@ -999,16 +945,7 @@ void CameraVector_RemoveAt(CameraVector* vec, size_t index) {
     vec->size--;
 }
 
-size_t CameraVector_IndexOf(CameraVector* vec, Camera* cam) {
-    for (size_t i = 0; i < vec->size; i++) {
-        if (vec->data[i] == cam) {
-            return i;
-        }
-    }
-    return SIZE_MAX;
-}
-
-void CameraVector_Free(CameraVector* vec) {
+void BE_CameraVectorFree(BE_CameraVector* vec) {
     for (size_t i = 0; i < vec->size; i++) {
         free(vec->data[i]);
     }
@@ -1017,57 +954,75 @@ void CameraVector_Free(CameraVector* vec) {
     vec->size = vec->capacity = 0;
 }
 
+size_t BE_CameraVectorGetIndex(BE_CameraVector* vec, BE_Camera* cam) {
+    for (size_t i = 0; i < vec->size; i++) {
+        if (vec->data[i] == cam) {
+            return i;
+        }
+    }
+    return SIZE_MAX;
+}
+
+void BE_CameraVectorRemove(BE_CameraVector* vec, BE_Camera* cam) {
+    for (size_t i = 0; i < vec->size; i++) {
+        if (vec->data[i] == cam) {
+            BE_CameraVectorRemoveAtIndex(vec, i);
+            return;
+        }
+    }
+}
+
 // ==============================
 // MESH
 // ==============================
 
-Mesh Mesh_Init(VertexVector vertices, GLuintVector indices, TextureVector textures) {
-    Mesh mesh;
+BE_Mesh BE_MeshInitFromVertex(BE_VertexVector vertices, BE_GLuintVector indices, BE_TextureVector textures) {
+    BE_Mesh mesh;
 
     mesh.vertices = vertices;
     mesh.indices = indices;
     mesh.textures = textures;
 
-    VAO VAO1 = VAO_Init();
-    VAO_Bind(&VAO1);
-    VBO VBO1 = VBO_Init(&vertices);
-    EBO EBO1 = EBO_Init(&indices);
-    VAO_LinkAttrib(&VBO1, 0, 3, GL_FLOAT, sizeof(Vertex), (void*)0);
-    VAO_LinkAttrib(&VBO1, 1, 3, GL_FLOAT, sizeof(Vertex), (void*)(3 * sizeof(float)));
-    VAO_LinkAttrib(&VBO1, 2, 3, GL_FLOAT, sizeof(Vertex), (void*)(6 * sizeof(float)));
-    VAO_LinkAttrib(&VBO1, 3, 2, GL_FLOAT, sizeof(Vertex), (void*)(9 * sizeof(float)));
-    VAO_Unbind();
-    VBO_Unbind();
-    EBO_Unbind();
+    BE_VAO VAO1 = BE_VAOInit();
+    BE_VAOBind(&VAO1);
+    BE_VBO VBO1 = BE_VBOInitFromVector(&vertices);
+    BE_EBO EBO1 = BE_EBOInitFromVector(&indices);
+    BE_LinkVertexAttribToVBO(&VBO1, 0, 3, GL_FLOAT, sizeof(BE_Vertex), (void*)0);
+    BE_LinkVertexAttribToVBO(&VBO1, 1, 3, GL_FLOAT, sizeof(BE_Vertex), (void*)(3 * sizeof(float)));
+    BE_LinkVertexAttribToVBO(&VBO1, 2, 3, GL_FLOAT, sizeof(BE_Vertex), (void*)(6 * sizeof(float)));
+    BE_LinkVertexAttribToVBO(&VBO1, 3, 2, GL_FLOAT, sizeof(BE_Vertex), (void*)(9 * sizeof(float)));
+    BE_VAOUnbind();
+    BE_VBOUnbind();
+    BE_EBOUnbind();
 
     mesh.vao = VAO1;
 
     return mesh;
 }
 
-Mesh Mesh_InitFromData(const char** texbuffer, int texcount, Vertex* vertices, int vertcount, GLuint* indices, int indcount) {
+BE_Mesh BE_MeshInitFromData(const char** texbuffer, int texcount, BE_Vertex* vertices, int vertcount, GLuint* indices, int indcount) {
 
-    VertexVector verts;
-    GLuintVector inds;
-    TextureVector texs;
+    BE_VertexVector verts;
+    BE_GLuintVector inds;
+    BE_TextureVector texs;
 
-    Texture textures[texcount];
+    BE_Texture textures[texcount];
     for (int i = 0; i < texcount; i++) {
-        textures[i] = Texture_Init(texbuffer[i*2], texbuffer[i*2+1], i);
+        textures[i] = BE_TextureInit(texbuffer[i*2], texbuffer[i*2+1], i);
     }
 
-    VertexVector_Copy(vertices, vertcount, &verts);
-    GLuintVector_Copy(indices, indcount, &inds);
-    TextureVector_Copy(textures, texcount, &texs);
+    BE_VertexVectorCopy(vertices, vertcount, &verts);
+    BE_GLuintVectorCopy(indices, indcount, &inds);
+    BE_TextureVectorCopy(textures, texcount, &texs);
 
-    Mesh mesh = Mesh_Init(verts, inds, texs);
+    BE_Mesh mesh = BE_MeshInitFromVertex(verts, inds, texs);
 
     return mesh;
 }
 
-void Mesh_Draw(Mesh* mesh, Shader* shader, Camera* camera) {
-    Shader_Activate(shader);
-    VAO_Bind(&mesh->vao);
+void BE_MeshDraw(BE_Mesh* mesh, BE_Shader* shader, BE_Camera* camera) {
+    BE_ShaderActivate(shader);
+    BE_VAOBind(&mesh->vao);
 
     unsigned int numDiffuse = 0;
     unsigned int numSpecular = 0;
@@ -1083,25 +1038,25 @@ void Mesh_Draw(Mesh* mesh, Shader* shader, Camera* camera) {
                 sprintf(num, "%d", numSpecular++);
             }
             snprintf(uniformName, sizeof(uniformName), "%s%s", type, num);
-            Texture_texUnit(shader, uniformName, i);
-            Texture_Bind(&mesh->textures.data[i]);
+            BE_TextureSetUniformUnit(shader, uniformName, i);
+            BE_TextureBind(&mesh->textures.data[i]);
         }
     }
     glUniform3fv(glGetUniformLocation(shader->ID, "camPos"), 1, (float*)camera->position); 
-    Camera_Matrix(camera, shader, "camMatrix");
+    BE_CameraApplyMatrix(camera, shader, "camMatrix");
 
     glDrawElements(GL_TRIANGLES, mesh->indices.size, GL_UNSIGNED_INT, 0);
 }
 
-void Mesh_DrawBillboard(Mesh* mesh, Shader* shader, Camera* camera, Texture* texture) {
-    Shader_Activate(shader);
-    VAO_Bind(&mesh->vao);
+void BE_MeshDrawBillboard(BE_Mesh* mesh, BE_Shader* shader, BE_Camera* camera, BE_Texture* texture) {
+    BE_ShaderActivate(shader);
+    BE_VAOBind(&mesh->vao);
 
-    Texture_texUnit(shader, "diffuse0", texture->unit);
-    Texture_Bind(texture);
+    BE_TextureSetUniformUnit(shader, "diffuse0", texture->unit);
+    BE_TextureBind(texture);
 
     glUniform3fv(glGetUniformLocation(shader->ID, "camPos"), 1, (float*)camera->position); 
-    Camera_Matrix(camera, shader, "camMatrix");
+    BE_CameraApplyMatrix(camera, shader, "camMatrix");
 
     glDrawElements(GL_TRIANGLES, mesh->indices.size, GL_UNSIGNED_INT, 0);
 }
@@ -1110,9 +1065,9 @@ void Mesh_DrawBillboard(Mesh* mesh, Shader* shader, Camera* camera, Texture* tex
 // IMPORT
 // ==============================
 
-int find_or_add_vertex(Vertex* vertices, int* verticesCount, Vertex v) {
+int BE_FindOrAddVertex(BE_Vertex* vertices, int* verticesCount, BE_Vertex v) {
     for (int i = 0; i < *verticesCount; i++) {
-        if (memcmp(&vertices[i], &v, sizeof(Vertex)) == 0) {
+        if (memcmp(&vertices[i], &v, sizeof(BE_Vertex)) == 0) {
             return i;
         }
     }
@@ -1122,7 +1077,7 @@ int find_or_add_vertex(Vertex* vertices, int* verticesCount, Vertex v) {
     return index;
 }
 
-int count_face_vertices(const char* line) {
+int BE_CountFaceVertices(const char* line) {
     const char* ptr = line + 2;
     int count = 0;
 
@@ -1152,7 +1107,7 @@ int count_face_vertices(const char* line) {
     return count;
 }
 
-void replacePathSuffix(const char* path, const char* newsuffix, char* dest, int destsize) {
+void BE_ReplacePathSuffix(const char* path, const char* newsuffix, char* dest, int destsize) {
     const char* lastSlash = strrchr(path, '/');
 
     if (!lastSlash) {
@@ -1170,8 +1125,8 @@ void replacePathSuffix(const char* path, const char* newsuffix, char* dest, int 
     strncat(dest, newsuffix, destsize - strlen(dest) - 1);
 }
 
-Mesh Import_loadMeshFromOBJ(const char* obj_path) {
-    Mesh mesh;
+BE_Mesh BE_LoadOBJToMesh(const char* obj_path) {
+    BE_Mesh mesh;
 
     FILE* file = fopen(obj_path, "r");
     if (!file) {
@@ -1200,7 +1155,7 @@ Mesh Import_loadMeshFromOBJ(const char* obj_path) {
         exit(1);
     }
 
-    Vertex* vertices = (Vertex*)malloc(sizeof(Vertex) * 100000);
+    BE_Vertex* vertices = (BE_Vertex*)malloc(sizeof(BE_Vertex) * 100000);
     int verticesCount = 0;
     if (!vertices) {
         MSG_FATAL(obj_path, 1, "could not allocate memory for mesh vertices");
@@ -1235,9 +1190,9 @@ Mesh Import_loadMeshFromOBJ(const char* obj_path) {
             char mtl_filepath[256] = {0};
 
             sscanf(line, "mtllib %s", mtl_file);
-            replacePathSuffix(obj_path, mtl_file, mtl_filepath, sizeof(mtl_filepath));
+            BE_ReplacePathSuffix(obj_path, mtl_file, mtl_filepath, sizeof(mtl_filepath));
 
-            textures = Mesh_getTexturesFromMTL(mtl_filepath, &texturesCount);
+            textures = BE_LoadMTLTextures(mtl_filepath, &texturesCount);
 
         } else if (strncmp(line, "v ", 2) == 0) {
 
@@ -1271,11 +1226,11 @@ Mesh Import_loadMeshFromOBJ(const char* obj_path) {
 
         } else if (strncmp(line, "f ", 2) == 0) {
             
-            int faceVertCount = count_face_vertices(line);
+            int faceVertCount = BE_CountFaceVertices(line);
 
             char* token = strtok(line+2, " \t\r\n");
             
-            Vertex* verts = (Vertex*)malloc(sizeof(Vertex) * faceVertCount);
+            BE_Vertex* verts = (BE_Vertex*)malloc(sizeof(BE_Vertex) * faceVertCount);
             int numVerts = 0;
 
             while (token != NULL) {
@@ -1323,9 +1278,9 @@ Mesh Import_loadMeshFromOBJ(const char* obj_path) {
             }
 
             for (int i = 1; i < numVerts - 1; i++) {
-                int i0 = find_or_add_vertex(vertices, &verticesCount, verts[0]);
-                int i1 = find_or_add_vertex(vertices, &verticesCount, verts[i]);
-                int i2 = find_or_add_vertex(vertices, &verticesCount, verts[i + 1]);
+                int i0 = BE_FindOrAddVertex(vertices, &verticesCount, verts[0]);
+                int i1 = BE_FindOrAddVertex(vertices, &verticesCount, verts[i]);
+                int i2 = BE_FindOrAddVertex(vertices, &verticesCount, verts[i + 1]);
 
                 indices[indicesCount++] = i1;
                 indices[indicesCount++] = i0;
@@ -1353,7 +1308,7 @@ Mesh Import_loadMeshFromOBJ(const char* obj_path) {
         texturesCount = 2;
     }
     
-    mesh = Mesh_InitFromData(textures, 1, vertices, verticesCount, indices, indicesCount);
+    mesh = BE_MeshInitFromData(textures, 1, vertices, verticesCount, indices, indicesCount);
 
     free(positions);
     free(normals);
@@ -1365,7 +1320,7 @@ Mesh Import_loadMeshFromOBJ(const char* obj_path) {
     return mesh;
 }
 
-const char** Mesh_getTexturesFromMTL(const char* mtl_path, int* outCount) {
+const char** BE_LoadMTLTextures(const char* mtl_path, int* outCount) {
 
     FILE* file = fopen(mtl_path, "r");
     if (!file) {
@@ -1397,7 +1352,7 @@ const char** Mesh_getTexturesFromMTL(const char* mtl_path, int* outCount) {
             sscanf(line, "map_Kd %s", fileRelPath);
 
             char texturePath[512];
-            replacePathSuffix(mtl_path, fileRelPath, texturePath, sizeof(texturePath));
+            BE_ReplacePathSuffix(mtl_path, fileRelPath, texturePath, sizeof(texturePath));
 
             textures[count++] = strdup(texturePath);
             textures[count++] = strdup("diffuse");
@@ -1408,7 +1363,7 @@ const char** Mesh_getTexturesFromMTL(const char* mtl_path, int* outCount) {
             sscanf(line, "map_Ks %s", fileRelPath);
 
             char texturePath[512];
-            replacePathSuffix(mtl_path, fileRelPath, texturePath, sizeof(texturePath));
+            BE_ReplacePathSuffix(mtl_path, fileRelPath, texturePath, sizeof(texturePath));
 
             textures[count++] = strdup(texturePath);
             textures[count++] = strdup("specular");
@@ -1430,7 +1385,7 @@ const char** Mesh_getTexturesFromMTL(const char* mtl_path, int* outCount) {
 // VECTOR DRAW
 // ==============================
 
-void CameraVector_Draw(CameraVector* cameras, Mesh* mesh, Shader* shader, Camera* camera) {
+void BE_CameraVectorDraw(BE_CameraVector* cameras, BE_Mesh* mesh, BE_Shader* shader, BE_Camera* camera) {
     
     glDisable(GL_CULL_FACE);
     glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
@@ -1439,14 +1394,14 @@ void CameraVector_Draw(CameraVector* cameras, Mesh* mesh, Shader* shader, Camera
     vec3 ori;
 
     for (size_t i = 0; i < cameras->size; i++) {
-        if (CameraVector_Get(cameras, i) == camera || CameraVector_Get(cameras, i) == 0) continue;
+        if (BE_CameraVectorGetByIndex(cameras, i) == camera || BE_CameraVectorGetByIndex(cameras, i) == 0) continue;
     
-        Camera* cam = cameras->data[i];
+        BE_Camera* cam = cameras->data[i];
 
-        orientation_to_euler(cam->direction, ori);
-        make_model_matrix(cam->position, ori, (vec3){0.25f * cam->width/1000 * cam->fov/45, 0.25f * cam->height/1000, 0.2f * cam->zoom}, model);
+        BE_OritentationToEuler(cam->direction, ori);
+        (cam->position, ori, (vec3){0.25f * cam->width/1000 * cam->fov/45, 0.25f * cam->height/1000, 0.2f * cam->zoom}, model);
         glUniformMatrix4fv(glGetUniformLocation(shader->ID, "model"), 1, GL_FALSE, (float*)model);
-        Mesh_Draw(mesh, shader, camera);
+        BE_MeshDraw(mesh, shader, camera);
 
     }
     
@@ -1457,8 +1412,8 @@ void CameraVector_Draw(CameraVector* cameras, Mesh* mesh, Shader* shader, Camera
 // SHADOW MAP
 // ==============================
 
-ShadowMapFBO ShadowMapFBO_Init(int width, int height, int layers) {
-    ShadowMapFBO smfbo = {0};
+BE_ShadowMapFBO BE_ShadowMapFBOInit(int width, int height, int layers) {
+    BE_ShadowMapFBO smfbo = {0};
     smfbo.width = width;
     smfbo.height = height;
     smfbo.layers = layers;
@@ -1488,7 +1443,7 @@ ShadowMapFBO ShadowMapFBO_Init(int width, int height, int layers) {
     return smfbo;
 }
 
-void ShadowMapFBO_BindLayer(ShadowMapFBO* smfbo, int layer) {
+void BE_ShadowMapFBOBindLayer(BE_ShadowMapFBO* smfbo, int layer) {
     glBindFramebuffer(GL_FRAMEBUFFER, smfbo->fbo);
     glFramebufferTextureLayer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, smfbo->depthTextureArray, 0, layer);
    
@@ -1496,7 +1451,7 @@ void ShadowMapFBO_BindLayer(ShadowMapFBO* smfbo, int layer) {
     glReadBuffer(GL_NONE);
 }
 
-void ShadowMapFBO_Delete(ShadowMapFBO* smfbo) {
+void BE_ShadowMapFBODelete(BE_ShadowMapFBO* smfbo) {
     glDeleteFramebuffers(1, &smfbo->fbo);
     glDeleteTextures(1, &smfbo->depthTextureArray);
 }
@@ -1505,20 +1460,20 @@ void ShadowMapFBO_Delete(ShadowMapFBO* smfbo) {
 // LIGHTS
 // ==============================
 
-LightSystem LightSystem_Init(float ambient) {
-    LightSystem lightSystem;
+BE_LightManager BE_LightManagerInit(float ambient) {
+    BE_LightManager lightSystem;
     lightSystem.ambient = ambient;
     lightSystem.numPointLights = 0;
     lightSystem.numSpotLights = 0;
     
-    lightSystem.directShadowFBO = ShadowMapFBO_Init(1024*10, 1024*10, 1);
-    // lightSystem.pointShadowFBO = ShadowMapFBO_Init(1024*4, 1024*4, 1);
-    lightSystem.spotShadowFBO = ShadowMapFBO_Init(250, 250, MAX_SPOT_LIGHTS);
+    lightSystem.directShadowFBO = BE_ShadowMapFBOInit(1024*10, 1024*10, 1);
+    // lightSystem.pointShadowFBO = BE_ShadowMapFBOInit(1024*4, 1024*4, 1);
+    lightSystem.spotShadowFBO = BE_ShadowMapFBOInit(250, 250, MAX_SPOT_LIGHTS);
 
     return lightSystem;
 }
 
-void LightSystem_Clear(LightSystem* lightSystem) {
+void BE_LightManagerClear(BE_LightManager* lightSystem) {
     lightSystem->numPointLights = 0;
     lightSystem->numSpotLights = 0;
 
@@ -1540,7 +1495,7 @@ void LightSystem_Clear(LightSystem* lightSystem) {
     }
 }
 
-void LightSystem_SetDirectLight(LightSystem* lightSystem, vec3 direction, vec4 color, float specular) {
+void BE_LightManagerSetDirectLight(BE_LightManager* lightSystem, vec3 direction, vec4 color, float specular) {
     glm_vec3_copy(direction, lightSystem->directlight.direction);
     glm_vec4_copy(color, lightSystem->directlight.color);
     lightSystem->directlight.specular = specular;
@@ -1553,10 +1508,10 @@ void LightSystem_SetDirectLight(LightSystem* lightSystem, vec3 direction, vec4 c
     glm_mat4_mul(orthographicProjection, lightView, lightSystem->directlight.lightSpaceMatrix);
 }
 
-void LightSystem_AddPointLight(LightSystem* lightSystem, vec3 position, vec4 color, float a, float b, float specular) {
+void BE_LightManagerAddPointLight(BE_LightManager* lightSystem, vec3 position, vec4 color, float a, float b, float specular) {
     if (lightSystem->numPointLights >= MAX_POINT_LIGHTS) return;
     
-    PointLight light;
+    BE_PointLight light;
     glm_vec3_copy(position, light.position);
     glm_vec4_copy(color, light.color);
     light.a = a;
@@ -1565,10 +1520,10 @@ void LightSystem_AddPointLight(LightSystem* lightSystem, vec3 position, vec4 col
     lightSystem->pointlights[lightSystem->numPointLights++] = light;
 }
 
-void LightSystem_AddSpotLight(LightSystem* lightSystem, vec3 position, vec3 direction, vec4 color, float innerConeCos, float outerConeCos, float specular) {
+void BE_LightManagerAddSpotLight(BE_LightManager* lightSystem, vec3 position, vec3 direction, vec4 color, float innerConeCos, float outerConeCos, float specular) {
     if (lightSystem->numSpotLights >= MAX_SPOT_LIGHTS) return;
     
-    SpotLight light;
+    BE_SpotLight light;
     
     glm_vec3_copy(position, light.position);
     vec3 normDir;
@@ -1602,9 +1557,9 @@ void LightSystem_AddSpotLight(LightSystem* lightSystem, vec3 position, vec3 dire
 
 }
 
-void LightSystem_SetUniforms(Shader* shader, LightSystem* lightSystem) {
+void BE_LightManagerSetUniforms(BE_Shader* shader, BE_LightManager* lightSystem) {
     
-    Shader_Activate(shader);
+    BE_ShaderActivate(shader);
 
     glUniform1f(glGetUniformLocation(shader->ID, "ambient"), lightSystem->ambient);
     glUniform1i(glGetUniformLocation(shader->ID, "NR_POINT_LIGHTS"), lightSystem->numPointLights);
@@ -1674,12 +1629,12 @@ void LightSystem_SetUniforms(Shader* shader, LightSystem* lightSystem) {
 
 }
 
-void LightSystem_MakeShadowMaps(LightSystem* lightSystem, Shader* lightShader, Camera* camera, ShadowRenderFunc renderFunc) {
+void BE_LightManagerMakeShadowMaps(BE_LightManager* lightSystem, BE_Shader* lightShader, BE_Camera* camera, ShadowRenderFunc renderFunc) {
     
-    Shader_Activate(lightShader);
+    BE_ShaderActivate(lightShader);
     glEnable(GL_DEPTH_TEST);
 
-    ShadowMapFBO_BindLayer(&lightSystem->directShadowFBO, 0);
+    BE_ShadowMapFBOBindLayer(&lightSystem->directShadowFBO, 0);
     glViewport(0, 0, lightSystem->directShadowFBO.width, lightSystem->directShadowFBO.height);
     glClear(GL_DEPTH_BUFFER_BIT);
     glUniformMatrix4fv(glGetUniformLocation(lightShader->ID, "lightSpaceMatrix"), 1, GL_FALSE, (float*)lightSystem->directlight.lightSpaceMatrix);
@@ -1688,7 +1643,7 @@ void LightSystem_MakeShadowMaps(LightSystem* lightSystem, Shader* lightShader, C
 
     // for (int i = 0; i < lightSystem->numSpotLights; i++) {
         
-    //     ShadowMapFBO_BindLayer(&lightSystem->spotShadowFBO, i);
+    //     BE_ShadowMapFBOBindLayer(&lightSystem->spotShadowFBO, i);
     //     glViewport(0, 0, lightSystem->spotShadowFBO.width, lightSystem->spotShadowFBO.height);
     //     glClear(GL_DEPTH_BUFFER_BIT);
     //     glUniformMatrix4fv(glGetUniformLocation(lightShader->ID, "lightSpaceMatrix"), 1, GL_FALSE, (float*)lightSystem->spotlights[i].lightSpaceMatrix);
@@ -1697,7 +1652,7 @@ void LightSystem_MakeShadowMaps(LightSystem* lightSystem, Shader* lightShader, C
     // }
 
     // glEnable(GL_DEPTH_TEST);
-    // ShadowMapFBO_BindLayer(&lightSystem->directShadowFBO, 0);
+    // BE_ShadowMapFBOBindLayer(&lightSystem->directShadowFBO, 0);
     // glViewport(0, 0, lightSystem->directShadowFBO.width, lightSystem->directShadowFBO.height);
     // glClear(GL_DEPTH_BUFFER_BIT);
     // glUniformMatrix4fv(glGetUniformLocation(lightShader->ID, "lightSpaceMatrix"), 1, GL_FALSE, (float*)lightSystem->directlight.lightSpaceMatrix);
@@ -1705,9 +1660,9 @@ void LightSystem_MakeShadowMaps(LightSystem* lightSystem, Shader* lightShader, C
     // glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
-void LightSystem_Draw(LightSystem* lightSystem, Mesh* mesh, Shader* shader, Camera* camera) {
+void BE_LightManagerDraw(BE_LightManager* lightSystem, BE_Mesh* mesh, BE_Shader* shader, BE_Camera* camera) {
     
-    Shader_Activate(shader);
+    BE_ShaderActivate(shader);
 
     vec3 lightScale = { 0.1f, 0.1f, 0.1f };
     mat4 lightModel;
@@ -1717,7 +1672,7 @@ void LightSystem_Draw(LightSystem* lightSystem, Mesh* mesh, Shader* shader, Came
     // glm_scale(lightModel, lightScale);
     // glUniformMatrix4fv(glGetUniformLocation(shader->ID, "model"), 1, GL_FALSE, (float*)lightModel);
     // glUniform4fv(glGetUniformLocation(shader->ID, "lightColor"), 1, (float*)lightSystem->directlight.color);   
-    // Mesh_Draw(mesh, shader, camera); 
+    // BE_MeshDraw(mesh, shader, camera); 
 
     for (int i = 0; i < lightSystem->numPointLights; i++) {
         glm_mat4_identity(lightModel);
@@ -1725,7 +1680,7 @@ void LightSystem_Draw(LightSystem* lightSystem, Mesh* mesh, Shader* shader, Came
         glm_scale(lightModel, lightScale);
         glUniformMatrix4fv(glGetUniformLocation(shader->ID, "model"), 1, GL_FALSE, (float*)lightModel);
         glUniform4fv(glGetUniformLocation(shader->ID, "lightColor"), 1, (float*)lightSystem->pointlights[i].color);   
-        Mesh_Draw(mesh, shader, camera); 
+        BE_MeshDraw(mesh, shader, camera); 
     }
     
     for (int i = 0; i < lightSystem->numSpotLights; i++) {
@@ -1734,11 +1689,11 @@ void LightSystem_Draw(LightSystem* lightSystem, Mesh* mesh, Shader* shader, Came
         glm_scale(lightModel, lightScale);
         glUniformMatrix4fv(glGetUniformLocation(shader->ID, "model"), 1, GL_FALSE, (float*)lightModel);
         glUniform4fv(glGetUniformLocation(shader->ID, "lightColor"), 1, (float*)lightSystem->spotlights[i].color);  
-        Mesh_Draw(mesh, shader, camera);  
+        BE_MeshDraw(mesh, shader, camera);  
     }
 }
 
-void LightSystem_Merge(LightSystem* dest, LightSystem* a, LightSystem* b) {
+void BE_LightManagerMerge(BE_LightManager* dest, BE_LightManager* a, BE_LightManager* b) {
     dest->ambient = a->ambient;
 
     // dest->ambient = (a->ambient + b->ambient) * 0.5f;
@@ -1763,46 +1718,5 @@ void LightSystem_Merge(LightSystem* dest, LightSystem* a, LightSystem* b) {
 }
 
 // ==============================
-// JOYSTICK
+// TEMP
 // ==============================
-
-// ==============================
-// JOYSTICK
-// ==============================
-
-// ==============================
-// JOYSTICK
-// ==============================
-
-// ==============================
-// JOYSTICK
-// ==============================
-
-// ==============================
-// JOYSTICK
-// ==============================
-
-// ==============================
-// JOYSTICK
-// ==============================
-
-// ==============================
-// JOYSTICK
-// ==============================
-
-// ==============================
-// JOYSTICK
-// ==============================
-
-// ==============================
-// ENGINE
-// ==============================
-
-
-
-
-
-
-
-
-
