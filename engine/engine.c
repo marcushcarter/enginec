@@ -135,6 +135,56 @@ float BE_UpdateFrameTimeInfo(BE_FrameStats* info) {
 }
 
 // ==============================
+// JOYSTICK
+// ==============================
+
+void BE_JoystickUpdate(BE_Joystick* joystick) {
+
+    if (!glfwJoystickPresent(joystick->id)) {
+        if (joystick->present) {
+            printf("Player %d controller disconnected\n", joystick->id + 1);
+            *joystick = (BE_Joystick){0};
+        }
+        return;
+    }
+
+    if (!joystick->present) {
+        joystick->present = 1;
+        joystick->name = glfwGetJoystickName(joystick->id);
+        joystick->deadzone = 0.05f;
+        memset(joystick->lbuttons, 0, sizeof(joystick->lbuttons));
+        printf("Player %d controller connected: %s\n", joystick->id + 1, joystick->name);
+    }
+
+    if (joystick->buttons) {
+        for (int b = 0; b < joystick->buttonCount && b < 16; b++) {
+            joystick->lbuttons[b] = joystick->buttons[b];
+        }
+    }
+    
+    joystick->axes = glfwGetJoystickAxes(joystick->id, &joystick->axisCount);
+    joystick->buttons = glfwGetJoystickButtons(joystick->id, &joystick->buttonCount);
+    joystick->hats = glfwGetJoystickHats(joystick->id, &joystick->hatCount);
+
+}
+
+int BE_JoystickIsPressed(BE_Joystick* joystick, int button) {
+    return joystick->buttons && joystick->buttons[button] && !joystick->lbuttons[button];
+}
+
+int BE_JoystickIsReleased(BE_Joystick* joystick, int button) {
+    return joystick->buttons && !joystick->buttons[button] && joystick->lbuttons[button];
+}
+
+int BE_JoystickIsHeld(BE_Joystick* joystick, int button) {
+    return joystick->buttons && joystick->buttons[button];
+}
+
+float BE_JoystickGetAxis(BE_Joystick* joystick, int axis) {
+    return joystick->axes && joystick->axes[axis];
+}
+
+// ==============================
 // VertexVector
 // ==============================
 
@@ -657,60 +707,10 @@ void BE_TextureVectorCopy(BE_Texture* textures, size_t count, BE_TextureVector* 
 }
 
 // ==============================
-// JOYSTICK
+// Cameras
 // ==============================
 
-void BE_JoystickUpdate(BE_Joystick* joystick) {
-
-    if (!glfwJoystickPresent(joystick->id)) {
-        if (joystick->present) {
-            printf("Player %d controller disconnected\n", joystick->id + 1);
-            *joystick = (BE_Joystick){0};
-        }
-        return;
-    }
-
-    if (!joystick->present) {
-        joystick->present = 1;
-        joystick->name = glfwGetJoystickName(joystick->id);
-        joystick->deadzone = 0.05f;
-        memset(joystick->lbuttons, 0, sizeof(joystick->lbuttons));
-        printf("Player %d controller connected: %s\n", joystick->id + 1, joystick->name);
-    }
-
-    if (joystick->buttons) {
-        for (int b = 0; b < joystick->buttonCount && b < 16; b++) {
-            joystick->lbuttons[b] = joystick->buttons[b];
-        }
-    }
-    
-    joystick->axes = glfwGetJoystickAxes(joystick->id, &joystick->axisCount);
-    joystick->buttons = glfwGetJoystickButtons(joystick->id, &joystick->buttonCount);
-    joystick->hats = glfwGetJoystickHats(joystick->id, &joystick->hatCount);
-
-}
-
-int BE_JoystickIsPressed(BE_Joystick* joystick, int button) {
-    return joystick->buttons && joystick->buttons[button] && !joystick->lbuttons[button];
-}
-
-int BE_JoystickIsReleased(BE_Joystick* joystick, int button) {
-    return joystick->buttons && !joystick->buttons[button] && joystick->lbuttons[button];
-}
-
-int BE_JoystickIsHeld(BE_Joystick* joystick, int button) {
-    return joystick->buttons && joystick->buttons[button];
-}
-
-float BE_JoystickGetAxis(BE_Joystick* joystick, int axis) {
-    return joystick->axes && joystick->axes[axis];
-}
-
-// ==============================
-// CAMERA
-// ==============================
-
-BE_Camera BE_CameraInitStack(int width, int height, float fov, float nearPlane, float farPlane, vec3 position, vec3 direction) {
+BE_Camera BE_CameraInit(int width, int height, float fov, float nearPlane, float farPlane, vec3 position, vec3 direction) {
     BE_Camera camera;
 
     camera.width = width;
@@ -733,57 +733,6 @@ BE_Camera BE_CameraInitStack(int width, int height, float fov, float nearPlane, 
     glm_mat4_copy(mat, camera.cameraMatrix);
 
     return camera;
-}
-
-BE_Camera* BE_CameraInitHeap(int width, int height, float fov, float nearPlane, float farPlane, vec3 position, vec3 direction) {
-    BE_Camera* camera = (BE_Camera*)malloc(sizeof(BE_Camera));
-
-    camera->width = width;
-    camera->height = height;
-    glm_vec3_copy(position, camera->position);
-    glm_vec3_copy(direction, camera->direction);
-
-    vec3 up = { 0.0f, 1.0f, 0.0f };
-
-    glm_vec3_copy(up, camera->Up);
-
-    camera->zoom = 1.0f;
-    camera->fov = fov;
-
-    camera->nearPlane = nearPlane;
-    camera->farPlane = farPlane;
-
-    glm_mat4_identity(camera->cameraMatrix);
-
-    return camera;
-}
-
-void BE_CameraUpdateMatrix(BE_Camera* camera, int width, int height) {
-    mat4 view;
-    mat4 projection;
-    mat4 ortho;
-    mat4 projView;
-
-    // 3D cam matrix
-
-    float fov = camera->fov;
-
-    vec3 target;
-    glm_vec3_add(camera->position, camera->direction, target);
-    glm_lookat(camera->position, target, camera->Up, view);
-    glm_perspective(glm_rad(fov), (float)camera->width / (float)camera->height, camera->nearPlane, camera->farPlane, projection);
-    glm_mat4_mul(projection, view, projView);
-    glm_mat4_copy(projView, camera->cameraMatrix);
-    glm_mat4_copy(view, camera->viewMatrix);
-    
-}
-
-void BE_CameraApplyMatrix(BE_Camera* camera, BE_Shader* shader, const char* uniform) {
-    glUniformMatrix4fv(glGetUniformLocation(shader->ID, uniform), 1, GL_FALSE, (float*)camera->cameraMatrix);
-}
-
-void BE_CameraApplyCustomMatrix(BE_Shader* shader, const char* uniform, mat4 matrix) {
-    glUniformMatrix4fv(glGetUniformLocation(shader->ID, uniform), 1, GL_FALSE, (float*)matrix);
 }
 
 void BE_CameraInputs(BE_Camera* camera, GLFWwindow* window, BE_Joystick* joystick, float dt) {
@@ -908,68 +857,96 @@ void BE_CameraInputs(BE_Camera* camera, GLFWwindow* window, BE_Joystick* joystic
 
 }
 
-void BE_CameraPrint(BE_Camera* camera) {
-    printf("pos: %f %f %f dir: %f %f %f zoom: %f fov: %f\n", camera->position[0], camera->position[1], camera->position[2], camera->direction[0], camera->direction[1], camera->direction[2], camera->zoom, camera->fov);
+void BE_CameraMatrixUpload(BE_Camera* camera, BE_Shader* shader, const char* uniform) {
+    glUniform3fv(glGetUniformLocation(shader->ID, "camPos"), 1, (float*)camera->position);
+    glUniformMatrix4fv(glGetUniformLocation(shader->ID, uniform), 1, GL_FALSE, (float*)camera->cameraMatrix);
 }
 
-// ==============================
-// CameraVector
-// ==============================
+void BE_CameraMatrixUploadCustom(BE_Shader* shader, const char* uniform, vec3 position, mat4 matrix) {
+    glUniform3fv(glGetUniformLocation(shader->ID, "camPos"), 1, (float*)position);
+    glUniformMatrix4fv(glGetUniformLocation(shader->ID, uniform), 1, GL_FALSE, (float*)matrix);
+}
 
-#define INITIAL_CAMERA_CAPACITY 8
+#define INITIAL_CAMERA_CAPACITY 4
 
 void BE_CameraVectorInit(BE_CameraVector* vec) {
-    vec->data = (BE_Camera**)malloc(sizeof(BE_Camera*) * INITIAL_CAMERA_CAPACITY);
+    vec->data = (BE_Camera*)malloc(sizeof(BE_Camera) * INITIAL_CAMERA_CAPACITY);
     vec->size = 0;
     vec->capacity = INITIAL_CAMERA_CAPACITY;
 }
 
-void BE_CameraVectorPush(BE_CameraVector* vec, BE_Camera* cam) {
+void BE_CameraVectorPush(BE_CameraVector* vec, BE_Camera value) {
     if (vec->size >= vec->capacity) {
         vec->capacity *= 2;
-        vec->data = (BE_Camera**)realloc(vec->data, sizeof(BE_Camera*) * vec->capacity);
+        vec->data = (BE_Camera*)realloc(vec->data, sizeof(BE_Camera) * vec->capacity);
     }
-    vec->data[vec->size++] = cam;
-}
-
-BE_Camera* BE_CameraVectorGetByIndex(BE_CameraVector* vec, size_t index) {
-    return (index < vec->size) ? vec->data[index] : NULL;
-}
-
-void BE_CameraVectorRemoveAtIndex(BE_CameraVector* vec, size_t index) {
-    if (index >= vec->size) return;
-    free(vec->data[index]);
-    for (size_t i = index; i < vec->size - 1; i++) {
-        vec->data[i] = vec->data[i + 1];
-    }
-    vec->size--;
+    vec->data[vec->size++] = value;
 }
 
 void BE_CameraVectorFree(BE_CameraVector* vec) {
-    for (size_t i = 0; i < vec->size; i++) {
-        free(vec->data[i]);
-    }
     free(vec->data);
     vec->data = NULL;
-    vec->size = vec->capacity = 0;
+    vec->size = 0;
+    vec->capacity = 0;
 }
 
-size_t BE_CameraVectorGetIndex(BE_CameraVector* vec, BE_Camera* cam) {
-    for (size_t i = 0; i < vec->size; i++) {
-        if (vec->data[i] == cam) {
-            return i;
-        }
+void BE_CameraVectorCopy(BE_Camera* lights, size_t count, BE_CameraVector* outVec) {
+    BE_CameraVectorInit(outVec);
+    for (size_t i = 0; i < count; i++) {
+        BE_CameraVectorPush(outVec, lights[i]);
     }
-    return SIZE_MAX;
 }
 
-void BE_CameraVectorRemove(BE_CameraVector* vec, BE_Camera* cam) {
+void BE_CameraVectorUpdateMatrix(BE_CameraVector* vec, int width, int height) {
+    
+    mat4 view;
+    mat4 projection;
+    mat4 ortho;
+    mat4 projView;
+    
     for (size_t i = 0; i < vec->size; i++) {
-        if (vec->data[i] == cam) {
-            BE_CameraVectorRemoveAtIndex(vec, i);
-            return;
-        }
+        BE_Camera* camera = &vec->data[i];
+        
+        float fov = camera->fov;
+
+        vec3 target;
+        glm_vec3_add(camera->position, camera->direction, target);
+        glm_lookat(camera->position, target, camera->Up, view);
+        glm_perspective(glm_rad(fov), (float)camera->width / (float)camera->height, camera->nearPlane, camera->farPlane, projection);
+        glm_mat4_mul(projection, view, projView);
+        glm_mat4_copy(projView, camera->cameraMatrix);
+        glm_mat4_copy(view, camera->viewMatrix);
+
+        camera->width = width;
+        camera->height = height;
+
     }
+}
+
+void BE_CameraVectorDraw(BE_CameraVector* cameras, BE_Mesh* mesh, BE_Shader* shader, BE_Camera* camera) {
+
+    BE_ShaderActivate(shader);
+    glUniform3fv(glGetUniformLocation(shader->ID, "color"), 1, (float[]){1.0f, 1.0f, 1.0f});
+    
+    glDisable(GL_CULL_FACE);
+    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+    
+    mat4 model;
+    vec3 ori;
+
+    for (size_t i = 0; i < cameras->size; i++) {
+        // if (BE_CameraVectorGetByIndex(cameras, i) == camera || BE_CameraVectorGetByIndex(cameras, i) == 0) continue;
+    
+        BE_Camera cam = cameras->data[i];
+
+        BE_OritentationToEuler(cam.direction, ori);
+        (cam.position, ori, (vec3){0.25f * cam.width/1000 * cam.fov/45, 0.25f * cam.height/1000, 0.2f * cam.zoom}, model);
+        glUniformMatrix4fv(glGetUniformLocation(shader->ID, "model"), 1, GL_FALSE, (float*)model);
+        BE_MeshDraw(mesh, shader);
+
+    }
+    
+    glEnable(GL_CULL_FACE);
 }
 
 // ==============================
@@ -1020,7 +997,7 @@ BE_Mesh BE_MeshInitFromData(const char** texbuffer, int texcount, BE_Vertex* ver
     return mesh;
 }
 
-void BE_MeshDraw(BE_Mesh* mesh, BE_Shader* shader, BE_Camera* camera) {
+void BE_MeshDraw(BE_Mesh* mesh, BE_Shader* shader) {
     BE_ShaderActivate(shader);
     BE_VAOBind(&mesh->vao);
 
@@ -1042,21 +1019,16 @@ void BE_MeshDraw(BE_Mesh* mesh, BE_Shader* shader, BE_Camera* camera) {
             BE_TextureBind(&mesh->textures.data[i]);
         }
     }
-    glUniform3fv(glGetUniformLocation(shader->ID, "camPos"), 1, (float*)camera->position); 
-    BE_CameraApplyMatrix(camera, shader, "camMatrix");
 
     glDrawElements(GL_TRIANGLES, mesh->indices.size, GL_UNSIGNED_INT, 0);
 }
 
-void BE_MeshDrawBillboard(BE_Mesh* mesh, BE_Shader* shader, BE_Camera* camera, BE_Texture* texture) {
+void BE_MeshDrawBillboard(BE_Mesh* mesh, BE_Shader* shader, BE_Texture* texture) {
     BE_ShaderActivate(shader);
     BE_VAOBind(&mesh->vao);
 
     BE_TextureSetUniformUnit(shader, "diffuse0", texture->unit);
     BE_TextureBind(texture);
-
-    glUniform3fv(glGetUniformLocation(shader->ID, "camPos"), 1, (float*)camera->position); 
-    BE_CameraApplyMatrix(camera, shader, "camMatrix");
 
     glDrawElements(GL_TRIANGLES, mesh->indices.size, GL_UNSIGNED_INT, 0);
 }
@@ -1382,33 +1354,6 @@ const char** BE_LoadMTLTextures(const char* mtl_path, int* outCount) {
 }
 
 // ==============================
-// VECTOR DRAW
-// ==============================
-
-void BE_CameraVectorDraw(BE_CameraVector* cameras, BE_Mesh* mesh, BE_Shader* shader, BE_Camera* camera) {
-    
-    glDisable(GL_CULL_FACE);
-    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-    
-    mat4 model;
-    vec3 ori;
-
-    for (size_t i = 0; i < cameras->size; i++) {
-        if (BE_CameraVectorGetByIndex(cameras, i) == camera || BE_CameraVectorGetByIndex(cameras, i) == 0) continue;
-    
-        BE_Camera* cam = cameras->data[i];
-
-        BE_OritentationToEuler(cam->direction, ori);
-        (cam->position, ori, (vec3){0.25f * cam->width/1000 * cam->fov/45, 0.25f * cam->height/1000, 0.2f * cam->zoom}, model);
-        glUniformMatrix4fv(glGetUniformLocation(shader->ID, "model"), 1, GL_FALSE, (float*)model);
-        BE_MeshDraw(mesh, shader, camera);
-
-    }
-    
-    glEnable(GL_CULL_FACE);
-}
-
-// ==============================
 // SHADOW MAP
 // ==============================
 
@@ -1457,7 +1402,7 @@ void BE_ShadowMapFBODelete(BE_ShadowMapFBO* smfbo) {
 }
 
 // ==============================
-// LightVector
+// Lights
 // ==============================
 
 BE_Light BE_LightInit(int type, vec3 position, vec3 direction, vec4 color, float specular, float a, float b, float innerCone, float outerCone) {
@@ -1502,9 +1447,9 @@ void BE_LightVectorInit(BE_LightVector* vec) {
     vec->capacity = INITIAL_LIGHT_CAPACITY;
 
     vec->ambient = 0.15f;
-    vec->directShadowFBO = BE_ShadowMapFBOInit(1024*10, 1024*10, 1);
-    // vec->pointShadowFBO = BE_ShadowMapFBOInit(1024*4, 1024*4, 1);
-    // vec->spotShadowFBO = BE_ShadowMapFBOInit(250, 250, MAX_SPOT_LIGHTS);
+    vec->directShadowFBO = BE_ShadowMapFBOInit(1024*4, 1024*4, 1);
+    vec->pointShadowFBO = BE_ShadowMapFBOInit(250, 250, 10);
+    vec->spotShadowFBO = BE_ShadowMapFBOInit(250, 250, 10);
 }
 
 void BE_LightVectorPush(BE_LightVector* vec, BE_Light value) {
@@ -1555,56 +1500,70 @@ void BE_LightVectorUpdateMatrix(BE_LightVector* vec) {
     }
 }
 
-void BE_LightVectorUpdateMaps(BE_LightVector* vec, BE_Shader* lightShader, BE_Camera* camera, ShadowRenderFunc renderFunc) {
+void BE_LightVectorUpdateMaps(BE_LightVector* vec, BE_Shader* shadowShader, BE_Camera* camera, ShadowRenderFunc renderFunc, bool enabled) {
     
-    BE_ShaderActivate(lightShader);
+    BE_ShaderActivate(shadowShader);
     glEnable(GL_DEPTH_TEST);
+    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+
+    if (!enabled) {
+
+        if (vec->shadowsDirty == 1) {
+            for (int layer = 0; layer < vec->directShadowFBO.layers; layer++) {
+                BE_ShadowMapFBOBindLayer(&vec->directShadowFBO, layer);
+                glViewport(0, 0, vec->directShadowFBO.width, vec->directShadowFBO.height);
+                glClear(GL_DEPTH_BUFFER_BIT);
+            }
+
+            // for (int layer = 0; layer < vec->pointShadowFBO.layers; layer++) {
+            //     BE_ShadowMapFBOBindLayer(&vec->pointShadowFBO, layer);
+            //     glViewport(0, 0, vec->pointShadowFBO.width, vec->pointShadowFBO.height);
+            //     glClear(GL_DEPTH_BUFFER_BIT);
+            // }
+
+            for (int layer = 0; layer < vec->spotShadowFBO.layers; layer++) {
+                BE_ShadowMapFBOBindLayer(&vec->spotShadowFBO, layer);
+                glViewport(0, 0, vec->spotShadowFBO.width, vec->spotShadowFBO.height);
+                glClear(GL_DEPTH_BUFFER_BIT);
+            }
+
+            BE_FBOUnbind();
+
+            vec->shadowsDirty = 0;
+        }
+
+        return;
+    } else {
+        vec->shadowsDirty = 1;
+    }
 
     for (size_t i = 0; i < vec->size; i++) {
         BE_Light* light = &vec->data[i];
 
         switch (vec->data[i].type) {
-            case LIGHT_DIRECT:   
+            case LIGHT_DIRECT:
                 BE_ShadowMapFBOBindLayer(&vec->directShadowFBO, 0);
                 glViewport(0, 0, vec->directShadowFBO.width, vec->directShadowFBO.height);
                 glClear(GL_DEPTH_BUFFER_BIT);
-                glUniformMatrix4fv(glGetUniformLocation(lightShader->ID, "lightSpaceMatrix"), 1, GL_FALSE, (float*)light->lightSpaceMatrix);
-                renderFunc(lightShader, camera);
-                glBindFramebuffer(GL_FRAMEBUFFER, 0);             
+                glUniformMatrix4fv(glGetUniformLocation(shadowShader->ID, "lightSpaceMatrix"), 1, GL_FALSE, (float*)light->lightSpaceMatrix);
+                renderFunc(shadowShader);
+                glBindFramebuffer(GL_FRAMEBUFFER, 0);
                 break;
             case LIGHT_POINT:
                 break;
             case LIGHT_SPOT:
+                BE_ShadowMapFBOBindLayer(&vec->spotShadowFBO, i);
+                glViewport(0, 0, vec->spotShadowFBO.width, vec->spotShadowFBO.height);
+                glClear(GL_DEPTH_BUFFER_BIT);
+                glUniformMatrix4fv(glGetUniformLocation(shadowShader->ID, "lightSpaceMatrix"), 1, GL_FALSE, (float*)light->lightSpaceMatrix);
+                renderFunc(shadowShader);
+                glBindFramebuffer(GL_FRAMEBUFFER, 0);
                 break;
             default:
                 break;
         }
     }
 
-    // BE_ShadowMapFBOBindLayer(&lightSystem->directShadowFBO, 0);
-    // glViewport(0, 0, lightSystem->directShadowFBO.width, lightSystem->directShadowFBO.height);
-    // glClear(GL_DEPTH_BUFFER_BIT);
-    // glUniformMatrix4fv(glGetUniformLocation(lightShader->ID, "lightSpaceMatrix"), 1, GL_FALSE, (float*)lightSystem->directlight.lightSpaceMatrix);
-    // renderFunc(lightShader, camera);
-    // glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-    // for (int i = 0; i < lightSystem->numSpotLights; i++) {
-        
-    //     BE_ShadowMapFBOBindLayer(&lightSystem->spotShadowFBO, i);
-    //     glViewport(0, 0, lightSystem->spotShadowFBO.width, lightSystem->spotShadowFBO.height);
-    //     glClear(GL_DEPTH_BUFFER_BIT);
-    //     glUniformMatrix4fv(glGetUniformLocation(lightShader->ID, "lightSpaceMatrix"), 1, GL_FALSE, (float*)lightSystem->spotlights[i].lightSpaceMatrix);
-    //     renderFunc(lightShader, camera);
-    //     glBindFramebuffer(GL_FRAMEBUFFER, 0);
-    // }
-
-    // glEnable(GL_DEPTH_TEST);
-    // BE_ShadowMapFBOBindLayer(&lightSystem->directShadowFBO, 0);
-    // glViewport(0, 0, lightSystem->directShadowFBO.width, lightSystem->directShadowFBO.height);
-    // glClear(GL_DEPTH_BUFFER_BIT);
-    // glUniformMatrix4fv(glGetUniformLocation(lightShader->ID, "lightSpaceMatrix"), 1, GL_FALSE, (float*)lightSystem->directlight.lightSpaceMatrix);
-    // renderFunc(lightShader, camera);
-    // glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
 void BE_LightVectorUpload(BE_LightVector* vec, BE_Shader* shader) {
@@ -1691,7 +1650,7 @@ void BE_LightVectorUpload(BE_LightVector* vec, BE_Shader* shader) {
 
 }
 
-void BE_LightVectorDraw(BE_LightVector* vec, BE_Mesh* mesh, BE_Shader* shader, BE_Camera* camera) {
+void BE_LightVectorDraw(BE_LightVector* vec, BE_Mesh* mesh, BE_Shader* shader) {
 
     BE_ShaderActivate(shader);
 
@@ -1708,7 +1667,7 @@ void BE_LightVectorDraw(BE_LightVector* vec, BE_Mesh* mesh, BE_Shader* shader, B
                 glm_scale(lightModel, lightScale);
                 glUniformMatrix4fv(glGetUniformLocation(shader->ID, "model"), 1, GL_FALSE, (float*)lightModel);
                 glUniform4fv(glGetUniformLocation(shader->ID, "lightColor"), 1, (float*)light->color);   
-                BE_MeshDraw(mesh, shader, camera); 
+                BE_MeshDraw(mesh, shader); 
 
                 break;
             case LIGHT_POINT:
@@ -1717,7 +1676,7 @@ void BE_LightVectorDraw(BE_LightVector* vec, BE_Mesh* mesh, BE_Shader* shader, B
                 glm_scale(lightModel, lightScale);
                 glUniformMatrix4fv(glGetUniformLocation(shader->ID, "model"), 1, GL_FALSE, (float*)lightModel);
                 glUniform4fv(glGetUniformLocation(shader->ID, "lightColor"), 1, (float*)light->color);   
-                BE_MeshDraw(mesh, shader, camera);
+                BE_MeshDraw(mesh, shader);
 
                 break;
             case LIGHT_SPOT:
@@ -1726,7 +1685,7 @@ void BE_LightVectorDraw(BE_LightVector* vec, BE_Mesh* mesh, BE_Shader* shader, B
                 glm_scale(lightModel, lightScale);
                 glUniformMatrix4fv(glGetUniformLocation(shader->ID, "model"), 1, GL_FALSE, (float*)lightModel);
                 glUniform4fv(glGetUniformLocation(shader->ID, "lightColor"), 1, (float*)light->color);  
-                BE_MeshDraw(mesh, shader, camera); 
+                BE_MeshDraw(mesh, shader); 
 
                 break;
             default:

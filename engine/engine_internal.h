@@ -57,6 +57,68 @@ typedef struct {
 
 float BE_UpdateFrameTimeInfo(BE_FrameStats* info);
 
+#define MAX_JOYSTICKS GLFW_JOYSTICK_16+1
+
+/**
+ * AXES
+ * 0 - LS X
+ * 1 - LS Y
+ * 2 - RS X
+ * 3 - RS Y
+ * 4 - LT
+ * 5 - RT
+ * 
+ * BUTTONS
+ * 0 - A
+ * 1 - B
+ * 2 - X
+ * 3 - Y
+ * 4 - LB
+ * 5 - RB
+ * 6 - BACK
+ * 7 - START
+ * 8 - LS
+ * 9 - RS
+ * 10 - D UP
+ * 11 - D RIGHT
+ * 12 - D DOWN
+ * 13 - D LEFT
+ * 14 - 
+ * 15 - 
+ * 
+ * HATS (BITS)
+ * 0000 - CENTERED
+ * 1000 - UP
+ * 0100 - RIGHT
+ * 0010 - DOWN
+ * 0001 - LEFT
+ * 
+ */
+typedef struct {
+    int id;  // like GLFW_JOYSTICK_1
+    int present;
+    
+    const float* axes;
+    
+    const unsigned char* buttons;
+    unsigned char lbuttons[16]; // last-frame buttons
+
+    const unsigned char* hats;
+    const char* name;
+
+    int axisCount;
+    int buttonCount;
+    int hatCount;
+
+    float deadzone;
+} BE_Joystick;
+
+void BE_JoystickUpdate(BE_Joystick* joystick);
+int BE_JoystickIsPressed(BE_Joystick* js, int button);
+int BE_JoystickIsReleased(BE_Joystick* js, int button);
+int BE_JoystickIsHeld(BE_Joystick* js, int button);
+float BE_JoystickGetAxis(BE_Joystick* js, int axis);
+
 typedef struct {
     vec3 position;
     vec3 normal;
@@ -169,68 +231,6 @@ void BE_TextureVectorPush(BE_TextureVector* vec, BE_Texture value);
 void BE_TextureVectorFree(BE_TextureVector* vec);
 void BE_TextureVectorCopy(BE_Texture* textures, size_t count, BE_TextureVector* outVec);
 
-#define MAX_JOYSTICKS GLFW_JOYSTICK_16+1
-
-/**
- * AXES
- * 0 - LS X
- * 1 - LS Y
- * 2 - RS X
- * 3 - RS Y
- * 4 - LT
- * 5 - RT
- * 
- * BUTTONS
- * 0 - A
- * 1 - B
- * 2 - X
- * 3 - Y
- * 4 - LB
- * 5 - RB
- * 6 - BACK
- * 7 - START
- * 8 - LS
- * 9 - RS
- * 10 - D UP
- * 11 - D RIGHT
- * 12 - D DOWN
- * 13 - D LEFT
- * 14 - 
- * 15 - 
- * 
- * HATS (BITS)
- * 0000 - CENTERED
- * 1000 - UP
- * 0100 - RIGHT
- * 0010 - DOWN
- * 0001 - LEFT
- * 
- */
-typedef struct {
-    int id;  // like GLFW_JOYSTICK_1
-    int present;
-    
-    const float* axes;
-    
-    const unsigned char* buttons;
-    unsigned char lbuttons[16]; // last-frame buttons
-
-    const unsigned char* hats;
-    const char* name;
-
-    int axisCount;
-    int buttonCount;
-    int hatCount;
-
-    float deadzone;
-} BE_Joystick;
-
-void BE_JoystickUpdate(BE_Joystick* joystick);
-int BE_JoystickIsPressed(BE_Joystick* js, int button);
-int BE_JoystickIsReleased(BE_Joystick* js, int button);
-int BE_JoystickIsHeld(BE_Joystick* js, int button);
-float BE_JoystickGetAxis(BE_Joystick* js, int axis);
-
 typedef struct {
     int width, height;
     float zoom, fov;
@@ -239,28 +239,24 @@ typedef struct {
     mat4 cameraMatrix, viewMatrix;
 } BE_Camera;
 
-BE_Camera BE_CameraInitStack(int width, int height, float fov, float nearPlane, float farPlane, vec3 position, vec3 direction);
-BE_Camera* BE_CameraInitHeap(int width, int height, float fov, float nearPlane, float farPlane, vec3 position, vec3 direction);
-void BE_CameraUpdateMatrix(BE_Camera* camera, int width, int height);
-void BE_CameraApplyMatrix(BE_Camera* camera, BE_Shader* shader, const char* uniform);
-void BE_CameraApplyCustomMatrix(BE_Shader* shader, const char* uniform, mat4 matrix);
-void BE_CameraInputs(BE_Camera* camera, GLFWwindow* window, BE_Joystick* js, float dt);
-void BE_CameraPrint(BE_Camera* camera);
-
 typedef struct {
-    BE_Camera** data;
+    BE_Camera* data;
     size_t size;
     size_t capacity;
 } BE_CameraVector;
 
-void BE_CameraVectorInit(BE_CameraVector* vec);
-void BE_CameraVectorPush(BE_CameraVector* vec, BE_Camera* cam);
-BE_Camera* BE_CameraVectorGetByIndex(BE_CameraVector* vec, size_t index);
-void BE_CameraVectorRemoveAtIndex(BE_CameraVector* vec, size_t index);
-void BE_CameraVectorFree(BE_CameraVector* vec);
+BE_Camera BE_CameraInit(int width, int height, float fov, float nearPlane, float farPlane, vec3 position, vec3 direction);
+void BE_CameraInputs(BE_Camera* camera, GLFWwindow* window, BE_Joystick* js, float dt);
 
-size_t BE_CameraVectorGetIndex(BE_CameraVector* vec, BE_Camera* cam);
-void BE_CameraVectorRemove(BE_CameraVector* vec, BE_Camera* cam);
+void BE_CameraMatrixUpload(BE_Camera* camera, BE_Shader* shader, const char* uniform);
+void BE_CameraMatrixUploadCustom(BE_Shader* shader, const char* uniform, vec3 position, mat4 matrix);
+
+void BE_CameraVectorInit(BE_CameraVector* vec);
+void BE_CameraVectorPush(BE_CameraVector* vec, BE_Camera value);
+void BE_CameraVectorFree(BE_CameraVector* vec);
+void BE_CameraVectorCopy(BE_Camera* lights, size_t count, BE_CameraVector* outVec);
+
+void BE_CameraVectorUpdateMatrix(BE_CameraVector* vec, int width, int height);
 
 typedef struct {
     BE_VertexVector vertices;
@@ -271,8 +267,8 @@ typedef struct {
 
 BE_Mesh BE_MeshInitFromVertex(BE_VertexVector vertices, BE_GLuintVector indices, BE_TextureVector textures);
 BE_Mesh BE_MeshInitFromData(const char** texbuffer, int texcount, BE_Vertex* vertices, int vertcount, GLuint* indices, int indcount);
-void BE_MeshDraw(BE_Mesh* mesh, BE_Shader* shader, BE_Camera* camera);
-void BE_MeshDrawBillboard(BE_Mesh* mesh, BE_Shader* shader, BE_Camera* camera, BE_Texture* texture);
+void BE_MeshDraw(BE_Mesh* mesh, BE_Shader* shader);
+void BE_MeshDrawBillboard(BE_Mesh* mesh, BE_Shader* shader, BE_Texture* texture);
 
 int BE_FindOrAddVertex(BE_Vertex* vertices, int* verticesCount, BE_Vertex v);
 void BE_ReplacePathSuffix(const char* path, const char* newsuffix, char* dest, int destsize);
@@ -295,7 +291,7 @@ BE_ShadowMapFBO BE_ShadowMapFBOInit(int width, int height, int layers);
 void BE_ShadowMapFBOBindLayer(BE_ShadowMapFBO* smfbo, int layer);
 void BE_ShadowMapFBODelete(BE_ShadowMapFBO* smfbo);
 
-typedef void (*ShadowRenderFunc)(BE_Shader* shader, BE_Camera* camera);
+typedef void (*ShadowRenderFunc)(BE_Shader* shader);
 
 typedef enum {
     LIGHT_DIRECT,
@@ -331,8 +327,7 @@ typedef struct {
     BE_ShadowMapFBO pointShadowFBO;
     BE_ShadowMapFBO spotShadowFBO;
 
-    GLuint ubo;
-    GLuint bindingPoint;
+    int shadowsDirty;
 } BE_LightVector;
 
 BE_Light BE_LightInit(int type, vec3 position, vec3 direction, vec4 color, float specular, float a, float b, float innerCone, float outerCone);
@@ -343,9 +338,36 @@ void BE_LightVectorFree(BE_LightVector* vec);
 void BE_LightVectorCopy(BE_Light* lights, size_t count, BE_LightVector* outVec);
 
 void BE_LightVectorUpdateMatrix(BE_LightVector* vec);
-void BE_LightVectorUpdateMaps(BE_LightVector* vec, BE_Shader* lightShader, BE_Camera* camera, ShadowRenderFunc renderFunc);
+void BE_LightVectorUpdateMaps(BE_LightVector* vec, BE_Shader* shadowShader, BE_Camera* camera, ShadowRenderFunc renderFunc, bool enabled);
 void BE_LightVectorUpload(BE_LightVector* vec, BE_Shader* shader);
-void BE_LightVectorDraw(BE_LightVector* vec, BE_Mesh* mesh, BE_Shader* shader, BE_Camera* camera);
+void BE_LightVectorDraw(BE_LightVector* vec, BE_Mesh* mesh, BE_Shader* shader);
+
+
+
+
+
+
+
+
+// typedef struct {
+
+// } BE_Scene;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 typedef enum {
     ENGINE_EDITOR,

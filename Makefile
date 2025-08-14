@@ -9,7 +9,7 @@ INCLUDES := -Iinclude -I.
 LDFLAGS := -Llib -lglfw3dll
 
 # === Files ===
-SRCS := src/main.c #$(wildcard src/*.c) 
+SRCS := src/test.c #$(wildcard src/*.c) 
 ENGINE_SCRS := $(wildcard engine/*.c)
 OPENGL_SRCS := $(wildcard include/stb_image/*.c) $(wildcard include/glad/*.c)
 NUKLEAR_SRC := $(wildcard include/nuklear/*.c)

@@ -46,19 +46,12 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
 
 }
 
-void draw_stuff(BE_Shader* shader, BE_Camera* camera) {
+void draw_stuff(BE_Shader* shader) {
     mat4 model;
-    
-    // BE_CameraUpdateMatrix(camera, windowWidth, windowHeight);
-
-    // BE_MatrixMakeBillboard((vec3){0.0f, 1.5f, 0.0f}, camera->viewMatrix, (vec3){0.5f, 0.5f, 0.5f}, model);
-    // glUniformMatrix4fv(glGetUniformLocation(shader->ID, "model"), 1, GL_FALSE, (float*)model);
-    // BE_MeshDraw(&billboard, shader, camera);
 
     BE_MatrixMakeModel((vec3){0.0f, 0.0f, 0.0f}, (vec3){0.0f, 0.0f, 0.0f}, (vec3){1.0f, 1.0f, 1.0f}, model);
     glUniformMatrix4fv(glGetUniformLocation(shader->ID, "model"), 1, GL_FALSE, (float*)model);
-    BE_MeshDraw(&scene1, shader, camera);
-
+    BE_MeshDraw(&scene1, shader);
 }
 
 int main() {
@@ -102,18 +95,18 @@ int main() {
     scene1 = BE_LoadOBJToMesh("res/models/Untitled.obj");
     billboard = BE_LoadOBJToMesh("res/models/billboard.obj");
     cameraMesh = BE_LoadOBJToMesh("res/models/Camera/Camera.obj");
-
+    
+    BE_VAO quadVAO = BE_VAOInitQuad();
+    BE_VAO bbVAO = BE_VAOInitBillboardQuad();
     
     FBOs[0] = BE_FBOInit(windowWidth, windowHeight);
     FBOs[1] = BE_FBOInit(windowWidth, windowHeight);
     int ping = 0;
 
-    glLineWidth(2.0f);
-
     BE_CameraVectorInit(&cameras);
-    BE_Camera* cam = BE_CameraInitHeap(windowWidth, windowHeight, 45.0f, 0.1f, 100.0f, (vec3){-1.93f, 0.73f, -1.75f}, (vec3){0.67f, -0.12f, 0.73f});
-    BE_CameraVectorPush(&cameras, cam);
-    selectedCamera = BE_CameraVectorGetByIndex(&cameras, 0);
+    BE_CameraVectorPush(&cameras, BE_CameraInit(windowWidth, windowHeight, 45.0f, 0.1f, 100.0f, (vec3){-1.93f, 0.73f, -1.75f}, (vec3){0.67f, -0.12f, 0.73f}));
+    BE_CameraVectorPush(&cameras, BE_CameraInit(windowWidth, windowHeight, 45.0f, 0.1f, 100.0f, (vec3){-1.93f, 0.73f, -1.75f}, (vec3){0.67f, -0.12f, 0.73f}));
+    selectedCamera = &cameras.data[0];
 
     BE_LightVector lights;
     BE_LightVectorInit(&lights);
@@ -134,7 +127,7 @@ int main() {
 
         glfwPollEvents();
 
-        glm_vec3_copy((vec3){cosf(glfwGetTime()/15), -0.4f, sinf(glfwGetTime()/15)}, lights.data[0].direction);
+        glm_vec3_copy((vec3){cosf(glfwGetTime()/25), -0.4f, sinf(glfwGetTime()/25)}, lights.data[0].direction);
         glm_vec3_copy((vec3){sin(glfwGetTime()), 0.5f, cos(glfwGetTime())}, lights.data[1].position);
         vec4 rainbowColor = {
             sinf(glfwGetTime()*0.5f) * 0.5f + 0.5f,
@@ -143,16 +136,14 @@ int main() {
             1.0f
         };
         glm_vec4_copy(rainbowColor, lights.data[1].color);
-
-        selectedCamera->width = windowWidth;
-        selectedCamera->height = windowHeight;
         
         BE_CameraInputs(selectedCamera, window, &joystick, timer.dt);
-        BE_CameraUpdateMatrix(selectedCamera, windowWidth, windowHeight);
+        BE_CameraVectorUpdateMatrix(&cameras, windowWidth, windowHeight);
         
         BE_LightVectorUpdateMatrix(&lights);
-        BE_LightVectorUpdateMaps(&lights, &shader_shadowMap, selectedCamera, draw_stuff);
+        BE_LightVectorUpdateMaps(&lights, &shader_shadowMap, selectedCamera, draw_stuff, (glfwGetKey(window, GLFW_KEY_3) != GLFW_PRESS));
         
+        BE_FBOBind(&FBOs[ping]);
         glViewport(0, 0, windowWidth, windowHeight);
         glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -166,9 +157,28 @@ int main() {
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
         BE_LightVectorUpload(&lights, &shader_default);
-        glUniform1i(glGetUniformLocation(shader_default.ID, "sampleRadius"), 2);
-        draw_stuff(&shader_default, selectedCamera);
-        BE_LightVectorDraw(&lights, &light, &shader_lights, selectedCamera);
+        BE_CameraMatrixUpload(selectedCamera, &shader_default, "camMatrix");
+
+        glUniform1i(glGetUniformLocation(shader_default.ID, "sampleRadius"), 0);
+        draw_stuff(&shader_default);
+        BE_LightVectorDraw(&lights, &light, &shader_lights);
+        
+        BE_CameraVectorDraw(&cameras, &cameraMesh, &shader_color, selectedCamera);
+
+        ping = !ping;
+        glDisable(GL_DEPTH_TEST);
+        glDisable(GL_CULL_FACE);
+        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+
+        BE_FBOUnbind();
+        glViewport(0, 0, windowWidth, windowHeight);
+        // glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
+        // glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        // glViewport(sceneX, sceneY, sceneWidth, sceneHeight);
+        BE_ShaderActivate(&shader_framebuffer);
+        BE_FBOBindTexture(&FBOs[ping], &shader_framebuffer);
+        BE_VAODrawQuad(&quadVAO);
+        glViewport(0, 0, windowWidth, windowHeight);
 
         glfwSwapBuffers(window);
 

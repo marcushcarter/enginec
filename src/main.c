@@ -69,7 +69,7 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
 
 }
 
-void draw_stuff(BE_Shader* shader, BE_Camera* camera) {
+void draw_stuff(BE_Shader* shader) {
     mat4 model;
     
     // BE_CameraUpdateMatrix(camera, windowWidth, windowHeight);
@@ -80,7 +80,7 @@ void draw_stuff(BE_Shader* shader, BE_Camera* camera) {
 
     BE_MatrixMakeModel((vec3){0.0f, 0.0f, 0.0f}, (vec3){0.0f, 0.0f, 0.0f}, (vec3){1.0f, 1.0f, 1.0f}, model);
     glUniformMatrix4fv(glGetUniformLocation(shader->ID, "model"), 1, GL_FALSE, (float*)model);
-    BE_MeshDraw(&scene1, shader, camera);
+    BE_MeshDraw(&scene1, shader);
 
 }
 
@@ -147,9 +147,9 @@ int main() {
     // CAMERA VECTOR TESTING
 
     BE_CameraVectorInit(&cameras);
-    BE_Camera* cam = BE_CameraInitHeap(windowWidth, windowHeight, 45.0f, 0.1f, 100.0f, (vec3){-1.93f, 0.73f, -1.75f}, (vec3){0.67f, -0.12f, 0.73f});
-    BE_CameraVectorPush(&cameras, cam);
-    selectedCamera = BE_CameraVectorGetByIndex(&cameras, 0);
+    BE_CameraVectorPush(&cameras, BE_CameraInit(windowWidth, windowHeight, 45.0f, 0.1f, 100.0f, (vec3){-1.93f, 0.73f, -1.75f}, (vec3){0.67f, -0.12f, 0.73f}));
+    BE_CameraVectorPush(&cameras, BE_CameraInit(windowWidth, windowHeight, 45.0f, 0.1f, 100.0f, (vec3){-1.93f, 0.73f, -1.75f}, (vec3){0.67f, -0.12f, 0.73f}));
+    selectedCamera = &cameras.data[0];
 
     BE_LightVector lights;
     BE_LightVectorInit(&lights);
@@ -188,15 +188,12 @@ int main() {
             sceneHeight = windowHeight - 30;
             sceneX = 0;
             sceneY = 0;
-
-            selectedCamera->width = sceneWidth;
-            selectedCamera->height = sceneHeight;
             
             BE_CameraInputs(selectedCamera, window, &joystick, timer.dt);
             BE_CameraUpdateMatrix(selectedCamera, windowWidth, windowHeight);
             
             BE_LightVectorUpdateMatrix(&lights);
-            BE_LightVectorUpdateMaps(&lights, &shader_shadowMap, selectedCamera, draw_stuff);
+            BE_LightVectorUpdateMaps(&lights, &shader_shadowMap, selectedCamera, draw_stuff, true);
             
             BE_FBOBind(&FBOs[ping]);
             glViewport(0, 0, windowWidth, windowHeight);
@@ -213,9 +210,11 @@ int main() {
             glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
             BE_LightVectorUpload(&lights, &shader_default);
-            glUniform1i(glGetUniformLocation(shader_default.ID, "sampleRadius"), 2);
-            draw_stuff(&shader_default, selectedCamera);
-            BE_LightVectorDraw(&lights, &light, &shader_lights, selectedCamera);
+            BE_CameraMatrixUpload(selectedCamera, &shader_default, "camMatrix");
+
+            glUniform1i(glGetUniformLocation(shader_default.ID, "sampleRadius"), 0);
+            draw_stuff(&shader_default);
+            BE_LightVectorDraw(&lights, &light, &shader_lights);
             
             ping = !ping;
             glDisable(GL_DEPTH_TEST);
@@ -240,9 +239,6 @@ int main() {
             sceneHeight = windowHeight * 7 / 10 - 30;
             sceneX = (windowWidth - sceneWidth) / 2 - windowWidth * 1 / 16;
             sceneY = windowHeight - sceneHeight - 30;
-
-            selectedCamera->width = sceneWidth;
-            selectedCamera->height = sceneHeight;
             
             BE_CameraInputs(selectedCamera, window, &joystick, timer.dt);
             BE_CameraUpdateMatrix(selectedCamera, windowWidth, windowHeight);
@@ -271,7 +267,7 @@ int main() {
 
             if (!wireframe && (timer.frameCount % shadowMapFreq == 0)) {
                 BE_LightVectorUpdateMatrix(&lights);
-                BE_LightVectorUpdateMaps(&lights, &shader_shadowMap, selectedCamera, draw_stuff);
+                BE_LightVectorUpdateMaps(&lights, &shader_shadowMap, selectedCamera, draw_stuff, true);
             }
                 
             BE_FBOBind(&FBOs[ping]);
@@ -288,24 +284,31 @@ int main() {
         
             if (!wireframe) {
                 glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-
+            
                 BE_LightVectorUpload(&lights, &shader_default);
+                BE_CameraMatrixUpload(selectedCamera, &shader_default, "camMatrix");
+
                 glUniform1i(glGetUniformLocation(shader_default.ID, "sampleRadius"), 0);
-                draw_stuff(&shader_default, selectedCamera);
-                BE_LightVectorDraw(&lights, &light, &shader_lights, selectedCamera);
+                draw_stuff(&shader_default);
+                BE_LightVectorDraw(&lights, &light, &shader_lights);
             } else {
                 glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-
+                
                 BE_ShaderActivate(&shader_color);
                 glUniform3fv(glGetUniformLocation(shader_color.ID, "color"), 1, (float[]){1.0f, 0.647f, 0.0f});
+
+            
                 BE_LightVectorUpload(&lights, &shader_color);
-                draw_stuff(&shader_color, selectedCamera);
-                BE_LightVectorDraw(&lights, &light, &shader_color, selectedCamera);
+                BE_CameraMatrixUpload(selectedCamera, &shader_color, "camMatrix");
+
+                glUniform1i(glGetUniformLocation(shader_color.ID, "sampleRadius"), 0);
+                draw_stuff(&shader_color);
+                BE_LightVectorDraw(&lights, &light, &shader_color);
             }
 
-            BE_ShaderActivate(&shader_color);
-            glUniform3fv(glGetUniformLocation(shader_color.ID, "color"), 1, (float[]){1.0f, 1.0f, 1.0f});
-            BE_CameraVectorDraw(&cameras, &cameraMesh, &shader_color, selectedCamera);
+            // BE_ShaderActivate(&shader_color);
+            // glUniform3fv(glGetUniformLocation(shader_color.ID, "color"), 1, (float[]){1.0f, 1.0f, 1.0f});
+            // BE_CameraVectorDraw(&cameras, &cameraMesh, &shader_color, selectedCamera);
 
             glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
