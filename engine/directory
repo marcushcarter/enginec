@@ -1,0 +1,112 @@
+Engine {
+    GLFWwindow* window
+    int width
+    int height
+    const char* title
+
+    FrameStats frameinfo {
+        clock_t previousTime
+        clock_t currentTime
+        float dt
+        int frameCount
+        int frameCountFPS
+        float fpsTimer
+        float fps
+        float ms
+        float fpsHistory[FPS_HISTORY_COUNT]
+        int fpsHistoryIndex
+        int fpsHistoryCount
+    }
+
+    Mesh* selectedMesh; // editor
+    MeshVector {
+        Mesh** {
+            VertexVector {
+                Vertex* data{
+                    vec3 position
+                    vec3 normal
+                    vec3 color
+                    vec2 texUV
+                }
+                size_t size
+                size_t capacity
+            }
+            GLuintVector {
+                GLuint* data
+                size_t size
+                size_t capacity
+
+            }
+            TextureVector {
+                Texture* data{
+                    GLuint ID
+                    char* type
+                    GLuint unit
+                }
+                size_t size
+                size_t capacity
+            }
+            VAO {
+                GLuint ID
+            }
+        }
+        size_t size
+        size_t capacity
+    }
+
+    Camera* selectedCamera; // editor    
+    CameraVector cameras {
+        Camera** data {
+            int width
+            int height
+            float zoom
+            float fov
+            float nearPlane
+            flaot farPlane
+            vec3 position
+            vec3 direction
+            vec3 Up
+            mat4 cameraMatrix
+            mat4 viewMatrix
+        }
+        size_t size
+        size_t capacity
+    }
+
+    lights[] {
+
+    }
+
+    LightVector lights {
+        Light* data {
+            LightType (enum) type
+            vec3 position
+            vec3 direction
+            vec4 color
+            float specular
+            mat4 light space matrix
+            
+            // point light
+            float a
+            float b
+
+            // spot light
+            float inner cone
+            float outer cone
+        }
+        size_t size
+        size_t capacity
+
+        float ambient
+        BE_ShadowMapFBO directShadowFBO;
+        BE_ShadowMapFBO pointShadowFBO;
+        BE_ShadowMapFBO spotShadowFBO;
+    }
+
+    // only used by the engine
+    entities[] {
+        char* name
+        int ID
+        ENUM object type
+    }
+}

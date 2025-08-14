@@ -285,39 +285,6 @@ void BE_CameraVectorDraw(BE_CameraVector* cameras, BE_Mesh* mesh, BE_Shader* sha
 #define DIRECT_LIGHT_DIST 50
 
 typedef struct {
-    vec3 direction;
-    vec4 color;
-    float specular;
-
-    mat4 lightSpaceMatrix;
-} BE_DirectLight;
-
-#define MAX_POINT_LIGHTS 10
-
-typedef struct {
-    vec3 position;
-    vec4 color;
-    float a;
-    float b;
-    float specular;
-    
-} BE_PointLight;
-
-#define MAX_SPOT_LIGHTS 10
-
-typedef struct {
-    vec3 position;
-    vec3 direction;
-    vec4 color;
-
-    float innerCone;
-    float outerCone;
-    float specular;
-
-    mat4 lightSpaceMatrix;
-} BE_SpotLight;
-
-typedef struct {
     GLuint fbo;
     GLuint depthTextureArray;
     int width, height;
@@ -328,32 +295,57 @@ BE_ShadowMapFBO BE_ShadowMapFBOInit(int width, int height, int layers);
 void BE_ShadowMapFBOBindLayer(BE_ShadowMapFBO* smfbo, int layer);
 void BE_ShadowMapFBODelete(BE_ShadowMapFBO* smfbo);
 
-typedef struct {
-    BE_DirectLight directlight;
-    BE_PointLight pointlights[16];
-    BE_SpotLight spotlights[16];
+typedef void (*ShadowRenderFunc)(BE_Shader* shader, BE_Camera* camera);
 
+typedef enum {
+    LIGHT_DIRECT,
+    LIGHT_POINT,
+    LIGHT_SPOT
+} BE_LightType;
+
+typedef struct {
+    int type;
+
+    vec3 position;
+    vec3 direction;
+    vec4 color;
+    mat4 lightSpaceMatrix;
+    float specular;
+    
+    // pointlight
+    float a;
+    float b;
+    
+    // spotlight
+    float innerCone;
+    float outerCone;
+} BE_Light;
+
+typedef struct {
+    BE_Light* data;
+    size_t size;
+    size_t capacity;
+    
+    float ambient;
     BE_ShadowMapFBO directShadowFBO;
     BE_ShadowMapFBO pointShadowFBO;
     BE_ShadowMapFBO spotShadowFBO;
 
-    int numPointLights;
-    int numSpotLights;
-    
-    float ambient;
-} BE_LightManager;
+    GLuint ubo;
+    GLuint bindingPoint;
+} BE_LightVector;
 
-typedef void (*ShadowRenderFunc)(BE_Shader* shader, BE_Camera* camera);
+BE_Light BE_LightInit(int type, vec3 position, vec3 direction, vec4 color, float specular, float a, float b, float innerCone, float outerCone);
 
-BE_LightManager BE_LightManagerInit(float ambient);
-void BE_LightManagerClear(BE_LightManager* lightSystem);
-void BE_LightManagerSetUniforms(BE_Shader* shader, BE_LightManager* lightSystem);
-void BE_LightManagerMakeShadowMaps(BE_LightManager* lightSystem, BE_Shader* lightShader, BE_Camera* camera, ShadowRenderFunc renderFunc);
-void BE_LightManagerMerge(BE_LightManager* dest, BE_LightManager* a, BE_LightManager* b);
-void BE_LightManagerSetDirectLight(BE_LightManager* lightSystem, vec3 direction, vec4 color, float specular);
-void BE_LightManagerAddPointLight(BE_LightManager* lightSystem, vec3 position, vec4 color, float a, float b, float specular);
-void BE_LightManagerAddSpotLight(BE_LightManager* lightSystem, vec3 position, vec3 direction, vec4 color, float innerConeCos, float outerConeCos, float specular);
-void BE_LightManagerDraw(BE_LightManager* lightSystem, BE_Mesh* mesh, BE_Shader* shader, BE_Camera* camera);
+void BE_LightVectorInit(BE_LightVector* vec);
+void BE_LightVectorPush(BE_LightVector* vec, BE_Light value);
+void BE_LightVectorFree(BE_LightVector* vec);
+void BE_LightVectorCopy(BE_Light* lights, size_t count, BE_LightVector* outVec);
+
+void BE_LightVectorUpdateMatrix(BE_LightVector* vec);
+void BE_LightVectorUpdateMaps(BE_LightVector* vec, BE_Shader* lightShader, BE_Camera* camera, ShadowRenderFunc renderFunc);
+void BE_LightVectorUpload(BE_LightVector* vec, BE_Shader* shader);
+void BE_LightVectorDraw(BE_LightVector* vec, BE_Mesh* mesh, BE_Shader* shader, BE_Camera* camera);
 
 typedef enum {
     ENGINE_EDITOR,

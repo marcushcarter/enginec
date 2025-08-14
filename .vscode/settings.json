@@ -47,7 +47,8 @@
         "error.h": "c",
         "errno.h": "c",
         "geometry.h": "c",
-        "engine_internal.h": "c"
+        "engine_internal.h": "c",
+        "directory": "cpp"
     },
     "C_Cpp.errorSquiggles": "disabled"
 }

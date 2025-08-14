@@ -43,14 +43,15 @@ struct SpotLight {
     mat4 lightSpaceMatrix;
 };
 
-uniform DirectLight directlight;
+uniform int numDirects;
+uniform DirectLight directlights[10];
 uniform sampler2DArray directShadowMapArray;
 
-uniform int NR_POINT_LIGHTS;
+uniform int numPoints;
 uniform PointLight pointlights[10];
 uniform sampler2DArray pointShadowMapArray;
 
-uniform int NR_SPOT_LIGHTS;
+uniform int numSpots;
 uniform SpotLight spotlights[10];
 uniform sampler2DArray spotShadowMapArray;
 
@@ -186,19 +187,20 @@ void main() {
 
     vec3 result = texture(diffuse0, texCoord).rgb * ambient;
 
-    result += calcDirectLight(directlight, normal, viewDir, 0);
+    for (int i = 0; i < numDirects; i++) {
+        result += calcDirectLight(directlights[i], normal, viewDir, i);   
+    }
 
-    for (int i = 0; i < NR_POINT_LIGHTS; i++) {
+    for (int i = 0; i < numPoints; i++) {
         result += calcPointLight(pointlights[i], normal, viewDir, i);   
     }
     
-    for (int i = 0; i < NR_SPOT_LIGHTS; i++) {
+    for (int i = 0; i < numSpots; i++) {
         result += calcSpotLight(spotlights[i], normal, viewDir, i); 
     }
     
     FragColor = vec4(result, 1.0);
     
-
     // float depth = logisticDepth(gl_FragCoord.z);
     // FragColor = vec4(result, 1.0f) * (1.0f - depth) + vec4(depth * vec3(0.85f, 0.85f, 0.90f), 1.0f);
 }
