@@ -105,7 +105,7 @@ void BE_Vec3RotateAxis(vec3 in, vec3 axis, float angle_rad, vec3 out) {
 }
 
 // ==============================
-// DELTA TIME
+// Time
 // ==============================
 
 float BE_UpdateFrameTimeInfo(BE_FrameStats* info) {
@@ -135,7 +135,7 @@ float BE_UpdateFrameTimeInfo(BE_FrameStats* info) {
 }
 
 // ==============================
-// JOYSTICK
+// Joystick
 // ==============================
 
 void BE_JoystickUpdate(BE_Joystick* joystick) {
@@ -337,7 +337,7 @@ void BE_LinkVertexAttribToVBO(BE_VBO* vbo, GLuint layout, GLuint numComponents, 
 // GLuintVector
 // ==============================
 
-#define INITIAL_GLUINT_CAPACITY   8
+#define INITIAL_GLUINT_CAPACITY 8
 
 void BE_GLuintVectorInit(BE_GLuintVector* vec) {
     vec->data = (GLuint*)malloc(sizeof(GLuint) * INITIAL_GLUINT_CAPACITY);
@@ -603,7 +603,7 @@ void BE_FBODelete(BE_FBO* fb) {
 }
 
 // ==============================
-// Texture
+// Textures
 // ==============================
 
 BE_Texture BE_TextureInit(const char* imageFile, const char* texType, GLuint slot) {
@@ -671,10 +671,6 @@ void BE_TextureUnbind() {
 void BE_TextureDelete(BE_Texture* texture) {
     glDeleteTextures(1, &texture->ID);
 }
-
-// ==============================
-// TextureVector
-// ==============================
 
 #define INITIAL_TEXTURE_CAPACITY 8
 
@@ -950,7 +946,7 @@ void BE_CameraVectorDraw(BE_CameraVector* cameras, BE_Mesh* mesh, BE_Shader* sha
 }
 
 // ==============================
-// MESH
+// Mesh / Import
 // ==============================
 
 BE_Mesh BE_MeshInitFromVertex(BE_VertexVector vertices, BE_GLuintVector indices, BE_TextureVector textures) {
@@ -1032,10 +1028,6 @@ void BE_MeshDrawBillboard(BE_Mesh* mesh, BE_Shader* shader, BE_Texture* texture)
 
     glDrawElements(GL_TRIANGLES, mesh->indices.size, GL_UNSIGNED_INT, 0);
 }
-
-// ==============================
-// IMPORT
-// ==============================
 
 int BE_FindOrAddVertex(BE_Vertex* vertices, int* verticesCount, BE_Vertex v) {
     for (int i = 0; i < *verticesCount; i++) {
@@ -1354,7 +1346,76 @@ const char** BE_LoadMTLTextures(const char* mtl_path, int* outCount) {
 }
 
 // ==============================
-// SHADOW MAP
+// Models
+// ==============================
+
+BE_Transform BE_TransformInit(vec3 position, vec3 rotation, vec3 scale) {
+    BE_Transform transform;
+    glm_vec3_copy(position, transform.position);
+    glm_vec3_copy(rotation, transform.rotation);
+    glm_vec3_copy(scale, transform.scale);
+    return transform;
+}
+
+BE_Model BE_ModelInit(BE_Mesh* mesh, BE_Transform transform) {
+    BE_Model model;
+    model.mesh = mesh;
+    model.transform = transform;
+    // glm_vec3_copy((vec3){0.0f, 0.0f, 0.0f}, model.transform.position);
+    // glm_vec3_copy((vec3){0.0f, 0.0f, 0.0f}, model.transform.rotation);
+    // glm_vec3_copy((vec3){1.0f, 1.0f, 1.0f}, model.transform.scale);
+    return model;
+}
+
+#define INITIAL_MODEL_CAPACITY 8
+
+void BE_ModelVectorInit(BE_ModelVector* vec) {
+    vec->data = (BE_Model*)malloc(sizeof(BE_Model) * INITIAL_MODEL_CAPACITY);
+    vec->size = 0;
+    vec->capacity = INITIAL_MODEL_CAPACITY;
+}
+
+void BE_ModelVectorPush(BE_ModelVector* vec, BE_Model value) {
+    if (vec->size >= vec->capacity) {
+        vec->capacity *= 2;
+        vec->data = (BE_Model*)realloc(vec->data, sizeof(BE_Model) * vec->capacity);
+    }
+    vec->data[vec->size++] = value;
+}
+
+void BE_ModelVectorFree(BE_ModelVector* vec) {
+    free(vec->data);
+    vec->data = NULL;
+    vec->size = 0;
+    vec->capacity = 0;
+}
+
+void BE_ModelVectorCopy(BE_Model* models, size_t count, BE_ModelVector* outVec) {
+    BE_ModelVectorInit(outVec);
+    for (size_t i = 0; i < count; i++) {
+        BE_ModelVectorPush(outVec, models[i]);
+    }
+}
+
+void BE_ModelVectorDraw(BE_ModelVector* vec, BE_Shader* shader) {
+    
+    BE_ShaderActivate(shader);
+
+    mat4 modelMatrix;
+
+    for (size_t i = 0; i < vec->size; i++) {
+        BE_Model* model = &vec->data[i];
+
+        BE_MatrixMakeModel(model->transform.position, model->transform.rotation, model->transform.scale, modelMatrix);
+        glUniformMatrix4fv(glGetUniformLocation(shader->ID, "model"), 1, GL_FALSE, (float*)modelMatrix);
+        BE_MeshDraw(model->mesh, shader);
+
+    }
+
+}
+
+// ==============================
+// Lights
 // ==============================
 
 BE_ShadowMapFBO BE_ShadowMapFBOInit(int width, int height, int layers) {
@@ -1400,10 +1461,6 @@ void BE_ShadowMapFBODelete(BE_ShadowMapFBO* smfbo) {
     glDeleteFramebuffers(1, &smfbo->fbo);
     glDeleteTextures(1, &smfbo->depthTextureArray);
 }
-
-// ==============================
-// Lights
-// ==============================
 
 BE_Light BE_LightInit(int type, vec3 position, vec3 direction, vec4 color, float specular, float a, float b, float innerCone, float outerCone) {
 
@@ -1500,7 +1557,7 @@ void BE_LightVectorUpdateMatrix(BE_LightVector* vec) {
     }
 }
 
-void BE_LightVectorUpdateMaps(BE_LightVector* vec, BE_Shader* shadowShader, BE_Camera* camera, ShadowRenderFunc renderFunc, bool enabled) {
+void BE_LightVectorUpdateMaps(BE_LightVector* vec, BE_Shader* shadowShader, ShadowRenderFunc renderFunc, bool enabled) {
     
     BE_ShaderActivate(shadowShader);
     glEnable(GL_DEPTH_TEST);
@@ -1557,6 +1614,76 @@ void BE_LightVectorUpdateMaps(BE_LightVector* vec, BE_Shader* shadowShader, BE_C
                 glClear(GL_DEPTH_BUFFER_BIT);
                 glUniformMatrix4fv(glGetUniformLocation(shadowShader->ID, "lightSpaceMatrix"), 1, GL_FALSE, (float*)light->lightSpaceMatrix);
                 renderFunc(shadowShader);
+                glBindFramebuffer(GL_FRAMEBUFFER, 0);
+                break;
+            default:
+                break;
+        }
+    }
+
+}
+
+void BE_LightVectorUpdateMultiMaps(BE_LightVector* vec, BE_ModelVector* models, BE_Shader* shadowShader, bool enabled) {
+    
+    BE_ShaderActivate(shadowShader);
+    glEnable(GL_DEPTH_TEST);
+    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+
+    if (!enabled) {
+
+        if (vec->shadowsDirty == 1) {
+            for (int layer = 0; layer < vec->directShadowFBO.layers; layer++) {
+                BE_ShadowMapFBOBindLayer(&vec->directShadowFBO, layer);
+                glViewport(0, 0, vec->directShadowFBO.width, vec->directShadowFBO.height);
+                glClear(GL_DEPTH_BUFFER_BIT);
+            }
+
+            // for (int layer = 0; layer < vec->pointShadowFBO.layers; layer++) {
+            //     BE_ShadowMapFBOBindLayer(&vec->pointShadowFBO, layer);
+            //     glViewport(0, 0, vec->pointShadowFBO.width, vec->pointShadowFBO.height);
+            //     glClear(GL_DEPTH_BUFFER_BIT);
+            // }
+
+            for (int layer = 0; layer < vec->spotShadowFBO.layers; layer++) {
+                BE_ShadowMapFBOBindLayer(&vec->spotShadowFBO, layer);
+                glViewport(0, 0, vec->spotShadowFBO.width, vec->spotShadowFBO.height);
+                glClear(GL_DEPTH_BUFFER_BIT);
+            }
+
+            BE_FBOUnbind();
+
+            vec->shadowsDirty = 0;
+        }
+
+        return;
+    } else {
+        vec->shadowsDirty = 1;
+    }
+
+    for (size_t i = 0; i < vec->size; i++) {
+        BE_Light* light = &vec->data[i];
+
+        switch (vec->data[i].type) {
+            case LIGHT_DIRECT:
+                BE_ShadowMapFBOBindLayer(&vec->directShadowFBO, 0);
+                glViewport(0, 0, vec->directShadowFBO.width, vec->directShadowFBO.height);
+                glClear(GL_DEPTH_BUFFER_BIT);
+                glUniformMatrix4fv(glGetUniformLocation(shadowShader->ID, "lightSpaceMatrix"), 1, GL_FALSE, (float*)light->lightSpaceMatrix);
+
+                BE_ModelVectorDraw(models, shadowShader);
+
+                glBindFramebuffer(GL_FRAMEBUFFER, 0);
+                break;
+            case LIGHT_POINT:
+                break;
+            case LIGHT_SPOT:
+                BE_ShadowMapFBOBindLayer(&vec->spotShadowFBO, i);
+                glViewport(0, 0, vec->spotShadowFBO.width, vec->spotShadowFBO.height);
+                glClear(GL_DEPTH_BUFFER_BIT);
+                glUniformMatrix4fv(glGetUniformLocation(shadowShader->ID, "lightSpaceMatrix"), 1, GL_FALSE, (float*)light->lightSpaceMatrix);
+
+                BE_ModelVectorDraw(models, shadowShader);
+
                 glBindFramebuffer(GL_FRAMEBUFFER, 0);
                 break;
             default:

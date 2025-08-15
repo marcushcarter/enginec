@@ -214,17 +214,17 @@ typedef struct {
     GLuint unit;
 } BE_Texture;
 
-BE_Texture BE_TextureInit(const char* imageFile, const char* texType, GLenum slot);
-void BE_TextureSetUniformUnit(BE_Shader* shader, const char* uniform, GLuint unit);
-void BE_TextureBind(BE_Texture* texture);
-void BE_TextureUnbind();
-void BE_TextureDelete(BE_Texture* texture);
-
 typedef struct {
     BE_Texture* data;
     size_t size;
     size_t capacity;
 } BE_TextureVector;
+
+BE_Texture BE_TextureInit(const char* imageFile, const char* texType, GLenum slot);
+void BE_TextureSetUniformUnit(BE_Shader* shader, const char* uniform, GLuint unit);
+void BE_TextureBind(BE_Texture* texture);
+void BE_TextureUnbind();
+void BE_TextureDelete(BE_Texture* texture);
 
 void BE_TextureVectorInit(BE_TextureVector* vec);
 void BE_TextureVectorPush(BE_TextureVector* vec, BE_Texture value);
@@ -247,7 +247,6 @@ typedef struct {
 
 BE_Camera BE_CameraInit(int width, int height, float fov, float nearPlane, float farPlane, vec3 position, vec3 direction);
 void BE_CameraInputs(BE_Camera* camera, GLFWwindow* window, BE_Joystick* js, float dt);
-
 void BE_CameraMatrixUpload(BE_Camera* camera, BE_Shader* shader, const char* uniform);
 void BE_CameraMatrixUploadCustom(BE_Shader* shader, const char* uniform, vec3 position, mat4 matrix);
 
@@ -278,6 +277,34 @@ const char** BE_LoadMTLTextures(const char* mtl_path, int* outCount);
 
 void BE_CameraVectorDraw(BE_CameraVector* cameras, BE_Mesh* mesh, BE_Shader* shader, BE_Camera* camera);
 
+typedef struct {
+    vec3 position;
+    vec3 rotation;
+    vec3 scale;
+} BE_Transform;
+
+typedef struct {
+    BE_Mesh* mesh;
+    BE_Transform transform;
+} BE_Model;
+
+typedef struct {
+    BE_Model* data;
+    size_t size;
+    size_t capacity;
+} BE_ModelVector;
+
+BE_Transform BE_TransformInit(vec3 position, vec3 rotation, vec3 scale);
+
+BE_Model BE_ModelInit(BE_Mesh* mesh, BE_Transform transform);
+
+void BE_ModelVectorInit(BE_ModelVector* vec);
+void BE_ModelVectorPush(BE_ModelVector* vec, BE_Model value);
+void BE_ModelVectorFree(BE_ModelVector* vec);
+void BE_ModelVectorCopy(BE_Model* models, size_t count, BE_ModelVector* outVec);
+
+void BE_ModelVectorDraw(BE_ModelVector* vec, BE_Shader* shader);
+
 #define DIRECT_LIGHT_DIST 50
 
 typedef struct {
@@ -286,12 +313,6 @@ typedef struct {
     int width, height;
     int layers;
 } BE_ShadowMapFBO;
-
-BE_ShadowMapFBO BE_ShadowMapFBOInit(int width, int height, int layers);
-void BE_ShadowMapFBOBindLayer(BE_ShadowMapFBO* smfbo, int layer);
-void BE_ShadowMapFBODelete(BE_ShadowMapFBO* smfbo);
-
-typedef void (*ShadowRenderFunc)(BE_Shader* shader);
 
 typedef enum {
     LIGHT_DIRECT,
@@ -330,6 +351,12 @@ typedef struct {
     int shadowsDirty;
 } BE_LightVector;
 
+BE_ShadowMapFBO BE_ShadowMapFBOInit(int width, int height, int layers);
+void BE_ShadowMapFBOBindLayer(BE_ShadowMapFBO* smfbo, int layer);
+void BE_ShadowMapFBODelete(BE_ShadowMapFBO* smfbo);
+
+typedef void (*ShadowRenderFunc)(BE_Shader* shader);
+
 BE_Light BE_LightInit(int type, vec3 position, vec3 direction, vec4 color, float specular, float a, float b, float innerCone, float outerCone);
 
 void BE_LightVectorInit(BE_LightVector* vec);
@@ -338,7 +365,10 @@ void BE_LightVectorFree(BE_LightVector* vec);
 void BE_LightVectorCopy(BE_Light* lights, size_t count, BE_LightVector* outVec);
 
 void BE_LightVectorUpdateMatrix(BE_LightVector* vec);
-void BE_LightVectorUpdateMaps(BE_LightVector* vec, BE_Shader* shadowShader, BE_Camera* camera, ShadowRenderFunc renderFunc, bool enabled);
+
+void BE_LightVectorUpdateMaps(BE_LightVector* vec, BE_Shader* shadowShader, ShadowRenderFunc renderFunc, bool enabled);
+void BE_LightVectorUpdateMultiMaps(BE_LightVector* vec, BE_ModelVector* models, BE_Shader* shadowShader, bool enabled);
+
 void BE_LightVectorUpload(BE_LightVector* vec, BE_Shader* shader);
 void BE_LightVectorDraw(BE_LightVector* vec, BE_Mesh* mesh, BE_Shader* shader);
 

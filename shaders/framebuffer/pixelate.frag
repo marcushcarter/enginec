@@ -5,11 +5,11 @@ out vec4 FragColor;
 in vec2 texCoord;
 
 uniform sampler2D screenTexture;
-uniform float pixelSize;
 
 void main() {
 
     vec2 resolution = textureSize(screenTexture, 0);
+    float pixelSize = 4;
 
     vec2 blockUV = vec2(
         floor(texCoord.x * resolution.x / pixelSize) * pixelSize / resolution.x,

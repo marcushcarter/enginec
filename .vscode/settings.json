@@ -48,7 +48,14 @@
         "errno.h": "c",
         "geometry.h": "c",
         "engine_internal.h": "c",
-        "directory": "cpp"
+        "directory": "cpp",
+        "optional": "c",
+        "functional": "c",
+        "random": "c",
+        "istream": "c",
+        "ostream": "c",
+        "sstream": "c",
+        "system_error": "c"
     },
     "C_Cpp.errorSquiggles": "disabled"
 }
