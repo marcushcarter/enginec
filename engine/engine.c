@@ -854,11 +854,13 @@ void BE_CameraInputs(BE_Camera* camera, GLFWwindow* window, BE_Joystick* joystic
 }
 
 void BE_CameraMatrixUpload(BE_Camera* camera, BE_Shader* shader, const char* uniform) {
+    BE_ShaderActivate(shader);
     glUniform3fv(glGetUniformLocation(shader->ID, "camPos"), 1, (float*)camera->position);
     glUniformMatrix4fv(glGetUniformLocation(shader->ID, uniform), 1, GL_FALSE, (float*)camera->cameraMatrix);
 }
 
 void BE_CameraMatrixUploadCustom(BE_Shader* shader, const char* uniform, vec3 position, mat4 matrix) {
+    BE_ShaderActivate(shader);
     glUniform3fv(glGetUniformLocation(shader->ID, "camPos"), 1, (float*)position);
     glUniformMatrix4fv(glGetUniformLocation(shader->ID, uniform), 1, GL_FALSE, (float*)matrix);
 }
@@ -919,29 +921,30 @@ void BE_CameraVectorUpdateMatrix(BE_CameraVector* vec, int width, int height) {
     }
 }
 
-void BE_CameraVectorDraw(BE_CameraVector* cameras, BE_Mesh* mesh, BE_Shader* shader, BE_Camera* camera) {
+void BE_CameraVectorDraw(BE_CameraVector* vec, BE_Mesh* mesh, BE_Shader* shader, BE_Camera* selected) {
 
     BE_ShaderActivate(shader);
     glUniform3fv(glGetUniformLocation(shader->ID, "color"), 1, (float[]){1.0f, 1.0f, 1.0f});
     
     glDisable(GL_CULL_FACE);
     glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-    
+
     mat4 model;
     vec3 ori;
 
-    for (size_t i = 0; i < cameras->size; i++) {
-        // if (BE_CameraVectorGetByIndex(cameras, i) == camera || BE_CameraVectorGetByIndex(cameras, i) == 0) continue;
-    
-        BE_Camera cam = cameras->data[i];
+    for (size_t i = 0; i < vec->size; i++) {
+        BE_Camera* camera = &vec->data[i];
 
-        BE_OritentationToEuler(cam.direction, ori);
-        (cam.position, ori, (vec3){0.25f * cam.width/1000 * cam.fov/45, 0.25f * cam.height/1000, 0.2f * cam.zoom}, model);
+        if (camera == selected) continue;
+        
+        BE_OritentationToEuler(camera->direction, ori);
+
+        BE_MatrixMakeModel(camera->position, ori, (vec3){0.25f * camera->width/1000 * camera->fov/45, 0.25f * camera->height/1000, 0.2f * camera->zoom}, model);
         glUniformMatrix4fv(glGetUniformLocation(shader->ID, "model"), 1, GL_FALSE, (float*)model);
         BE_MeshDraw(mesh, shader);
 
     }
-    
+
     glEnable(GL_CULL_FACE);
 }
 
@@ -1781,43 +1784,31 @@ void BE_LightVectorDraw(BE_LightVector* vec, BE_Mesh* mesh, BE_Shader* shader) {
 
     BE_ShaderActivate(shader);
 
-    vec3 lightScale = { 0.1f, 0.1f, 0.1f };
-    mat4 lightModel;
+    vec3 scale = { 0.1f, 0.1f, 0.1f };
+    mat4 model;
 
     for (size_t i = 0; i < vec->size; i++) {
         BE_Light* light = &vec->data[i];
-
+        
         switch (vec->data[i].type) {
             case LIGHT_DIRECT:
-                glm_mat4_identity(lightModel);
-                glm_translate(lightModel, (vec3){ 0.0f, 2.0f, 0.0f });
-                glm_scale(lightModel, lightScale);
-                glUniformMatrix4fv(glGetUniformLocation(shader->ID, "model"), 1, GL_FALSE, (float*)lightModel);
-                glUniform4fv(glGetUniformLocation(shader->ID, "lightColor"), 1, (float*)light->color);   
-                BE_MeshDraw(mesh, shader); 
-
-                break;
+                // BE_MatrixMakeModel((vec3){0.0f, 2.0f, 0.0f}, light->direction, scale, model);
+                continue;
+                // break;
             case LIGHT_POINT:
-                glm_mat4_identity(lightModel);
-                glm_translate(lightModel, light->position);
-                glm_scale(lightModel, lightScale);
-                glUniformMatrix4fv(glGetUniformLocation(shader->ID, "model"), 1, GL_FALSE, (float*)lightModel);
-                glUniform4fv(glGetUniformLocation(shader->ID, "lightColor"), 1, (float*)light->color);   
-                BE_MeshDraw(mesh, shader);
-
+                BE_MatrixMakeModel(light->position, (vec3){0.0f, 0.0f, 0.0f}, scale, model);
                 break;
             case LIGHT_SPOT:
-                glm_mat4_identity(lightModel);
-                glm_translate(lightModel, light->position);
-                glm_scale(lightModel, lightScale);
-                glUniformMatrix4fv(glGetUniformLocation(shader->ID, "model"), 1, GL_FALSE, (float*)lightModel);
-                glUniform4fv(glGetUniformLocation(shader->ID, "lightColor"), 1, (float*)light->color);  
-                BE_MeshDraw(mesh, shader); 
-
+                BE_MatrixMakeModel(light->position, light->direction, scale, model);
                 break;
             default:
-                break;
+                continue;
         }
+        
+        glUniformMatrix4fv(glGetUniformLocation(shader->ID, "model"), 1, GL_FALSE, (float*)model);
+        glUniform3fv(glGetUniformLocation(shader->ID, "color"), 1, (float*)light->color);
+        BE_VAOBind(&mesh->vao);
+        glDrawElements(GL_TRIANGLES, mesh->indices.size, GL_UNSIGNED_INT, 0);
     }
 
 }

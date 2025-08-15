@@ -275,7 +275,7 @@ int BE_CountFaceVertices(const char* line);
 BE_Mesh BE_LoadOBJToMesh(const char* obj_path);
 const char** BE_LoadMTLTextures(const char* mtl_path, int* outCount);
 
-void BE_CameraVectorDraw(BE_CameraVector* cameras, BE_Mesh* mesh, BE_Shader* shader, BE_Camera* camera);
+void BE_CameraVectorDraw(BE_CameraVector* vec, BE_Mesh* mesh, BE_Shader* shader, BE_Camera* selected);
 
 typedef struct {
     vec3 position;

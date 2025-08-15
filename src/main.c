@@ -71,7 +71,6 @@ int main() {
     
     BE_Shader shader_default = BE_ShaderInit("shaders/vert/default.vert", "shaders/frag/default.frag", NULL);
     BE_Shader shader_color = BE_ShaderInit("shaders/vert/default.vert", "shaders/frag/color.frag", NULL);
-    BE_Shader shader_lights = BE_ShaderInit("shaders/vert/lights.vert", "shaders/frag/lights.frag", NULL);
     BE_Shader shader_shadowMap = BE_ShaderInit("shaders/vert/shadowMap.vert", "shaders/frag/blank.frag", NULL);
     
     BE_Shader shader_framebuffer = BE_ShaderInit("shaders/framebuffer/framebuffer.vert", "shaders/framebuffer/framebuffer.frag", NULL);
@@ -158,10 +157,11 @@ int main() {
 
         BE_LightVectorUpload(&lights, &shader_default);
         BE_CameraMatrixUpload(selectedCamera, &shader_default, "camMatrix");
+        BE_CameraMatrixUpload(selectedCamera, &shader_color, "camMatrix");
 
         glUniform1i(glGetUniformLocation(shader_default.ID, "sampleRadius"), 0);
         BE_ModelVectorDraw(&models, &shader_default);
-        BE_LightVectorDraw(&lights, &light, &shader_lights);
+        BE_LightVectorDraw(&lights, &light, &shader_color);
         BE_CameraVectorDraw(&cameras, &cameraMesh, &shader_color, selectedCamera);
 
         ping = !ping;
