@@ -1370,7 +1370,7 @@ BE_Model BE_ModelInit(BE_Mesh* mesh, BE_Transform transform) {
     return model;
 }
 
-#define INITIAL_MODEL_CAPACITY 8
+#define INITIAL_MODEL_CAPACITY 4
 
 void BE_ModelVectorInit(BE_ModelVector* vec) {
     vec->data = (BE_Model*)malloc(sizeof(BE_Model) * INITIAL_MODEL_CAPACITY);
@@ -1499,7 +1499,7 @@ BE_Light BE_LightInit(int type, vec3 position, vec3 direction, vec4 color, float
     return light;
 }
 
-#define INITIAL_LIGHT_CAPACITY 8
+#define INITIAL_LIGHT_CAPACITY 4
 
 void BE_LightVectorInit(BE_LightVector* vec) {
     vec->data = (BE_Light*)malloc(sizeof(BE_Light) * INITIAL_LIGHT_CAPACITY);
@@ -1814,5 +1814,13 @@ void BE_LightVectorDraw(BE_LightVector* vec, BE_Mesh* mesh, BE_Shader* shader) {
 }
 
 // ==============================
-// TEMP
+// Scene
 // ==============================
+
+BE_Scene BE_SceneInit() {
+    BE_Scene scene;
+    BE_CameraVectorInit(&scene.cameras);
+    BE_LightVectorInit(&scene.lights);
+    BE_ModelVectorInit(&scene.models);
+    return scene;
+}

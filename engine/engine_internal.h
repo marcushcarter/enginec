@@ -365,64 +365,23 @@ void BE_LightVectorFree(BE_LightVector* vec);
 void BE_LightVectorCopy(BE_Light* lights, size_t count, BE_LightVector* outVec);
 
 void BE_LightVectorUpdateMatrix(BE_LightVector* vec);
-
 void BE_LightVectorUpdateMaps(BE_LightVector* vec, BE_Shader* shadowShader, ShadowRenderFunc renderFunc, bool enabled);
 void BE_LightVectorUpdateMultiMaps(BE_LightVector* vec, BE_ModelVector* models, BE_Shader* shadowShader, bool enabled);
-
 void BE_LightVectorUpload(BE_LightVector* vec, BE_Shader* shader);
 void BE_LightVectorDraw(BE_LightVector* vec, BE_Mesh* mesh, BE_Shader* shader);
 
-
-
-
-
-
-
-
-// typedef struct {
-
-// } BE_Scene;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-typedef enum {
-    ENGINE_EDITOR,
-    ENGINE_SCENE_EXPANDED,
-    ENGINE_SCENE_HIDDEN
-} BE_EngineState;
+typedef struct {
+    BE_ModelVector models;
+    BE_LightVector lights;
+    BE_CameraVector cameras;
+} BE_Scene;
 
 typedef struct {
-    GLFWwindow* window;
-    int width, height;
-    const char* title;
+    BE_Scene* scene;
+    size_t size;
+    size_t capacity;
+} BE_SceneVector;
 
-    // keys
-    // mouse
-    // BE_Joystick joystick[MAX_JOYSTICKS];
-
-    BE_FrameStats frameStats;
-
-    BE_Camera* selectedCamera;
-    BE_CameraVector cameras;
-
-    // bool vsync;
-
-} BE_Engine;
-
-// BE_Engine BE_StartYourEngines();
+BE_Scene BE_SceneInit();
 
 #endif
