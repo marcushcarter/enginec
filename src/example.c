@@ -74,14 +74,17 @@ int main() {
 
     // SCENE
 
-    BE_Scene scene = BE_SceneInit();
-    BE_CameraVectorPush(&scene.cameras, BE_CameraInit(windowWidth, windowHeight, 45.0f, 0.1f, 100.0f, (vec3){-1.93f, 0.73f, -1.75f}, (vec3){0.67f, -0.12f, 0.73f}));
-    BE_CameraVectorPush(&scene.cameras, BE_CameraInit(windowWidth, windowHeight, 45.0f, 0.1f, 100.0f, (vec3){-1.93f, 0.73f, -1.75f}, (vec3){0.67f, -0.12f, 0.73f}));
-    BE_LightVectorPush(&scene.lights, BE_LightInit(LIGHT_DIRECT, (vec3){0,0,0}, (vec3){0.5f, -0.4f, 0.5f}, (vec4){1.0f, 1.0f, 1.0f, 1.0f}, 0.5f, 0, 0, 0, 0));
-    BE_LightVectorPush(&scene.lights, BE_LightInit(LIGHT_POINT, (vec3){0,0,0}, (vec3){0,0,0}, (vec4){1.0f, 1.0f, 1.0f, 1.0f}, 0.5f, 1.0f, 0.04f, 0, 0));
-    BE_ModelVectorPush(&scene.models, BE_ModelInit(&mesh_scene1, BE_TransformInit((vec3){0.0f, 0.0f, 0.0f}, (vec3){0.0f, 0.0f, 0.0f}, (vec3){1.0f, 1.0f, 1.0f})));
+    BE_SceneVector scenes;
+    BE_SceneVectorInit(&scenes);
+    BE_SceneVectorPush(&scenes, BE_SceneInit());
+    BE_Scene* activeScene = &scenes.data[0];
+    
+    BE_CameraVectorPush(&activeScene->cameras, BE_CameraInit(windowWidth, windowHeight, 45.0f, 0.1f, 100.0f, (vec3){-1.93f, 0.73f, -1.75f}, (vec3){0.67f, -0.12f, 0.73f}));
+    BE_LightVectorPush(&activeScene->lights, BE_LightInit(LIGHT_DIRECT, (vec3){0,0,0}, (vec3){0.5f, -0.4f, 0.5f}, (vec4){1.0f, 1.0f, 1.0f, 1.0f}, 0.5f, 0, 0, 0, 0));
+    BE_LightVectorPush(&activeScene->lights, BE_LightInit(LIGHT_POINT, (vec3){0,0,0}, (vec3){0,0,0}, (vec4){1.0f, 1.0f, 1.0f, 1.0f}, 0.5f, 1.0f, 0.04f, 0, 0));
+    BE_ModelVectorPush(&activeScene->models, BE_ModelInit(&mesh_scene1, BE_TransformInit((vec3){0.0f, 0.0f, 0.0f}, (vec3){0.0f, 0.0f, 0.0f}, (vec3){1.0f, 1.0f, 1.0f})));
 
-    BE_Camera* selectedCamera = &scene.cameras.data[0];
+    BE_Camera* selectedCamera = &activeScene->cameras.data[0];
 
     fprintf(stdout, "Time to load scene -> %.2fs\n", glfwGetTime());
 
@@ -100,23 +103,23 @@ int main() {
         glfwPollEvents();
         BE_JoystickUpdate(&joystick);
 
-        glm_vec3_copy((vec3){cosf(glfwGetTime()/25), -0.4f, sinf(glfwGetTime()/25)}, scene.lights.data[0].direction);
-        glm_vec3_copy((vec3){sin(glfwGetTime()), 0.5f, cos(glfwGetTime())}, scene.lights.data[1].position);
+        glm_vec3_copy((vec3){cosf(glfwGetTime()/25), -0.4f, sinf(glfwGetTime()/25)}, activeScene->lights.data[0].direction);
+        glm_vec3_copy((vec3){sin(glfwGetTime()), 0.5f, cos(glfwGetTime())}, activeScene->lights.data[1].position);
         vec4 rainbowColor = {
             sinf(glfwGetTime()*0.5f) * 0.5f + 0.5f,
             sinf(glfwGetTime()*0.5f + 2.0943951f) * 0.5f + 0.5f,
             sinf(glfwGetTime()*0.5f + 4.1887902f) * 0.5f + 0.5f,
             1.0f
         };
-        glm_vec4_copy(rainbowColor, scene.lights.data[1].color);
+        glm_vec4_copy(rainbowColor, activeScene->lights.data[1].color);
         
         BE_CameraInputs(selectedCamera, window, &joystick, timer.dt);
 
         // RENDERS
 
-        BE_CameraVectorUpdateMatrix(&scene.cameras, windowWidth, windowHeight);
-        BE_LightVectorUpdateMatrix(&scene.lights);
-        BE_LightVectorUpdateMultiMaps(&scene.lights, &scene.models, &shader_shadowMap, (glfwGetKey(window, GLFW_KEY_3) != GLFW_PRESS));
+        BE_CameraVectorUpdateMatrix(&activeScene->cameras, windowWidth, windowHeight);
+        BE_LightVectorUpdateMatrix(&activeScene->lights);
+        BE_LightVectorUpdateMultiMaps(&activeScene->lights, &activeScene->models, &shader_shadowMap, (glfwGetKey(window, GLFW_KEY_3) != GLFW_PRESS));
         
         // BE_FBOBind(&FBOs[ping]);
         glViewport(0, 0, windowWidth, windowHeight);
@@ -131,14 +134,14 @@ int main() {
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
-        BE_LightVectorUpload(&scene.lights, &shader_default);
+        BE_LightVectorUpload(&activeScene->lights, &shader_default);
         BE_CameraMatrixUpload(selectedCamera, &shader_default, "camMatrix");
         BE_CameraMatrixUpload(selectedCamera, &shader_color, "camMatrix");
         glUniform1i(glGetUniformLocation(shader_default.ID, "sampleRadius"), 0);
 
-        BE_ModelVectorDraw(&scene.models, &shader_default);
-        BE_LightVectorDraw(&scene.lights, &mesh_cube, &shader_color);
-        BE_CameraVectorDraw(&scene.cameras, &mesh_camera, &shader_color, selectedCamera);
+        BE_ModelVectorDraw(&activeScene->models, &shader_default);
+        BE_LightVectorDraw(&activeScene->lights, &mesh_cube, &shader_color);
+        BE_CameraVectorDraw(&activeScene->cameras, &mesh_camera, &shader_color, selectedCamera);
 
         // ping = !ping;
         // glDisable(GL_DEPTH_TEST);

@@ -377,12 +377,17 @@ typedef struct {
 } BE_Scene;
 
 typedef struct {
-    BE_Scene* scene;
+    BE_Scene* data;
     size_t size;
     size_t capacity;
 } BE_SceneVector;
 
 BE_Scene BE_SceneInit();
 void BE_SceneDraw(BE_Scene* scene, BE_Shader* shader, BE_Shader* shadow, BE_Camera* camera, int width, int height);
+
+void BE_SceneVectorInit(BE_SceneVector* vec);
+void BE_SceneVectorPush(BE_SceneVector* vec, BE_Scene value);
+void BE_SceneVectorFree(BE_SceneVector* vec);
+void BE_SceneVectorCopy(BE_Scene* models, size_t count, BE_SceneVector* outVec);
 
 #endif

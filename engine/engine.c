@@ -188,7 +188,7 @@ float BE_JoystickGetAxis(BE_Joystick* joystick, int axis) {
 // VertexVector
 // ==============================
 
-#define INITIAL_VERTEX_CAPACITY 8
+#define INITIAL_VERTEX_CAPACITY 256
 
 void BE_VertexVectorInit(BE_VertexVector* vec) {
     vec->data = (BE_Vertex*)malloc(sizeof(BE_Vertex) * INITIAL_VERTEX_CAPACITY);
@@ -337,7 +337,7 @@ void BE_LinkVertexAttribToVBO(BE_VBO* vbo, GLuint layout, GLuint numComponents, 
 // GLuintVector
 // ==============================
 
-#define INITIAL_GLUINT_CAPACITY 8
+#define INITIAL_GLUINT_CAPACITY 256
 
 void BE_GLuintVectorInit(BE_GLuintVector* vec) {
     vec->data = (GLuint*)malloc(sizeof(GLuint) * INITIAL_GLUINT_CAPACITY);
@@ -809,12 +809,12 @@ void BE_CameraInputs(BE_Camera* camera, GLFWwindow* window, BE_Joystick* joystic
     }
 
     
-    if (glfwGetKey(window, GLFW_KEY_1) == GLFW_PRESS) {
-        camera->fov += 10*dt;
-    }
-    if (glfwGetKey(window, GLFW_KEY_2) == GLFW_PRESS) {
-        camera->fov -= 10*dt;
-    }
+    // if (glfwGetKey(window, GLFW_KEY_1) == GLFW_PRESS) {
+    //     camera->fov += 10*dt;
+    // }
+    // if (glfwGetKey(window, GLFW_KEY_2) == GLFW_PRESS) {
+    //     camera->fov -= 10*dt;
+    // }
     
     glm_vec3_add(camera->position, v_move, camera->position);
 
@@ -1370,7 +1370,7 @@ BE_Model BE_ModelInit(BE_Mesh* mesh, BE_Transform transform) {
     return model;
 }
 
-#define INITIAL_MODEL_CAPACITY 4
+#define INITIAL_MODEL_CAPACITY 16
 
 void BE_ModelVectorInit(BE_ModelVector* vec) {
     vec->data = (BE_Model*)malloc(sizeof(BE_Model) * INITIAL_MODEL_CAPACITY);
@@ -1820,6 +1820,7 @@ void BE_LightVectorDraw(BE_LightVector* vec, BE_Mesh* mesh, BE_Shader* shader) {
 BE_Scene BE_SceneInit() {
     BE_Scene scene;
     BE_CameraVectorInit(&scene.cameras);
+    BE_CameraVectorPush(&scene.cameras, BE_CameraInit(1, 1, 45.0f, 0.1f, 100.0f, (vec3){-1.93f, 0.73f, -1.75f}, (vec3){0.67f, -0.12f, 0.73f}));
     BE_LightVectorInit(&scene.lights);
     BE_ModelVectorInit(&scene.models);
     return scene;
@@ -1849,4 +1850,34 @@ void BE_SceneDraw(BE_Scene* scene, BE_Shader* shader, BE_Shader* shadow, BE_Came
     glUniform1i(glGetUniformLocation(shader->ID, "sampleRadius"), 0);
     BE_ModelVectorDraw(&scene->models, shader);
  
+}
+
+#define INITIAL_SCENE_CAPACITY 2
+
+void BE_SceneVectorInit(BE_SceneVector* vec) {
+    vec->data = (BE_Scene*)malloc(sizeof(BE_Scene) * INITIAL_SCENE_CAPACITY);
+    vec->size = 0;
+    vec->capacity = INITIAL_SCENE_CAPACITY;
+}
+
+void BE_SceneVectorPush(BE_SceneVector* vec, BE_Scene value) {
+    if (vec->size >= vec->capacity) {
+        vec->capacity *= 2;
+        vec->data = (BE_Scene*)realloc(vec->data, sizeof(BE_Scene) * vec->capacity);
+    }
+    vec->data[vec->size++] = value;
+}
+
+void BE_SceneVectorFree(BE_SceneVector* vec) {
+    free(vec->data);
+    vec->data = NULL;
+    vec->size = 0;
+    vec->capacity = 0;
+}
+
+void BE_SceneVectorCopy(BE_Scene* models, size_t count, BE_SceneVector* outVec) {
+    BE_SceneVectorInit(outVec);
+    for (size_t i = 0; i < count; i++) {
+        BE_SceneVectorPush(outVec, models[i]);
+    }
 }
