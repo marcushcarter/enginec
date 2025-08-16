@@ -23,11 +23,11 @@
 #ifndef ENGINE_H
 #define ENGINE_H
 
-#include <glad/glad.h>
-#include <GLFW/glfw3.h>
-#include <cglm/cglm.h>
-#include <stb_image/stb_image.h>
-#include <stb_image/stb_image_resize.h>
+#include <engine/glad/glad.h>
+#include <engine/GLFW/glfw3.h>
+#include <engine/cglm/cglm.h>
+#include <engine/stb_image/stb_image.h>
+#include <engine/stb_image/stb_image_resize.h>
 #include <time.h>
 
 void BE_MatrixMakeModel(vec3 translation, vec3 rotation, vec3 scale, mat4 dest);
@@ -383,5 +383,6 @@ typedef struct {
 } BE_SceneVector;
 
 BE_Scene BE_SceneInit();
+void BE_SceneDraw(BE_Scene* scene, BE_Shader* shader, BE_Shader* shadow, BE_Camera* camera, int width, int height);
 
 #endif

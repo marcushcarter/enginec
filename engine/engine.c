@@ -1824,3 +1824,29 @@ BE_Scene BE_SceneInit() {
     BE_ModelVectorInit(&scene.models);
     return scene;
 }
+
+void BE_SceneDraw(BE_Scene* scene, BE_Shader* shader, BE_Shader* shadow, BE_Camera* camera, int width, int height) {
+
+    BE_CameraVectorUpdateMatrix(&scene->cameras, width, height);
+    BE_LightVectorUpdateMatrix(&scene->lights);
+    BE_LightVectorUpdateMultiMaps(&scene->lights, &scene->models, shadow, true);
+    
+    glViewport(0, 0, width, height);
+    glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    glEnable(GL_CULL_FACE);
+    glCullFace(GL_FRONT);
+    glFrontFace(GL_CCW);
+    glEnable(GL_DEPTH_TEST);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+
+    BE_LightVectorUpload(&scene->lights, shader);
+    BE_CameraMatrixUpload(camera, shader, "camMatrix");
+
+    glUniform1i(glGetUniformLocation(shader->ID, "sampleRadius"), 0);
+    BE_ModelVectorDraw(&scene->models, shader);
+ 
+}

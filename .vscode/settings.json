@@ -55,7 +55,8 @@
         "istream": "c",
         "ostream": "c",
         "sstream": "c",
-        "system_error": "c"
+        "system_error": "c",
+        "math.h": "c"
     },
     "C_Cpp.errorSquiggles": "disabled"
 }

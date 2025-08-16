@@ -1,25 +1,7 @@
 #include "engine/engine_internal.h"
-#include "engine/geometry.h"
 
 #define WINDOW_WIDTH 1440
 #define WINDOW_HEIGHT 900
-
-int sceneWidth, sceneHeight, sceneX, sceneY;
-
-#define MAX_VERTEX_BUFFER 512 * 1024
-#define MAX_ELEMENT_BUFFER 128 * 1024
-#define NK_INCLUDE_FIXED_TYPES
-#define NK_INCLUDE_STANDARD_IO
-#define NK_INCLUDE_STANDARD_VARARGS
-#define NK_INCLUDE_DEFAULT_ALLOCATOR
-#define NK_INCLUDE_VERTEX_BUFFER_OUTPUT
-#define NK_INCLUDE_FONT_BAKING
-#define NK_INCLUDE_DEFAULT_FONT
-#define NK_IMPLEMENTATION
-#define NK_GLFW_GL4_IMPLEMENTATION
-#define NK_KEYSTATE_BASED_INPUT
-#include "nuklear/nuklear.h"
-#include "nuklear/nuklear_glfw_gl4.h"
 
 #include <stdio.h>
 #include <math.h>
@@ -34,16 +16,14 @@ BE_FBO FBOs[2];
     
 BE_FrameStats timer;
 
-// -----------------------------------------------------------------------------------------------------------------------------------------------------------------
-
 void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
     windowWidth = width;
     windowHeight = height;
 
     glViewport(0, 0, width, height);
 
-    BE_FBOResize(&FBOs[0], width, height);
-    BE_FBOResize(&FBOs[1], width, height);
+    // BE_FBOResize(&FBOs[0], width, height);
+    // BE_FBOResize(&FBOs[1], width, height);
 }
 
 int main() {
@@ -79,20 +59,16 @@ int main() {
 
     // MESHES
 
-    const char* lighttextures[] = { "res/textures/box.png", "diffuse" };
-    BE_Mesh light = BE_MeshInitFromData(lighttextures, 0, cubeVertices, cubeVertexCount, cubeIndices, cubeIndexCount);
-
-    BE_Mesh capsule = BE_LoadOBJToMesh("res/models/capsule.obj");
-    BE_Mesh scene1 = BE_LoadOBJToMesh("res/models/Untitled.obj");
-    BE_Mesh billboard = BE_LoadOBJToMesh("res/models/billboard.obj");
-    BE_Mesh cameraMesh = BE_LoadOBJToMesh("res/models/Camera/Camera.obj");
+    BE_Mesh mesh_cube = BE_LoadOBJToMesh("res/models/cube.obj");
+    BE_Mesh mesh_scene1 = BE_LoadOBJToMesh("res/models/scene.obj");
+    BE_Mesh mesh_camera = BE_LoadOBJToMesh("res/models/camera.obj");
     
-    BE_VAO quadVAO = BE_VAOInitQuad();
-    BE_VAO bbVAO = BE_VAOInitBillboardQuad();
+    // BE_VAO vao_quad = BE_VAOInitQuad();
+    // BE_VAO vao_billboard = BE_VAOInitBillboardQuad();
     
-    FBOs[0] = BE_FBOInit(windowWidth, windowHeight);
-    FBOs[1] = BE_FBOInit(windowWidth, windowHeight);
-    int ping = 0;
+    // FBOs[0] = BE_FBOInit(windowWidth, windowHeight);
+    // FBOs[1] = BE_FBOInit(windowWidth, windowHeight);
+    // int ping = 0;
 
     BE_Joystick joystick;
 
@@ -103,13 +79,15 @@ int main() {
     BE_CameraVectorPush(&scene.cameras, BE_CameraInit(windowWidth, windowHeight, 45.0f, 0.1f, 100.0f, (vec3){-1.93f, 0.73f, -1.75f}, (vec3){0.67f, -0.12f, 0.73f}));
     BE_LightVectorPush(&scene.lights, BE_LightInit(LIGHT_DIRECT, (vec3){0,0,0}, (vec3){0.5f, -0.4f, 0.5f}, (vec4){1.0f, 1.0f, 1.0f, 1.0f}, 0.5f, 0, 0, 0, 0));
     BE_LightVectorPush(&scene.lights, BE_LightInit(LIGHT_POINT, (vec3){0,0,0}, (vec3){0,0,0}, (vec4){1.0f, 1.0f, 1.0f, 1.0f}, 0.5f, 1.0f, 0.04f, 0, 0));
-    BE_ModelVectorPush(&scene.models, BE_ModelInit(&scene1, BE_TransformInit((vec3){0.0f, 0.0f, 0.0f}, (vec3){0.0f, 0.0f, 0.0f}, (vec3){1.0f, 1.0f, 1.0f})));
+    BE_ModelVectorPush(&scene.models, BE_ModelInit(&mesh_scene1, BE_TransformInit((vec3){0.0f, 0.0f, 0.0f}, (vec3){0.0f, 0.0f, 0.0f}, (vec3){1.0f, 1.0f, 1.0f})));
 
     BE_Camera* selectedCamera = &scene.cameras.data[0];
 
-    printf("seconds to load objects %.2fs\n", glfwGetTime());
+    fprintf(stdout, "Time to load scene -> %.2fs\n", glfwGetTime());
 
     while(!glfwWindowShouldClose(window)) {
+
+        // UPDATES
 
         BE_UpdateFrameTimeInfo(&timer);
 
@@ -133,6 +111,9 @@ int main() {
         glm_vec4_copy(rainbowColor, scene.lights.data[1].color);
         
         BE_CameraInputs(selectedCamera, window, &joystick, timer.dt);
+
+        // RENDERS
+
         BE_CameraVectorUpdateMatrix(&scene.cameras, windowWidth, windowHeight);
         BE_LightVectorUpdateMatrix(&scene.lights);
         BE_LightVectorUpdateMultiMaps(&scene.lights, &scene.models, &shader_shadowMap, (glfwGetKey(window, GLFW_KEY_3) != GLFW_PRESS));
@@ -153,17 +134,16 @@ int main() {
         BE_LightVectorUpload(&scene.lights, &shader_default);
         BE_CameraMatrixUpload(selectedCamera, &shader_default, "camMatrix");
         BE_CameraMatrixUpload(selectedCamera, &shader_color, "camMatrix");
-
         glUniform1i(glGetUniformLocation(shader_default.ID, "sampleRadius"), 0);
+
         BE_ModelVectorDraw(&scene.models, &shader_default);
-        BE_LightVectorDraw(&scene.lights, &light, &shader_color);
-        BE_CameraVectorDraw(&scene.cameras, &cameraMesh, &shader_color, selectedCamera);
+        BE_LightVectorDraw(&scene.lights, &mesh_cube, &shader_color);
+        BE_CameraVectorDraw(&scene.cameras, &mesh_camera, &shader_color, selectedCamera);
 
-        ping = !ping;
-        glDisable(GL_DEPTH_TEST);
-        glDisable(GL_CULL_FACE);
-        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-
+        // ping = !ping;
+        // glDisable(GL_DEPTH_TEST);
+        // glDisable(GL_CULL_FACE);
+        // glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
         // BE_FBOUnbind();
         // glViewport(0, 0, windowWidth, windowHeight);
         // // glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
@@ -171,7 +151,7 @@ int main() {
         // // glViewport(sceneX, sceneY, sceneWidth, sceneHeight);
         // BE_ShaderActivate(&shader_pixelate);
         // BE_FBOBindTexture(&FBOs[ping], &shader_pixelate);
-        // BE_VAODrawQuad(&quadVAO);
+        // BE_VAODrawQuad(&vao_quad);
         // glViewport(0, 0, windowWidth, windowHeight);
 
         glfwSwapBuffers(window);
