@@ -28,6 +28,7 @@
 #include <engine/cglm/cglm.h>
 #include <engine/stb_image/stb_image.h>
 #include <engine/stb_image/stb_image_resize.h>
+#include <engine/stb_image/stb_truetype.h>
 #include <time.h>
 
 void BE_MatrixMakeModel(vec3 translation, vec3 rotation, vec3 scale, mat4 dest);
@@ -369,6 +370,72 @@ void BE_LightVectorUpdateMaps(BE_LightVector* vec, BE_Shader* shadowShader, Shad
 void BE_LightVectorUpdateMultiMaps(BE_LightVector* vec, BE_ModelVector* models, BE_Shader* shadowShader, bool enabled);
 void BE_LightVectorUpload(BE_LightVector* vec, BE_Shader* shader);
 void BE_LightVectorDraw(BE_LightVector* vec, BE_Mesh* mesh, BE_Shader* shader);
+
+typedef struct {
+    float u0, v0, u1, v1;
+    int width, height;
+    int bearingX, bearingY;
+    int advance;
+} BE_Glyph;
+
+typedef struct {
+    GLuint atlasTex;
+    int atlasWidth;
+    int atlasHeight;
+
+    BE_Glyph* glyphs;
+    int glyphCount;
+
+    int lineHeight;
+} BE_Font;
+
+typedef struct {
+    BE_Font* font;
+    char* text;
+    vec3 position;
+    vec4 color;
+    float scale;
+
+    GLuint vao, vbo;
+    int quadCount;
+    bool isDynamic;
+
+    bool dirty;
+} BE_Text;
+
+typedef struct {
+    BE_Text* data;
+    size_t size;
+    size_t capacity;
+} BE_TextVector;
+
+// FOnt Load
+
+BE_Font BE_FontLoad(const char* ttf_path, int pixelSize);
+BE_Text BE_TextInit(const char* text, BE_Font* font, vec3 position, float scale, vec4 color, bool dynamic);
+void BE_TextUpdate(BE_Text* t, const char* newText);
+
+void BE_TextRender(BE_Text* t, GLuint shaderProgram, mat4 proj);
+
+void BE_TextVectorInit(BE_TextVector* vec);
+void BE_TextVectorPush(BE_TextVector* vec, BE_Text value);
+void BE_TextVectorFree(BE_TextVector* vec);
+void BE_TextVectorCopy(BE_Text* texts, size_t count, BE_TextVector* outVec);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 typedef struct {
     BE_ModelVector models;

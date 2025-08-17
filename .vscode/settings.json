@@ -56,7 +56,9 @@
         "ostream": "c",
         "sstream": "c",
         "system_error": "c",
-        "math.h": "c"
+        "math.h": "c",
+        "ft2build.h": "c",
+        "stb_truetype.h": "c"
     },
     "C_Cpp.errorSquiggles": "disabled"
 }
