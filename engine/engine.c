@@ -252,6 +252,31 @@ BE_VAO BE_VAOInitQuad() {
     return vao;
 }
 
+BE_VAO BE_VAOInitSprite() {
+    
+    GLfloat vertices[] = {
+        // First triangle
+        -0.5f, -0.5f, 0.0f, 0.0f,  // bottom-left
+        0.5f, -0.5f, 1.0f, 0.0f,  // bottom-right
+        0.5f,  0.5f, 1.0f, 1.0f,  // top-right
+
+        // Second triangle
+        -0.5f, -0.5f, 0.0f, 0.0f,  // bottom-left
+        0.5f,  0.5f, 1.0f, 1.0f,  // top-right
+        -0.5f,  0.5f, 0.0f, 1.0f   // top-left
+    };
+    
+    BE_VAO vao = BE_VAOInit();
+    BE_VAOBind(&vao);
+    BE_VBO vbo = BE_VBOInitFromData(vertices, sizeof(vertices));
+    BE_LinkVertexAttribToVBO(&vbo, 0, 2, GL_FLOAT, 4 * sizeof(float), (void*)0);
+    BE_LinkVertexAttribToVBO(&vbo, 1, 2, GL_FLOAT, 4 * sizeof(float), (void*)(2 * sizeof(float)));
+    BE_VAOUnbind();
+    BE_VBOUnbind();
+
+    return vao;
+}
+
 BE_VAO BE_VAOInitBillboardQuad() {
     
     GLfloat vertices[] = {
@@ -650,6 +675,7 @@ BE_Texture BE_TextureInit(const char* imageFile, const char* texType, GLuint slo
     stbi_image_free(bytes);
     glBindTexture(GL_TEXTURE_2D, 0);
 
+    // MSG_INFO(imageFile, 1, "texture loaded succesfully");
     return texture;
 }
 
@@ -726,7 +752,8 @@ BE_Camera BE_CameraInit(int width, int height, float fov, float nearPlane, float
 
     mat4 mat;
     glm_mat4_identity(mat);
-    glm_mat4_copy(mat, camera.cameraMatrix);
+    glm_mat4_copy(mat, camera.projPersp);
+    glm_mat4_copy(mat, camera.projOrtho);
 
     return camera;
 }
@@ -853,10 +880,16 @@ void BE_CameraInputs(BE_Camera* camera, GLFWwindow* window, BE_Joystick* joystic
 
 }
 
-void BE_CameraMatrixUpload(BE_Camera* camera, BE_Shader* shader, const char* uniform) {
+void BE_CameraMatrixUploadPersp(BE_Camera* camera, BE_Shader* shader, const char* uniform) {
     BE_ShaderActivate(shader);
     glUniform3fv(glGetUniformLocation(shader->ID, "camPos"), 1, (float*)camera->position);
-    glUniformMatrix4fv(glGetUniformLocation(shader->ID, uniform), 1, GL_FALSE, (float*)camera->cameraMatrix);
+    glUniformMatrix4fv(glGetUniformLocation(shader->ID, uniform), 1, GL_FALSE, (float*)camera->projPersp);
+}
+
+void BE_CameraMatrixUploadOrtho(BE_Camera* camera, BE_Shader* shader, const char* uniform) {
+    BE_ShaderActivate(shader);
+    glUniform3fv(glGetUniformLocation(shader->ID, "camPos"), 1, (float*)camera->position);
+    glUniformMatrix4fv(glGetUniformLocation(shader->ID, uniform), 1, GL_FALSE, (float*)camera->projOrtho);
 }
 
 void BE_CameraMatrixUploadCustom(BE_Shader* shader, const char* uniform, vec3 position, mat4 matrix) {
@@ -899,7 +932,6 @@ void BE_CameraVectorUpdateMatrix(BE_CameraVector* vec, int width, int height) {
     
     mat4 view;
     mat4 projection;
-    mat4 ortho;
     mat4 projView;
     
     for (size_t i = 0; i < vec->size; i++) {
@@ -907,16 +939,18 @@ void BE_CameraVectorUpdateMatrix(BE_CameraVector* vec, int width, int height) {
         
         float fov = camera->fov;
 
+        camera->width = width;
+        camera->height = height;
+
         vec3 target;
         glm_vec3_add(camera->position, camera->direction, target);
         glm_lookat(camera->position, target, camera->Up, view);
         glm_perspective(glm_rad(fov), (float)camera->width / (float)camera->height, camera->nearPlane, camera->farPlane, projection);
         glm_mat4_mul(projection, view, projView);
-        glm_mat4_copy(projView, camera->cameraMatrix);
+        glm_mat4_copy(projView, camera->projPersp);
         glm_mat4_copy(view, camera->viewMatrix);
 
-        camera->width = width;
-        camera->height = height;
+        glm_ortho(0.0f, (float)camera->width, (float)camera->height, 0.0f, -1.0f, 1.0f, camera->projOrtho);
 
     }
 }
@@ -2018,7 +2052,6 @@ void BE_TextRender(BE_Text* t, GLuint shaderProgram, mat4 proj) {
     glUseProgram(0);
 }
 
-
 #define INITIAL_TEXT_CAPACITY 4
 
 void BE_TextVectorInit(BE_TextVector* vec) {
@@ -2050,6 +2083,81 @@ void BE_TextVectorCopy(BE_Text* texts, size_t count, BE_TextVector* outVec) {
 }
 
 // ==============================
+// Sprite
+// ==============================
+
+BE_Sprite BE_SpriteInit(vec3 position, vec2 scale, float rotation, vec3 color, BE_Texture* texture) {
+    BE_Sprite sprite = {0};
+
+    glm_vec3_copy(position, sprite.position);
+    glm_vec2_copy(scale, sprite.scale);
+    glm_vec3_copy(color, sprite.color);
+
+    sprite.rotation = rotation;
+    sprite.texture = texture;
+    
+    return sprite;
+}
+
+#define INITIAL_SPRITE_CAPACITY 4
+
+void BE_SpriteVectorInit(BE_SpriteVector* vec) {
+    vec->data = (BE_Sprite*)malloc(sizeof(BE_Sprite) * INITIAL_SPRITE_CAPACITY);
+    vec->size = 0;
+    vec->capacity = INITIAL_SPRITE_CAPACITY;
+
+    vec->vao = BE_VAOInitSprite();
+}
+
+void BE_SpriteVectorPush(BE_SpriteVector* vec, BE_Sprite value) {
+    if (vec->size >= vec->capacity) {
+        vec->capacity *= 2;
+        vec->data = (BE_Sprite*)realloc(vec->data, sizeof(BE_Sprite) * vec->capacity);
+    }
+    vec->data[vec->size++] = value;
+}
+
+void BE_SpriteVectorFree(BE_SpriteVector* vec) {
+    free(vec->data);
+    vec->data = NULL;
+    vec->size = 0;
+    vec->capacity = 0;
+}
+
+void BE_SpriteVectorCopy(BE_Sprite* sprites, size_t count, BE_SpriteVector* outVec) {
+    BE_SpriteVectorInit(outVec);
+    for (size_t i = 0; i < count; i++) {
+        BE_SpriteVectorPush(outVec, sprites[i]);
+    }
+}
+
+void BE_SpriteVectorDraw(BE_SpriteVector* vec, BE_Shader* shader) {
+    BE_ShaderActivate(shader);
+    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+
+    mat4 model;
+
+    for (size_t i = 0; i < vec->size; i++) {
+        BE_Sprite* sprite = &vec->data[i];
+
+        glm_mat4_identity(model);
+        glm_translate(model, sprite->position);
+        glm_translate(model, (vec3){0.0f, 0.0f, 0.0f}); // optional pivot
+        glm_rotate(model, sprite->rotation, (vec3){0.0f, 0.0f, 1.0f});
+        glm_scale(model, (vec3){sprite->scale[0], sprite->scale[1], 1.0f});
+
+        glUniformMatrix4fv(glGetUniformLocation(shader->ID, "model"), 1, GL_FALSE, (float*)model);
+        glUniform3fv(glGetUniformLocation(shader->ID, "spriteColor"), 1, (float*)sprite->color);
+
+        BE_TextureBind(sprite->texture);
+        BE_TextureSetUniformUnit(shader, "spriteTexture", 0);
+
+        BE_VAOBind(&vec->vao);
+        glDrawArrays(GL_TRIANGLES, 0, 6);
+    }
+}
+
+// ==============================
 // Scene
 // ==============================
 
@@ -2059,6 +2167,7 @@ BE_Scene BE_SceneInit() {
     BE_CameraVectorPush(&scene.cameras, BE_CameraInit(1, 1, 45.0f, 0.1f, 100.0f, (vec3){-1.93f, 0.73f, -1.75f}, (vec3){0.67f, -0.12f, 0.73f}));
     BE_LightVectorInit(&scene.lights);
     BE_ModelVectorInit(&scene.models);
+    BE_SpriteVectorInit(&scene.sprites);
     return scene;
 }
 
@@ -2081,7 +2190,7 @@ void BE_SceneDraw(BE_Scene* scene, BE_Shader* shader, BE_Shader* shadow, BE_Came
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
     BE_LightVectorUpload(&scene->lights, shader);
-    BE_CameraMatrixUpload(camera, shader, "camMatrix");
+    BE_CameraMatrixUploadPersp(camera, shader, "camMatrix");
 
     glUniform1i(glGetUniformLocation(shader->ID, "sampleRadius"), 0);
     BE_ModelVectorDraw(&scene->models, shader);

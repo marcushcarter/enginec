@@ -22,8 +22,8 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
 
     glViewport(0, 0, width, height);
 
-    // BE_FBOResize(&FBOs[0], width, height);
-    // BE_FBOResize(&FBOs[1], width, height);
+    BE_FBOResize(&FBOs[0], width, height);
+    BE_FBOResize(&FBOs[1], width, height);
 }
 
 int main() {
@@ -56,6 +56,8 @@ int main() {
     BE_Shader shader_framebuffer = BE_ShaderInit("shaders/framebuffer/framebuffer.vert", "shaders/framebuffer/framebuffer.frag", NULL);
     BE_Shader shader_pixelate = BE_ShaderInit("shaders/framebuffer/framebuffer.vert", "shaders/framebuffer/pixelate.frag", NULL);
     BE_Shader shader_outline = BE_ShaderInit("shaders/framebuffer/framebuffer.vert", "shaders/framebuffer/outline.frag", NULL);
+    
+    BE_Shader shader_sprite = BE_ShaderInit("shaders/sprites/sprite.vert", "shaders/sprites/sprite.frag", NULL);
 
     // MESHES
 
@@ -63,12 +65,14 @@ int main() {
     BE_Mesh mesh_scene1 = BE_LoadOBJToMesh("res/models/scene.obj");
     BE_Mesh mesh_camera = BE_LoadOBJToMesh("res/models/camera.obj");
     
-    // BE_VAO vao_quad = BE_VAOInitQuad();
-    // BE_VAO vao_billboard = BE_VAOInitBillboardQuad();
+    BE_VAO vao_quad = BE_VAOInitQuad();
+    BE_VAO vao_billboard = BE_VAOInitBillboardQuad();
+
+    BE_Texture texture1 = BE_TextureInit("res/textures/box.png", "diffuse", 0);
     
-    // FBOs[0] = BE_FBOInit(windowWidth, windowHeight);
-    // FBOs[1] = BE_FBOInit(windowWidth, windowHeight);
-    // int ping = 0;
+    FBOs[0] = BE_FBOInit(windowWidth, windowHeight);
+    FBOs[1] = BE_FBOInit(windowWidth, windowHeight);
+    int ping = 0;
 
     BE_Joystick joystick;
 
@@ -83,6 +87,7 @@ int main() {
     BE_LightVectorPush(&activeScene->lights, BE_LightInit(LIGHT_DIRECT, (vec3){0,0,0}, (vec3){0.5f, -0.4f, 0.5f}, (vec4){1.0f, 1.0f, 1.0f, 1.0f}, 0.5f, 0, 0, 0, 0));
     BE_LightVectorPush(&activeScene->lights, BE_LightInit(LIGHT_POINT, (vec3){0,0,0}, (vec3){0,0,0}, (vec4){1.0f, 1.0f, 1.0f, 1.0f}, 0.5f, 1.0f, 0.04f, 0, 0));
     BE_ModelVectorPush(&activeScene->models, BE_ModelInit(&mesh_scene1, BE_TransformInit((vec3){0.0f, 0.0f, 0.0f}, (vec3){0.0f, 0.0f, 0.0f}, (vec3){1.0f, 1.0f, 1.0f})));
+    BE_SpriteVectorPush(&activeScene->sprites, BE_SpriteInit((vec3){windowWidth/2, windowHeight/2, 0.0f}, (vec2){100.0f, 100.0f}, 0.0f, (vec3){1.0f, 1.0f, 1.0f}, &texture1));
 
     BE_Camera* selectedCamera = &activeScene->cameras.data[0];
 
@@ -112,6 +117,7 @@ int main() {
             1.0f
         };
         glm_vec4_copy(rainbowColor, activeScene->lights.data[1].color);
+        glm_vec2_copy((vec3){windowWidth/2, windowHeight/2, 0.0f}, activeScene->sprites.data[0].position);
         
         BE_CameraInputs(selectedCamera, window, &joystick, timer.dt);
 
@@ -135,13 +141,15 @@ int main() {
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
         BE_LightVectorUpload(&activeScene->lights, &shader_default);
-        BE_CameraMatrixUpload(selectedCamera, &shader_default, "camMatrix");
-        BE_CameraMatrixUpload(selectedCamera, &shader_color, "camMatrix");
+        BE_CameraMatrixUploadPersp(selectedCamera, &shader_default, "camMatrix");
+        BE_CameraMatrixUploadPersp(selectedCamera, &shader_color, "camMatrix");
+        BE_CameraMatrixUploadOrtho(selectedCamera, &shader_sprite, "camMatrix");
         glUniform1i(glGetUniformLocation(shader_default.ID, "sampleRadius"), 0);
 
         BE_ModelVectorDraw(&activeScene->models, &shader_default);
         BE_LightVectorDraw(&activeScene->lights, &mesh_cube, &shader_color);
         BE_CameraVectorDraw(&activeScene->cameras, &mesh_camera, &shader_color, selectedCamera);
+        BE_SpriteVectorDraw(&activeScene->sprites, &shader_sprite);
 
         // ping = !ping;
         // glDisable(GL_DEPTH_TEST);

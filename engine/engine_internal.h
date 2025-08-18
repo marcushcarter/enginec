@@ -144,6 +144,7 @@ typedef struct {
 
 BE_VAO BE_VAOInit();
 BE_VAO BE_VAOInitQuad();
+BE_VAO BE_VAOInitSprite();
 BE_VAO BE_VAOInitBillboardQuad();
 void BE_VAOBind(BE_VAO* vao);
 void BE_VAODrawQuad(BE_VAO* vao);
@@ -237,7 +238,8 @@ typedef struct {
     float zoom, fov;
     float nearPlane, farPlane;
     vec3 position, direction, Up;
-    mat4 cameraMatrix, viewMatrix;
+    mat4 projPersp, projOrtho;
+    mat4 viewMatrix;
 } BE_Camera;
 
 typedef struct {
@@ -248,7 +250,8 @@ typedef struct {
 
 BE_Camera BE_CameraInit(int width, int height, float fov, float nearPlane, float farPlane, vec3 position, vec3 direction);
 void BE_CameraInputs(BE_Camera* camera, GLFWwindow* window, BE_Joystick* js, float dt);
-void BE_CameraMatrixUpload(BE_Camera* camera, BE_Shader* shader, const char* uniform);
+void BE_CameraMatrixUploadPersp(BE_Camera* camera, BE_Shader* shader, const char* uniform);
+void BE_CameraMatrixUploadOrtho(BE_Camera* camera, BE_Shader* shader, const char* uniform);
 void BE_CameraMatrixUploadCustom(BE_Shader* shader, const char* uniform, vec3 position, mat4 matrix);
 
 void BE_CameraVectorInit(BE_CameraVector* vec);
@@ -422,25 +425,36 @@ void BE_TextVectorPush(BE_TextVector* vec, BE_Text value);
 void BE_TextVectorFree(BE_TextVector* vec);
 void BE_TextVectorCopy(BE_Text* texts, size_t count, BE_TextVector* outVec);
 
+typedef struct {
+    vec3 position;
+    vec2 scale;
+    float rotation;
+    vec3 color;
+    BE_Texture* texture;
+} BE_Sprite;
 
+typedef struct {
+    BE_Sprite* data;
+    size_t size;
+    size_t capacity;
 
+    BE_VAO vao;
+} BE_SpriteVector;
 
+BE_Sprite BE_SpriteInit(vec3 position, vec2 scale, float rotation, vec3 color, BE_Texture* texture);
 
+void BE_SpriteVectorInit(BE_SpriteVector* vec);
+void BE_SpriteVectorPush(BE_SpriteVector* vec, BE_Sprite value);
+void BE_SpriteVectorFree(BE_SpriteVector* vec);
+void BE_SpriteVectorCopy(BE_Sprite* sprites, size_t count, BE_SpriteVector* outVec);
 
-
-
-
-
-
-
-
-
-
+void BE_SpriteVectorDraw(BE_SpriteVector* vec, BE_Shader* shader);
 
 typedef struct {
     BE_ModelVector models;
     BE_LightVector lights;
     BE_CameraVector cameras;
+    BE_SpriteVector sprites;
 } BE_Scene;
 
 typedef struct {
