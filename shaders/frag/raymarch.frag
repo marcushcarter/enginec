@@ -3,8 +3,6 @@
 in vec4 v_color;
 in vec2 v_texCoord;
 
-uniform sampler2D u_texture;
-uniform float time;
 uniform vec3 camPos;
 uniform vec3 u_cameraOrientation;
 
@@ -46,8 +44,6 @@ float sdOctahedron( vec3 p, float s ) {
 }
 
 float map(vec3 p) {
-
-    //p.z += time * .4;
 
     float sphere = sdOctahedron(p - camPos - vec3(0, 0, -1), .15);
 

@@ -49,15 +49,15 @@ int main() {
 
     // SHADERS
     
-    BE_Shader shader_default = BE_ShaderInit("shaders/vert/default.vert", "shaders/frag/default.frag", NULL);
-    BE_Shader shader_color = BE_ShaderInit("shaders/vert/default.vert", "shaders/frag/color.frag", NULL);
-    BE_Shader shader_shadowMap = BE_ShaderInit("shaders/vert/shadowMap.vert", "shaders/frag/blank.frag", NULL);
+    BE_Shader shader_default = BE_ShaderInit("shaders/vert/scene.vert", "shaders/frag/scene.frag", NULL);
+    BE_Shader shader_color = BE_ShaderInit("shaders/vert/scene.vert", "shaders/frag/flatcolor.frag", NULL);
+    BE_Shader shader_depth = BE_ShaderInit("shaders/vert/depth.vert", "shaders/frag/blank.frag", NULL);
     
-    BE_Shader shader_framebuffer = BE_ShaderInit("shaders/framebuffer/framebuffer.vert", "shaders/framebuffer/framebuffer.frag", NULL);
-    BE_Shader shader_pixelate = BE_ShaderInit("shaders/framebuffer/framebuffer.vert", "shaders/framebuffer/pixelate.frag", NULL);
-    BE_Shader shader_outline = BE_ShaderInit("shaders/framebuffer/framebuffer.vert", "shaders/framebuffer/outline.frag", NULL);
+    BE_Shader shader_framebuffer = BE_ShaderInit("shaders/vert/framebuffer.vert", "shaders/frag/blit.frag", NULL);
+    BE_Shader shader_pixelate = BE_ShaderInit("shaders/vert/framebuffer.vert", "shaders/frag/pixelate.frag", NULL);
+    BE_Shader shader_outline = BE_ShaderInit("shaders/vert/framebuffer.vert", "shaders/frag/outline.frag", NULL);
     
-    BE_Shader shader_sprite = BE_ShaderInit("shaders/sprites/sprite.vert", "shaders/sprites/sprite.frag", NULL);
+    BE_Shader shader_sprite = BE_ShaderInit("shaders/vert/sprite.vert", "shaders/frag/sprite.frag", NULL);
 
     // MESHES
 
@@ -125,7 +125,7 @@ int main() {
 
         BE_CameraVectorUpdateMatrix(&activeScene->cameras, windowWidth, windowHeight);
         BE_LightVectorUpdateMatrix(&activeScene->lights);
-        BE_LightVectorUpdateMultiMaps(&activeScene->lights, &activeScene->models, &shader_shadowMap, (glfwGetKey(window, GLFW_KEY_3) != GLFW_PRESS));
+        BE_LightVectorUpdateMultiMaps(&activeScene->lights, &activeScene->models, &shader_depth, (glfwGetKey(window, GLFW_KEY_3) != GLFW_PRESS));
         
         // BE_FBOBind(&FBOs[ping]);
         glViewport(0, 0, windowWidth, windowHeight);
