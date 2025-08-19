@@ -29,6 +29,9 @@
 #include <engine/stb_image/stb_image.h>
 #include <engine/stb_image/stb_image_resize.h>
 #include <engine/stb_image/stb_truetype.h>
+#include <engine/AL/al.h>
+#include <engine/AL/alc.h>
+#include <engine/dr_wav/dr_wav.h>
 #include <time.h>
 
 void BE_MatrixMakeModel(vec3 translation, vec3 rotation, vec3 scale, mat4 dest);
@@ -472,11 +475,98 @@ void BE_SpriteVectorDraw(BE_SpriteVector* vec, BE_Shader* shader);
 // void BE_ParticlesUpdate(BE_GPUParticles* ps, float dt, uint32_t frame);
 // void BE_ParticlesDraw(BE_GPUParticles* ps, mat4 view, mat4 proj, int additive);
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+typedef struct {
+    ALuint bufferID;
+    char* name;
+} BE_Sound;
+
+typedef struct {
+    BE_Sound* data;
+    size_t size;
+    size_t capacity;
+} BE_SoundVector;
+
+typedef struct {
+    ALuint sourceID;
+    BE_Sound* buffer;
+    vec3 position;
+    float gain;
+    float pitch;
+    bool looping;
+    bool spatial;
+} BE_SoundSource;
+
+typedef struct {
+    BE_SoundSource* data;
+    size_t size;
+    size_t capacity;
+} BE_SoundSourceVector;
+
+typedef struct {
+    ALCdevice* device;
+    ALCcontext* context;
+} BE_SoundSystem;
+
+void BE_SoundUpdateListener(BE_Camera* cam);
+
+BE_Sound BE_LoadWav(const char* path, const char* name);
+BE_SoundSource BE_SoundSourceInit(BE_Sound* buffer, vec3 position, bool spatial);
+
+void BE_SoundSourcePlay(BE_SoundSource* e);
+void BE_SoundSourceStop(BE_SoundSource* e);
+void BE_SoundSourceSetPosition(BE_SoundSource* e, vec3 position);
+void BE_SoundSourceSetGain(BE_SoundSource* e, float gain);
+
+BE_SoundSystem BE_SoundSystemInit();
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 typedef struct {
     BE_ModelVector models;
     BE_LightVector lights;
     BE_CameraVector cameras;
     BE_SpriteVector sprites;
+    BE_SoundSourceVector emitters;
+    BE_SoundVector buffers;
 } BE_Scene;
 
 typedef struct {

@@ -92,6 +92,14 @@ int main() {
 
     BE_Camera* selectedCamera = &activeScene->cameras.data[0];
 
+    BE_SoundSystem audio = BE_SoundSystemInit();
+    BE_Sound breakout = BE_LoadWav("res/sounds/breakout.wav", "breakout");
+    vec3 pos = {10.f,0.f,0.f};
+    BE_SoundSource emitter = BE_SoundSourceInit(&breakout, pos, true);
+    BE_SoundSourcePlay(&emitter);
+
+    alDistanceModel(AL_INVERSE_DISTANCE_CLAMPED);
+
     fprintf(stdout, "Time to load scene -> %.2fs\n", glfwGetTime());
 
     while(!glfwWindowShouldClose(window)) {
@@ -121,6 +129,7 @@ int main() {
         glm_vec2_copy((vec3){windowWidth/2, windowHeight/2, 0.0f}, activeScene->sprites.data[0].position);
         
         BE_CameraInputs(selectedCamera, window, &joystick, timer.dt);
+        BE_SoundUpdateListener(selectedCamera);
 
         // RENDERS
 

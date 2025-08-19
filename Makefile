@@ -6,11 +6,11 @@ CXXFLAGS := -g -lm
 
 # === Paths ===
 INCLUDES := -Iinclude -I. -Iengine
-LDFLAGS := -Llib -lglfw3dll
+LDFLAGS := -Llib -lglfw3dll -lopenal32
 
 # === Files ===
 SRCS := src/example.c #$(wildcard src/*.c) 
-ENGINE_SCRS := $(wildcard engine/*.c) $(wildcard engine/glad/*.c) $(wildcard engine/stb_image/*.c)
+ENGINE_SCRS := $(wildcard engine/*.c) $(wildcard engine/glad/*.c) $(wildcard engine/stb_image/*.c) $(wildcard engine/dr_wav/*.c)
 NUKLEAR_SRC := $(wildcard include/nuklear/*.c)
 
 ALL_SRCS:= $(SRCS) $(NUKLEAR_SRC) $(ENGINE_SCRS)

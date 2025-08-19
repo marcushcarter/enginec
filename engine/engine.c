@@ -2265,6 +2265,143 @@ void BE_SpriteVectorDraw(BE_SpriteVector* vec, BE_Shader* shader) {
 // }
 
 // ==============================
+// Audio
+// ==============================
+
+void BE_SoundUpdateListener(BE_Camera* cam) {
+    vec3 forward;
+    glm_vec3_copy(cam->direction, forward);
+    glm_vec3_normalize(forward);
+
+    vec3 up = {0.f, 1.f, 0.f};
+
+    alListener3f(AL_POSITION, cam->position[0], cam->position[1], cam->position[2]);
+    
+    vec3 velocity = {0.f, 0.f, 0.f};
+    alListener3f(AL_VELOCITY, velocity[0], velocity[1], velocity[2]);
+
+    float orientation[6] = {
+        forward[0], forward[1], forward[2],
+        up[0], up[1], up[2]
+    };
+
+    alListenerfv(AL_ORIENTATION, orientation);
+}
+
+BE_Sound BE_LoadWav(const char* path, const char* name) {
+    BE_Sound buf = {0};
+    drwav wav;
+    if (!drwav_init_file(&wav, path, NULL)) {
+        fprintf(stderr, "Failed to load WAV: %s\n", path);
+        return buf;
+    }
+
+    // Allocate memory and read PCM samples
+    uint16_t* pcm = malloc(wav.totalPCMFrameCount * wav.channels * sizeof(uint16_t));
+    drwav_read_pcm_frames_s16(&wav, wav.totalPCMFrameCount, pcm);
+
+    // Create OpenAL buffer
+    alGenBuffers(1, &buf.bufferID);
+
+    // Determine format
+    ALenum format;
+    if (wav.channels == 1) format = AL_FORMAT_MONO16;
+    else if (wav.channels == 2) format = AL_FORMAT_STEREO16;
+    else {
+        fprintf(stderr, "Unsupported channel count: %d\n", wav.channels);
+        drwav_uninit(&wav);
+        free(pcm);
+        return buf;
+    }
+
+    alBufferData(buf.bufferID, format, pcm, (ALsizei)(wav.totalPCMFrameCount * wav.channels * sizeof(uint16_t)), wav.sampleRate);
+
+    drwav_uninit(&wav);
+    free(pcm);
+
+    // Set name
+    if (name) {
+        buf.name = malloc(strlen(name)+1);
+        strcpy(buf.name,name);
+    } else buf.name = NULL;
+
+    return buf;
+}
+
+BE_SoundSource BE_SoundSourceInit(BE_Sound* buffer, vec3 position, bool spatial) {
+    BE_SoundSource e = {0};
+
+    e.buffer = buffer;
+    glm_vec3_copy(position, e.position);
+    e.gain = 1.f;
+    e.pitch = 1.f;
+    e.looping = false;
+    e.spatial = spatial;
+
+    alGenSources(1, &e.sourceID);
+    alSourcei(e.sourceID, AL_BUFFER, buffer->bufferID);
+    
+    alSourcei(e.sourceID, AL_LOOPING, AL_FALSE);
+
+    if(spatial){
+        alSource3f(e.sourceID, AL_POSITION, position[0], position[1], position[2]);
+        alSourcei(e.sourceID, AL_SOURCE_RELATIVE, AL_FALSE);
+        alSourcef(e.sourceID, AL_ROLLOFF_FACTOR, 5.f);
+        alSourcef(e.sourceID, AL_REFERENCE_DISTANCE, 5.f);
+        alSourcef(e.sourceID, AL_MAX_DISTANCE, 50.f);
+    } else {
+        alSourcei(e.sourceID, AL_SOURCE_RELATIVE, AL_TRUE);
+    }
+
+    alSourcef(e.sourceID, AL_GAIN, e.gain);
+    alSourcef(e.sourceID, AL_PITCH, e.pitch);
+
+    return e;
+}
+
+void BE_SoundSourcePlay(BE_SoundSource* e) {
+    alSourcePlay(e->sourceID);
+}
+
+void BE_SoundSourceStop(BE_SoundSource* e) {
+    alSourceStop(e->sourceID);
+}
+
+void BE_SoundSourceSetPosition(BE_SoundSource* e, vec3 position) {
+    glm_vec3_copy(position, e->position);
+    if(e->spatial) alSource3f(e->sourceID,AL_POSITION, position[0], position[1], position[2]);
+}
+
+void BE_SoundSourceSetGain(BE_SoundSource* e, float gain) {
+    e->gain = gain;
+    alSourcef(e->sourceID,AL_GAIN,gain);
+}
+
+BE_SoundSystem BE_SoundSystemInit() {
+    BE_SoundSystem sys = {0};
+    sys.device = alcOpenDevice(NULL);
+    if (!sys.device) {
+        fprintf(stderr,"Failed to open device\n");
+        exit(1); 
+    }
+
+    sys.context = alcCreateContext(sys.device, NULL);
+    if (!alcMakeContextCurrent(sys.context)) {
+        fprintf(stderr,"Failed to make context current\n");
+        exit(1);
+    }
+
+    alListener3f(AL_POSITION, 0, 0, 0);
+    alListener3f(AL_VELOCITY, 0, 0, 0);
+    float ori[6] = {0, 0, -1, 0, 1, 0};
+    alListenerfv(AL_ORIENTATION, ori);
+
+    alDistanceModel(AL_INVERSE_DISTANCE_CLAMPED);
+
+    return sys;
+}
+
+// ==============================
 // Scene
 // ==============================
 
