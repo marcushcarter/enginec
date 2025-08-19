@@ -189,7 +189,7 @@ typedef struct {
 
 char* BE_GetFileContents(const char* filename);
 void BE_ShaderGetCompileErrors(unsigned int shader, const char* type);
-BE_Shader BE_ShaderInit(const char* vertexFile, const char* fragmentFile, const char* geometryFile);
+BE_Shader BE_ShaderInit(const char* vertexFile, const char* fragmentFile, const char* geometryFile, const char* computeFile);
 void BE_ShaderActivate(BE_Shader* shader);
 void BE_ShaderDelete(BE_Shader* shader);
 
@@ -374,56 +374,56 @@ void BE_LightVectorUpdateMultiMaps(BE_LightVector* vec, BE_ModelVector* models, 
 void BE_LightVectorUpload(BE_LightVector* vec, BE_Shader* shader);
 void BE_LightVectorDraw(BE_LightVector* vec, BE_Mesh* mesh, BE_Shader* shader);
 
-typedef struct {
-    float u0, v0, u1, v1;
-    int width, height;
-    int bearingX, bearingY;
-    int advance;
-} BE_Glyph;
+// typedef struct {
+//     float u0, v0, u1, v1;
+//     int width, height;
+//     int bearingX, bearingY;
+//     int advance;
+// } BE_Glyph;
 
-typedef struct {
-    GLuint atlasTex;
-    int atlasWidth;
-    int atlasHeight;
+// typedef struct {
+//     GLuint atlasTex;
+//     int atlasWidth;
+//     int atlasHeight;
 
-    BE_Glyph* glyphs;
-    int glyphCount;
+//     BE_Glyph* glyphs;
+//     int glyphCount;
 
-    int lineHeight;
-} BE_Font;
+//     int lineHeight;
+// } BE_Font;
 
-typedef struct {
-    BE_Font* font;
-    char* text;
-    vec3 position;
-    vec4 color;
-    float scale;
+// typedef struct {
+//     BE_Font* font;
+//     char* text;
+//     vec3 position;
+//     vec4 color;
+//     float scale;
 
-    GLuint vao, vbo;
-    int quadCount;
-    bool isDynamic;
+//     GLuint vao, vbo;
+//     int quadCount;
+//     bool isDynamic;
 
-    bool dirty;
-} BE_Text;
+//     bool dirty;
+// } BE_Text;
 
-typedef struct {
-    BE_Text* data;
-    size_t size;
-    size_t capacity;
-} BE_TextVector;
+// typedef struct {
+//     BE_Text* data;
+//     size_t size;
+//     size_t capacity;
+// } BE_TextVector;
 
-// FOnt Load
+// // FOnt Load
 
-BE_Font BE_FontLoad(const char* ttf_path, int pixelSize);
-BE_Text BE_TextInit(const char* text, BE_Font* font, vec3 position, float scale, vec4 color, bool dynamic);
-void BE_TextUpdate(BE_Text* t, const char* newText);
+// BE_Font BE_FontLoad(const char* ttf_path, int pixelSize);
+// BE_Text BE_TextInit(const char* text, BE_Font* font, vec3 position, float scale, vec4 color, bool dynamic);
+// void BE_TextUpdate(BE_Text* t, const char* newText);
 
-void BE_TextRender(BE_Text* t, GLuint shaderProgram, mat4 proj);
+// void BE_TextRender(BE_Text* t, GLuint shaderProgram, mat4 proj);
 
-void BE_TextVectorInit(BE_TextVector* vec);
-void BE_TextVectorPush(BE_TextVector* vec, BE_Text value);
-void BE_TextVectorFree(BE_TextVector* vec);
-void BE_TextVectorCopy(BE_Text* texts, size_t count, BE_TextVector* outVec);
+// void BE_TextVectorInit(BE_TextVector* vec);
+// void BE_TextVectorPush(BE_TextVector* vec, BE_Text value);
+// void BE_TextVectorFree(BE_TextVector* vec);
+// void BE_TextVectorCopy(BE_Text* texts, size_t count, BE_TextVector* outVec);
 
 typedef struct {
     vec3 position;
@@ -449,6 +449,28 @@ void BE_SpriteVectorFree(BE_SpriteVector* vec);
 void BE_SpriteVectorCopy(BE_Sprite* sprites, size_t count, BE_SpriteVector* outVec);
 
 void BE_SpriteVectorDraw(BE_SpriteVector* vec, BE_Shader* shader);
+
+// #define MAX_PARTICLES (10000)
+// #define WORKGROUP_SIZE (250)
+
+// typedef struct {
+//     vec4 pos_life;
+//     vec4 vel_age;
+//     vec4 col_size;
+// } BE_ParticleGPU;
+
+// typedef struct {
+//     BE_Shader computeShader;
+//     BE_Shader renderShader;
+//     GLuint ssbo;
+//     BE_VAO vao;
+//     BE_Texture sprite;
+//     int particleCount;
+// } BE_GPUParticles;
+
+// BE_GPUParticles BE_ParticlesInit(const char* vertexFile, const char* fragmentFile, const char* computeFile, const char* imageFile);
+// void BE_ParticlesUpdate(BE_GPUParticles* ps, float dt, uint32_t frame);
+// void BE_ParticlesDraw(BE_GPUParticles* ps, mat4 view, mat4 proj, int additive);
 
 typedef struct {
     BE_ModelVector models;

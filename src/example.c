@@ -49,15 +49,16 @@ int main() {
 
     // SHADERS
     
-    BE_Shader shader_default = BE_ShaderInit("shaders/vert/scene.vert", "shaders/frag/scene.frag", NULL);
-    BE_Shader shader_color = BE_ShaderInit("shaders/vert/scene.vert", "shaders/frag/flatcolor.frag", NULL);
-    BE_Shader shader_depth = BE_ShaderInit("shaders/vert/depth.vert", "shaders/frag/blank.frag", NULL);
+    BE_Shader shader_default = BE_ShaderInit("shaders/vert/scene.vert", "shaders/frag/scene.frag", NULL, NULL);
+    BE_Shader shader_color = BE_ShaderInit("shaders/vert/scene.vert", "shaders/frag/flatcolor.frag", NULL, NULL);
+    BE_Shader shader_depth = BE_ShaderInit("shaders/vert/depth.vert", NULL, NULL, NULL);
     
-    BE_Shader shader_framebuffer = BE_ShaderInit("shaders/vert/framebuffer.vert", "shaders/frag/blit.frag", NULL);
-    BE_Shader shader_pixelate = BE_ShaderInit("shaders/vert/framebuffer.vert", "shaders/frag/pixelate.frag", NULL);
-    BE_Shader shader_outline = BE_ShaderInit("shaders/vert/framebuffer.vert", "shaders/frag/outline.frag", NULL);
+    BE_Shader shader_framebuffer = BE_ShaderInit("shaders/vert/framebuffer.vert", "shaders/frag/blit.frag", NULL, NULL);
+    BE_Shader shader_pixelate = BE_ShaderInit("shaders/vert/framebuffer.vert", "shaders/frag/pixelate.frag", NULL, NULL);
+    BE_Shader shader_outline = BE_ShaderInit("shaders/vert/framebuffer.vert", "shaders/frag/outline.frag", NULL, NULL);
     
-    BE_Shader shader_sprite = BE_ShaderInit("shaders/vert/sprite.vert", "shaders/frag/sprite.frag", NULL);
+    BE_Shader shader_sprite = BE_ShaderInit("shaders/vert/sprite.vert", "shaders/frag/sprite.frag", NULL, NULL);
+    // BE_Shader shader_particles = BE_ShaderInit("shaders/vert/particles.vert", "shaders/frag/particles.frag", NULL, "shaders/comp/particles.comp");
 
     // MESHES
 

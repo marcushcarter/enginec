@@ -463,22 +463,31 @@ void BE_ShaderGetCompileErrors(unsigned int shader, const char* type) {
     }
 }
 
-BE_Shader BE_ShaderInit(const char* vertexFile, const char* fragmentFile, const char* geometryFile) {
+BE_Shader BE_ShaderInit(const char* vertexFile, const char* fragmentFile, const char* geometryFile, const char* computeFile) {
     BE_Shader shader = {0};
-
-    const char* vertexSource = BE_GetFileContents(vertexFile);
-    const char* fragmentSource = BE_GetFileContents(fragmentFile);
-    const char* geometrySource = NULL;
-
-    GLuint vertexShader = glCreateShader(GL_VERTEX_SHADER);
-    glShaderSource(vertexShader, 1, &vertexSource, NULL);
-    glCompileShader(vertexShader);
-    BE_ShaderGetCompileErrors(vertexShader, "VERTEX");
     
-    GLuint fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
-    glShaderSource(fragmentShader, 1, &fragmentSource, NULL);
-    glCompileShader(fragmentShader);
-    BE_ShaderGetCompileErrors(fragmentShader, "FRAGMENT");
+    const char* vertexSource = NULL;
+    const char* fragmentSource = NULL;
+    const char* geometrySource = NULL;
+    const char* computeSource = NULL;
+    
+    GLuint vertexShader = 0;
+    if (vertexFile != NULL) {
+        vertexSource = BE_GetFileContents(vertexFile);
+        vertexShader = glCreateShader(GL_VERTEX_SHADER);
+        glShaderSource(vertexShader, 1, &vertexSource, NULL);
+        glCompileShader(vertexShader);
+        BE_ShaderGetCompileErrors(vertexShader, "VERTEX");
+    }
+    
+    GLuint fragmentShader = 0;
+    if (fragmentFile != NULL) {
+        fragmentSource = BE_GetFileContents(fragmentFile);
+        fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
+        glShaderSource(fragmentShader, 1, &fragmentSource, NULL);
+        glCompileShader(fragmentShader);
+        BE_ShaderGetCompileErrors(fragmentShader, "FRAGMENT");
+    }
 
     GLuint geometryShader = 0;
     if (geometryFile != NULL) {
@@ -489,20 +498,32 @@ BE_Shader BE_ShaderInit(const char* vertexFile, const char* fragmentFile, const 
         BE_ShaderGetCompileErrors(geometryShader, "GEOMETRY");
     }
 
+    GLuint computeShader = 0;
+    if (computeFile != NULL) {
+        computeSource = BE_GetFileContents(computeFile);
+        computeShader = glCreateShader(GL_COMPUTE_SHADER);
+        glShaderSource(computeShader, 1, &computeSource, NULL);
+        glCompileShader(computeShader);
+        BE_ShaderGetCompileErrors(computeShader, "COMPUTE");
+    }
+
     shader.ID = glCreateProgram();
-    glAttachShader(shader.ID, vertexShader);
-    glAttachShader(shader.ID, fragmentShader);
+    if (vertexFile != NULL) glAttachShader(shader.ID, vertexShader);
+    if (fragmentFile != NULL) glAttachShader(shader.ID, fragmentShader);
     if (geometryFile != NULL) glAttachShader(shader.ID, geometryShader);
+    if (computeFile != NULL) glAttachShader(shader.ID, computeShader);
     glLinkProgram(shader.ID);
     BE_ShaderGetCompileErrors(shader.ID, "PROGRAM");
 
-    glDeleteShader(vertexShader);
-    glDeleteShader(fragmentShader);
+    if (vertexFile != NULL) glDeleteShader(vertexShader);
+    if (fragmentFile != NULL) glDeleteShader(fragmentShader);
     if (geometryFile != NULL) glDeleteShader(geometryShader);
+    if (computeFile != NULL) glDeleteShader(computeShader);
 
-    free((void*)vertexSource);
-    free((void*)fragmentSource);
+    if (vertexFile != NULL) free((void*)vertexSource);
+    if (fragmentFile != NULL) free((void*)fragmentSource);
     if (geometryFile != NULL) free((void*)geometrySource);
+    if (computeFile != NULL) free((void*)computeSource);
 
     return shader;
 
@@ -1851,236 +1872,235 @@ void BE_LightVectorDraw(BE_LightVector* vec, BE_Mesh* mesh, BE_Shader* shader) {
 // Text
 // ==============================
 
-BE_Font BE_FontLoad(const char* ttf_path, int pixelSize) {
-    BE_Font font = {0};
+// BE_Font BE_FontLoad(const char* ttf_path, int pixelSize) {
+//     BE_Font font = {0};
+//
+//     FILE* file = fopen(ttf_path, "rb");
+//     if (!file) {
+//         MSG_ERROR(ttf_path, 1, "could not open file");
+//         exit(1);
+//     }
+//     fseek(file, 0, SEEK_END);
+//     long size = ftell(file);
+//     rewind(file);
+//
+//     unsigned char* ttfbuffer = malloc(size);
+//     fread(ttfbuffer, 1, size, file);
+//     fclose(file);
+//
+//     stbtt_fontinfo info;
+//     if (!stbtt_InitFont(&info, ttfbuffer, 0)) {
+//         MSG_ERROR(ttf_path, 1, "failed to load font");
+//         free(ttfbuffer);
+//         exit(1);
+//     }
+//
+//     font.glyphCount = 128;
+//     font.glyphs = calloc(font.glyphCount, sizeof(BE_Glyph));
+//
+//     font.atlasWidth = 1024;
+//     font.atlasHeight = 1024;
+//     unsigned char* atlasPixels = calloc(font.atlasWidth * font.atlasHeight, 1);
+//
+//     int penX = 0, penY = 0, rowHeight = 0;
+//     float scale = stbtt_ScaleForPixelHeight(&info, (float)pixelSize);
+//
+//     for (unsigned char c = 32; c < 128; c++) {
+//         int width, height, xoff, yoff;
+//         unsigned char* bmp = stbtt_GetCodepointBitmap(&info, 0, scale, c, &width, &height, &xoff, &yoff);
+//
+//         if (penX + width >= font.atlasWidth) {
+//             penX = 0;
+//             penY += rowHeight + 1;
+//             rowHeight = 0;
+//         }
+//
+//         for (int y = 0; y < height; y++) {
+//             for (int x =0; x < width; x++) {
+//                 int atlasIndex = (penY + y) * font.atlasWidth + (penX + x);
+//                 atlasPixels[atlasIndex] = bmp[y * width + x];
+//             }
+//         }
+//
+//         font.glyphs[c].u0 = (float)penX / font.atlasWidth;
+//         font.glyphs[c].v0 = (float)penY / font.atlasHeight;
+//         font.glyphs[c].u1 = (float)(penX + width) / font.atlasWidth;
+//         font.glyphs[c].v1 = (float)(penY + height) / font.atlasHeight;
+//      
+//         font.glyphs[c].width = width;
+//         font.glyphs[c].height = height;
+//         font.glyphs[c].bearingX = xoff;
+//         font.glyphs[c].bearingY = yoff;
+//         int advance, lsb;
+//         stbtt_GetCodepointHMetrics(&info, c, &advance, &lsb);
+//         font.glyphs[c].advance = (int)(advance * scale);
+//
+//         if (height > rowHeight) rowHeight = height;
+//         penX += width + 1;
+//
+//         stbtt_FreeBitmap(bmp, NULL);
+//     }
+//
+//     int ascent, descent, lineGap;
+//     stbtt_GetFontVMetrics(&info, &ascent, &descent, &lineGap);
+//     font.lineHeight = (int)((ascent - descent + lineGap) * scale);
+//
+//     glGenTextures(1, &font.atlasTex);
+//     glBindTexture(GL_TEXTURE_2D, font.atlasTex);
+//     glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, font.atlasWidth, font.atlasHeight, 0, GL_RED, GL_UNSIGNED_BYTE, atlasPixels);
+//     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+//     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+//     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+//     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+//
+//     free(atlasPixels);
+//     free(ttfbuffer);
+//  
+//     MSG_INFO(ttf_path, 1, "font loaded succesfully");
+//     return font;
+// }
 
-    FILE* file = fopen(ttf_path, "rb");
-    if (!file) {
-        MSG_ERROR(ttf_path, 1, "could not open file");
-        exit(1);
-    }
-    fseek(file, 0, SEEK_END);
-    long size = ftell(file);
-    rewind(file);
+// BE_Text BE_TextInit(const char* text, BE_Font* font, vec3 position, float scale, vec4 color, bool dynamic) {
+//     BE_Text t = {0};
+//
+//     t.font = font;
+//     t.text = strdup(text);
+//     glm_vec3_copy(position, t.position);
+//     glm_vec4_copy(color, t.color);
+//     t.scale = scale;
+//     t.isDynamic = dynamic;
+//     t.quadCount = strlen(text);
+//
+//     glGenVertexArrays(1, &t.vao);
+//     glGenBuffers(1, &t.vbo);
+//
+//     glBindVertexArray(t.vao);
+//     glBindBuffer(GL_ARRAY_BUFFER, t.vbo);
+//
+//     size_t bufferSize = t.quadCount * 6 * 4 * sizeof(float);
+//     glBufferData(GL_ARRAY_BUFFER, bufferSize, NULL, t.isDynamic ? GL_DYNAMIC_DRAW : GL_STATIC_DRAW);
+//
+//     glEnableVertexAttribArray(0);
+//     glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
+//
+//     glEnableVertexAttribArray(1);
+//     glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)(2 * sizeof(float)));
+//
+//     glBindBuffer(GL_ARRAY_BUFFER, 0);
+//     glBindVertexArray(0);
+//
+//     if (!dynamic) {
+//         BE_TextUpdate(&t, text);
+//     }
+//
+//     return t;
+// }
 
-    unsigned char* ttfbuffer = malloc(size);
-    fread(ttfbuffer, 1, size, file);
-    fclose(file);
+// void BE_TextUpdate(BE_Text* t, const char* newText) {
+//     if (!t->isDynamic) return;
+//
+//     if (strcmp(t->text, newText) == 0) return;
+//
+//     free(t->text);
+//     t->text = strdup(newText);
+//
+//     int len = strlen(newText);
+//     t->quadCount = len;
+//     t->dirty = true;
+//
+//     printf("%s\n", newText);
+//
+//     size_t bufferSize = len * 6 * 4 * sizeof(float);
+//     float* vertices = (float*)malloc(bufferSize);
+//
+//     float x = t->position[0];
+//     float y = t->position[1];
+//     int cursor = 0;
+//
+//     for (int i = 0; i < len; i++) {
+//         unsigned char c = newText[i];
+//         if (c < 32 || c >= 128) continue;
+//
+//         BE_Glyph* g = &t->font->glyphs[c];
+//
+//         float xpos = x + g->bearingX * t->scale;
+//         float ypos = y - (g->height - g->bearingY) * t->scale;
+//         float w = g->width * t->scale;
+//         float h = g->height * t->scale;
+//
+//         float quad[6][4] = {
+//             { xpos,     ypos + h, g->u0, g->v1 },
+//             { xpos,     ypos,     g->u0, g->v0 },
+//             { xpos + w, ypos,     g->u1, g->v0 },
+//
+//             { xpos,     ypos + h, g->u0, g->v1 },
+//             { xpos + w, ypos,     g->u1, g->v0 },
+//             { xpos + w, ypos + h, g->u1, g->v1 }
+//         };
+//
+//         memcpy(vertices + cursor, quad, sizeof(quad));
+//         cursor += 6 * 4;
+//
+//         x += g->advance * t->scale;
+//     }
+//
+//     glBindBuffer(GL_ARRAY_BUFFER, t->vbo);
+//     glBufferData(GL_ARRAY_BUFFER, bufferSize, vertices, GL_DYNAMIC_DRAW);
+//     glBindBuffer(GL_ARRAY_BUFFER, 0);
+//
+//     free(vertices);
+// }
 
-    stbtt_fontinfo info;
-    if (!stbtt_InitFont(&info, ttfbuffer, 0)) {
-        MSG_ERROR(ttf_path, 1, "failed to load font");
-        free(ttfbuffer);
-        exit(1);
-    }
+// void BE_TextRender(BE_Text* t, GLuint shaderProgram, mat4 proj) {
+//     glUseProgram(shaderProgram);
+//
+//     glActiveTexture(GL_TEXTURE0);
+//     glBindTexture(GL_TEXTURE_2D, t->font->atlasTex);
+//     glUniform1i(glGetUniformLocation(shaderProgram, "uFontAtlas"), 0);
+//
+//     glUniform4fv(glGetUniformLocation(shaderProgram, "uTextColor"), 1, t->color);
+//     glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "uProjection"), 1, GL_FALSE, proj[0]);
+//
+//     glEnable(GL_BLEND);
+//     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+//     glDisable(GL_DEPTH_TEST);
+//
+//     glBindVertexArray(t->vao);
+//     glDrawArrays(GL_TRIANGLES, 0, t->quadCount * 6);
+//     glBindVertexArray(0);
+//
+//     glUseProgram(0);
+// }
 
-    font.glyphCount = 128;
-    font.glyphs = calloc(font.glyphCount, sizeof(BE_Glyph));
+// #define INITIAL_TEXT_CAPACITY 4
 
+// void BE_TextVectorInit(BE_TextVector* vec) {
+//     vec->data = (BE_Text*)malloc(sizeof(BE_Text) * INITIAL_TEXT_CAPACITY);
+//     vec->size = 0;
+//     vec->capacity = INITIAL_TEXT_CAPACITY;
+// }
 
-    font.atlasWidth = 1024;
-    font.atlasHeight = 1024;
-    unsigned char* atlasPixels = calloc(font.atlasWidth * font.atlasHeight, 1);
+// void BE_TextVectorPush(BE_TextVector* vec, BE_Text value) {
+//     if (vec->size >= vec->capacity) {
+//         vec->capacity *= 2;
+//         vec->data = (BE_Text*)realloc(vec->data, sizeof(BE_Text) * vec->capacity);
+//     }
+//     vec->data[vec->size++] = value;
+// }
 
-    int penX = 0, penY = 0, rowHeight = 0;
-    float scale = stbtt_ScaleForPixelHeight(&info, (float)pixelSize);
+// void BE_TextVectorFree(BE_TextVector* vec) {
+//     free(vec->data);
+//     vec->data = NULL;
+//     vec->size = 0;
+//     vec->capacity = 0;
+// }
 
-    for (unsigned char c = 32; c < 128; c++) {
-        int width, height, xoff, yoff;
-        unsigned char* bmp = stbtt_GetCodepointBitmap(&info, 0, scale, c, &width, &height, &xoff, &yoff);
-
-        if (penX + width >= font.atlasWidth) {
-            penX = 0;
-            penY += rowHeight + 1;
-            rowHeight = 0;
-        }
-
-        for (int y = 0; y < height; y++) {
-            for (int x =0; x < width; x++) {
-                int atlasIndex = (penY + y) * font.atlasWidth + (penX + x);
-                atlasPixels[atlasIndex] = bmp[y * width + x];
-            }
-        }
-
-        font.glyphs[c].u0 = (float)penX / font.atlasWidth;
-        font.glyphs[c].v0 = (float)penY / font.atlasHeight;
-        font.glyphs[c].u1 = (float)(penX + width) / font.atlasWidth;
-        font.glyphs[c].v1 = (float)(penY + height) / font.atlasHeight;
-        
-        font.glyphs[c].width = width;
-        font.glyphs[c].height = height;
-        font.glyphs[c].bearingX = xoff;
-        font.glyphs[c].bearingY = yoff;
-        int advance, lsb;
-        stbtt_GetCodepointHMetrics(&info, c, &advance, &lsb);
-        font.glyphs[c].advance = (int)(advance * scale);
-
-        if (height > rowHeight) rowHeight = height;
-        penX += width + 1;
-
-        stbtt_FreeBitmap(bmp, NULL);
-    }
-
-    int ascent, descent, lineGap;
-    stbtt_GetFontVMetrics(&info, &ascent, &descent, &lineGap);
-    font.lineHeight = (int)((ascent - descent + lineGap) * scale);
-
-    glGenTextures(1, &font.atlasTex);
-    glBindTexture(GL_TEXTURE_2D, font.atlasTex);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, font.atlasWidth, font.atlasHeight, 0, GL_RED, GL_UNSIGNED_BYTE, atlasPixels);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-    free(atlasPixels);
-    free(ttfbuffer);
-    
-    MSG_INFO(ttf_path, 1, "font loaded succesfully");
-    return font;
-}
-
-BE_Text BE_TextInit(const char* text, BE_Font* font, vec3 position, float scale, vec4 color, bool dynamic) {
-    BE_Text t = {0};
-
-    t.font = font;
-    t.text = strdup(text);
-    glm_vec3_copy(position, t.position);
-    glm_vec4_copy(color, t.color);
-    t.scale = scale;
-    t.isDynamic = dynamic;
-    t.quadCount = strlen(text);
-
-    glGenVertexArrays(1, &t.vao);
-    glGenBuffers(1, &t.vbo);
-
-    glBindVertexArray(t.vao);
-    glBindBuffer(GL_ARRAY_BUFFER, t.vbo);
-
-    size_t bufferSize = t.quadCount * 6 * 4 * sizeof(float);
-    glBufferData(GL_ARRAY_BUFFER, bufferSize, NULL, t.isDynamic ? GL_DYNAMIC_DRAW : GL_STATIC_DRAW);
-
-    glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
-
-    glEnableVertexAttribArray(1);
-    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)(2 * sizeof(float)));
-
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-    glBindVertexArray(0);
-
-    if (!dynamic) {
-        BE_TextUpdate(&t, text);
-    }
-
-    return t;
-}
-
-void BE_TextUpdate(BE_Text* t, const char* newText) {
-    if (!t->isDynamic) return;
-
-    if (strcmp(t->text, newText) == 0) return;
-
-    free(t->text);
-    t->text = strdup(newText);
-
-    int len = strlen(newText);
-    t->quadCount = len;
-    t->dirty = true;
-
-    printf("%s\n", newText);
-
-    size_t bufferSize = len * 6 * 4 * sizeof(float);
-    float* vertices = (float*)malloc(bufferSize);
-
-    float x = t->position[0];
-    float y = t->position[1];
-    int cursor = 0;
-
-    for (int i = 0; i < len; i++) {
-        unsigned char c = newText[i];
-        if (c < 32 || c >= 128) continue;
-
-        BE_Glyph* g = &t->font->glyphs[c];
-
-        float xpos = x + g->bearingX * t->scale;
-        float ypos = y - (g->height - g->bearingY) * t->scale;
-        float w = g->width * t->scale;
-        float h = g->height * t->scale;
-
-        float quad[6][4] = {
-            { xpos,     ypos + h, g->u0, g->v1 },
-            { xpos,     ypos,     g->u0, g->v0 },
-            { xpos + w, ypos,     g->u1, g->v0 },
-
-            { xpos,     ypos + h, g->u0, g->v1 },
-            { xpos + w, ypos,     g->u1, g->v0 },
-            { xpos + w, ypos + h, g->u1, g->v1 }
-        };
-
-        memcpy(vertices + cursor, quad, sizeof(quad));
-        cursor += 6 * 4;
-
-        x += g->advance * t->scale;
-    }
-
-    glBindBuffer(GL_ARRAY_BUFFER, t->vbo);
-    glBufferData(GL_ARRAY_BUFFER, bufferSize, vertices, GL_DYNAMIC_DRAW);
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-
-    free(vertices);
-}
-
-void BE_TextRender(BE_Text* t, GLuint shaderProgram, mat4 proj) {
-    glUseProgram(shaderProgram);
-
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, t->font->atlasTex);
-    glUniform1i(glGetUniformLocation(shaderProgram, "uFontAtlas"), 0);
-
-    glUniform4fv(glGetUniformLocation(shaderProgram, "uTextColor"), 1, t->color);
-    glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "uProjection"), 1, GL_FALSE, proj[0]);
-
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    glDisable(GL_DEPTH_TEST);
-
-    glBindVertexArray(t->vao);
-    glDrawArrays(GL_TRIANGLES, 0, t->quadCount * 6);
-    glBindVertexArray(0);
-
-    glUseProgram(0);
-}
-
-#define INITIAL_TEXT_CAPACITY 4
-
-void BE_TextVectorInit(BE_TextVector* vec) {
-    vec->data = (BE_Text*)malloc(sizeof(BE_Text) * INITIAL_TEXT_CAPACITY);
-    vec->size = 0;
-    vec->capacity = INITIAL_TEXT_CAPACITY;
-}
-
-void BE_TextVectorPush(BE_TextVector* vec, BE_Text value) {
-    if (vec->size >= vec->capacity) {
-        vec->capacity *= 2;
-        vec->data = (BE_Text*)realloc(vec->data, sizeof(BE_Text) * vec->capacity);
-    }
-    vec->data[vec->size++] = value;
-}
-
-void BE_TextVectorFree(BE_TextVector* vec) {
-    free(vec->data);
-    vec->data = NULL;
-    vec->size = 0;
-    vec->capacity = 0;
-}
-
-void BE_TextVectorCopy(BE_Text* texts, size_t count, BE_TextVector* outVec) {
-    BE_TextVectorInit(outVec);
-    for (size_t i = 0; i < count; i++) {
-        BE_TextVectorPush(outVec, texts[i]);
-    }
-}
+// void BE_TextVectorCopy(BE_Text* texts, size_t count, BE_TextVector* outVec) {
+//     BE_TextVectorInit(outVec);
+//     for (size_t i = 0; i < count; i++) {
+//         BE_TextVectorPush(outVec, texts[i]);
+//     }
+// }
 
 // ==============================
 // Sprite
@@ -2156,6 +2176,93 @@ void BE_SpriteVectorDraw(BE_SpriteVector* vec, BE_Shader* shader) {
         glDrawArrays(GL_TRIANGLES, 0, 6);
     }
 }
+
+// ==============================
+// Particles
+// ==============================
+
+// BE_GPUParticles BE_ParticlesInit(const char* vertexFile, const char* fragmentFile, const char* computeFile, const char* imageFile) {
+//     BE_GPUParticles ps = {0};
+//
+//     ps.particleCount = MAX_PARTICLES;
+//
+//     ps.sprite = BE_TextureInit(imageFile, "sprite", 0);
+//     // ps.computeShader = BE_ShaderInit(NULL, NULL, NULL, computeFile);
+//     // ps.renderShader = BE_ShaderInit(vertexFile, fragmentFile, NULL, NULL);
+//
+//     glGenBuffers(1, &ps.ssbo);
+//     glBindBuffer(GL_SHADER_STORAGE_BUFFER, ps.ssbo);
+//     GLsizeiptr bufSize = (GLsizeiptr)(MAX_PARTICLES * sizeof(BE_ParticleGPU));
+//     glBufferData(GL_SHADER_STORAGE_BUFFER, bufSize, NULL, GL_DYNAMIC_DRAW);
+//
+//     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, ps.ssbo);
+//
+//     BE_ParticleGPU* ptr = (BE_ParticleGPU*)glMapBufferRange(
+//         GL_SHADER_STORAGE_BUFFER,
+//         0,
+//         bufSize,
+//         GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT
+//     );
+//
+//     if (ptr == NULL) {
+//         fprintf(stderr, "ERROR: glMapBufferRange returned NULL — SSBO mapping failed.\n");
+//         glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+//         return ps;
+//     }
+//
+//     for (int i = 0; i < MAX_PARTICLES; i++) {
+//         glm_vec4_copy((vec4){0.0f,0.0f,0.0f,0.0f}, ptr[i].pos_life);
+//         glm_vec4_copy((vec4){0.0f,0.0f,0.0f,0.0f}, ptr[i].vel_age);
+//         glm_vec4_copy((vec4){1.0f,1.0f,1.0f,16.0f}, ptr[i].col_size);
+//     }
+//
+//     glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
+//     glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+//
+//     ps.vao = BE_VAOInit();
+//
+//     return ps;
+// }
+
+// void BE_ParticlesUpdate(BE_GPUParticles* ps, float dt, uint32_t frame) {
+//     BE_ShaderActivate(&ps->computeShader);
+//
+//     glUniform1f(glGetUniformLocation(ps->computeShader.ID,"u_dt"), dt);
+//     glUniform3f(glGetUniformLocation(ps->computeShader.ID,"u_gravity"), 0.0f, -9.81f, 0.0f);
+//     glUniform1ui(glGetUniformLocation(ps->computeShader.ID,"u_frame"), frame);
+//     glUniform1ui(glGetUniformLocation(ps->computeShader.ID,"u_spawnBudget"), 1000u);
+//
+//     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, ps->ssbo);
+//
+//     GLuint groups = (MAX_PARTICLES + WORKGROUP_SIZE - 1) / WORKGROUP_SIZE;
+//     glDispatchCompute(groups, 1, 1);
+//     glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+// }
+
+// void BE_ParticlesDraw(BE_GPUParticles* ps, mat4 view, mat4 proj, int additive) {
+//     BE_ShaderActivate(&ps->renderShader);
+//
+//     glUniformMatrix4fv(glGetUniformLocation(ps->renderShader.ID,"u_view"), 1, GL_FALSE, (const float*)view);
+//     glUniformMatrix4fv(glGetUniformLocation(ps->renderShader.ID,"u_proj"), 1, GL_FALSE, (const float*)proj);
+//     BE_TextureSetUniformUnit(&ps.renderShader, "u_sprite", ps.sprite.unit);
+//     glUniform1i(glGetUniformLocation(ps.renderShader.ID,"u_additive"), additive);
+//
+//     BE_VAOBind(ps->vao);
+//     BE_TextureBind(&ps->sprite);
+//
+//     glEnable(GL_BLEND);
+//     if(additive) glBlendFunc(GL_SRC_ALPHA, GL_ONE);
+//     else glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+//     glDepthMask(GL_FALSE);
+//     glEnable(GL_PROGRAM_POINT_SIZE);
+//
+//     glDrawArrays(GL_POINTS, 0, ps.particleCount);
+//
+//     glDepthMask(GL_TRUE);
+//     BE_TextureUnbind();
+//     BE_VAOUnbind();
+//
+// }
 
 // ==============================
 // Scene
