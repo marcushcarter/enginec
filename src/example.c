@@ -89,14 +89,18 @@ int main() {
     BE_LightVectorPush(&activeScene->lights, BE_LightInit(LIGHT_POINT, (vec3){0,0,0}, (vec3){0,0,0}, (vec4){1.0f, 1.0f, 1.0f, 1.0f}, 0.5f, 1.0f, 0.04f, 0, 0));
     BE_ModelVectorPush(&activeScene->models, BE_ModelInit(&mesh_scene1, BE_TransformInit((vec3){0.0f, 0.0f, 0.0f}, (vec3){0.0f, 0.0f, 0.0f}, (vec3){1.0f, 1.0f, 1.0f})));
     BE_SpriteVectorPush(&activeScene->sprites, BE_SpriteInit((vec3){windowWidth/2, windowHeight/2, 0.0f}, (vec2){100.0f, 100.0f}, 0.0f, (vec3){1.0f, 1.0f, 1.0f}, &texture1));
-    BE_SoundVectorPush(&activeScene->sounds, BE_LoadWav("res/sounds/breakout.wav", "breakout"));
-    BE_SoundSourceVectorPush(&activeScene->sources, BE_SoundSourceInit(&activeScene->sounds.data[0], (vec3){0.0f, 2.0f, 0.0f}, true));
     
+    BE_Sound* sound1 = BE_SoundLoad(&activeScene->audio, "res/sounds/breakout.wav", "poopy butt nuggets", true);
+    BE_SoundSource* laserSource = BE_SoundSourceInit((vec3){0,0,0}, true);
+    laserSource->gain = 1.0f;
+    laserSource->pitch = 1.0f;
+    laserSource->looping = false;  // play once
+
+    BE_SourcePlaySound(&activeScene->audio, laserSource, sound1);
+
+
     BE_Camera* selectedCamera = &activeScene->cameras.data[0];
 
-    BE_SoundSourcePlay(&activeScene->sources.data[0]);
-
-    alDistanceModel(AL_INVERSE_DISTANCE_CLAMPED);
     glCullFace(GL_FRONT);
     glFrontFace(GL_CCW);
     glDepthFunc(GL_LESS);
@@ -131,7 +135,8 @@ int main() {
         glm_vec2_copy((vec3){windowWidth/2, windowHeight/2, 0.0f}, activeScene->sprites.data[0].position);
         
         BE_CameraInputs(selectedCamera, window, &joystick, timer.dt);
-        BE_SoundSystemUpdateListener(selectedCamera);
+        BE_SourceSetListener(&activeScene->audio, selectedCamera->position, selectedCamera->direction, (vec3){0,0,0});
+        BE_AudioEngineUpdate(&activeScene->audio);
 
         // RENDERS
 
@@ -154,7 +159,6 @@ int main() {
         BE_LightVectorDraw(&activeScene->lights, &mesh_cube, &shader_color);
         BE_CameraVectorDraw(&activeScene->cameras, &mesh_camera, &shader_color, selectedCamera);
         if (glfwGetKey(window, GLFW_KEY_4)) BE_SpriteVectorDraw(&activeScene->sprites, &shader_sprite);
-        BE_SoundSourceVectorDraw(&activeScene->sources, &mesh_sphere, &shader_color);
 
         // ping = !ping;
         // glDisable(GL_DEPTH_TEST);

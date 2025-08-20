@@ -29,9 +29,6 @@
 #include <engine/stb_image/stb_image.h>
 #include <engine/stb_image/stb_image_resize.h>
 #include <engine/stb_image/stb_truetype.h>
-#include <engine/AL/al.h>
-#include <engine/AL/alc.h>
-#include <engine/dr_wav/dr_wav.h>
 #include <engine/fmod/fmod.h>
 #include <time.h>
 
@@ -476,73 +473,65 @@ void BE_SpriteVectorDraw(BE_SpriteVector* vec, BE_Shader* shader);
 // void BE_ParticlesUpdate(BE_GPUParticles* ps, float dt, uint32_t frame);
 // void BE_ParticlesDraw(BE_GPUParticles* ps, mat4 view, mat4 proj, int additive);
 
+
+
+
+
+
 typedef struct {
-    ALuint soundID;
+    FMOD_SYSTEM* system;
+} BE_AudioEngine;
+
+void BE_AudioEngineInit(BE_AudioEngine* engine);
+void BE_AudioEngineUpdate(BE_AudioEngine* engine);
+void BE_AudioEngineFree(BE_AudioEngine* engine);
+
+typedef struct {
+    FMOD_SOUND* sound;
     char* name;
     char* path;
-    int channels;
 } BE_Sound;
 
-typedef struct {
-    BE_Sound* data;
-    size_t size;
-    size_t capacity;
-} BE_SoundVector;
-
-BE_Sound BE_LoadWav(const char* path, const char* name);
-
-void BE_SoundVectorInit(BE_SoundVector* vec);
-void BE_SoundVectorPush(BE_SoundVector* vec, BE_Sound value);
-void BE_SoundVectorFree(BE_SoundVector* vec);
-void BE_SoundVectorCopy(BE_Sound* sounds, size_t count, BE_SoundVector* outVec);
+BE_Sound* BE_SoundLoad(BE_AudioEngine* engine, const char* path, const char* name, bool spatial);
+void BE_SoundFree(BE_Sound* sound);
 
 typedef struct {
-    ALuint sourceID;
-    BE_Sound* sound;
     vec3 position;
     float gain;
     float pitch;
     bool looping;
     bool spatial;
+    FMOD_CHANNEL* channel;
 } BE_SoundSource;
 
-typedef struct {
-    BE_SoundSource* data;
-    size_t size;
-    size_t capacity;
-} BE_SoundSourceVector;
 
-BE_SoundSource BE_SoundSourceInit(BE_Sound* sound, vec3 position, bool spatial);
+BE_SoundSource* BE_SoundSourceInit(vec3 position, bool spatial);
 
-void BE_SoundSourcePlay(BE_SoundSource* source);
-void BE_SoundSourceStop(BE_SoundSource* source);
-void BE_SoundSourceSetPosition(BE_SoundSource* source, vec3 position);
-void BE_SoundSourceSetGain(BE_SoundSource* source, float gain);
-void BE_SoundSourceSetSound(BE_SoundSource* source, BE_Sound* newSound);
+void BE_SourcePlaySound(BE_AudioEngine* engine, BE_SoundSource* src, BE_Sound* sound);
+void BE_SourceStop(BE_SoundSource* src);
 
-void BE_SoundSourceVectorInit(BE_SoundSourceVector* vec);
-void BE_SoundSourceVectorPush(BE_SoundSourceVector* vec, BE_SoundSource value);
-void BE_SoundSourceVectorFree(BE_SoundSourceVector* vec);
-void BE_SoundSourceVectorCopy(BE_SoundSource* sources, size_t count, BE_SoundSourceVector* outVec);
+void BE_SourceSetPosition(BE_SoundSource* src, float x, float y, float z);
+void BE_SourceSetGain(BE_SoundSource* src, float gain);
+void BE_SourceSetPitch(BE_SoundSource* src, float pitch);
+void BE_SourceSetLooping(BE_SoundSource* src, bool looping);
 
-void BE_SoundSourceVectorDraw(BE_SoundSourceVector* vec, BE_Mesh* mesh, BE_Shader* shader);
+void BE_SourceSetListener(BE_AudioEngine* engine, vec3 position, vec3 direction, vec3 velocity);
 
-typedef struct {
-    ALCdevice* device;
-    ALCcontext* context;
-} BE_SoundSystem;
 
-void BE_SoundSystemUpdateListener(BE_Camera* cam);
-void BE_SoundSystemInit(BE_SoundSystem* system);
+
+
+
+
+
+
 
 typedef struct {
     BE_ModelVector models;
     BE_LightVector lights;
     BE_CameraVector cameras;
     BE_SpriteVector sprites;
-    BE_SoundSystem soundsys;
-    BE_SoundVector sounds;
-    BE_SoundSourceVector sources;
+
+    BE_AudioEngine audio;
 } BE_Scene;
 
 typedef struct {

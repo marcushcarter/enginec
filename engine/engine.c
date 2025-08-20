@@ -2285,230 +2285,144 @@ void BE_SpriteVectorDraw(BE_SpriteVector* vec, BE_Shader* shader) {
 // Audio
 // ==============================
 
-BE_Sound BE_LoadWav(const char* path, const char* name) {
-    BE_Sound sound = {0};
+void BE_AudioEngineInit(BE_AudioEngine* engine) {
+    FMOD_System_Create(&engine->system);
+    FMOD_System_Init(engine->system, 512, FMOD_INIT_3D_RIGHTHANDED, NULL);
+    FMOD_System_Set3DSettings(engine->system, 1.f, 1.f, 1.f);
+}
 
-    drwav wav;
-    if (!drwav_init_file(&wav, path, NULL)) {
-        fprintf(stderr, "Failed to load WAV: %s\n", path);
-        return sound;
+void BE_AudioEngineUpdate(BE_AudioEngine* engine) {
+    FMOD_System_Update(engine->system);
+}
+
+void BE_AudioEngineFree(BE_AudioEngine* engine) {
+    FMOD_System_Close(engine->system);
+    FMOD_System_Release(engine->system);
+}
+
+BE_Sound* BE_SoundLoad(BE_AudioEngine* engine, const char* path, const char* name, bool spatial) {
+    BE_Sound* sound = malloc(sizeof(BE_Sound));
+    FMOD_MODE mode = FMOD_DEFAULT;
+    if (spatial) mode |= FMOD_3D;
+    else mode |= FMOD_2D;
+
+    if (FMOD_System_CreateSound(engine->system, path, mode, 0, &sound->sound) != FMOD_OK) {
+        MSG_ERROR(path, 0, "failed to load sound '%s'", name);
+        free(sound);
+        return NULL;
     }
 
-    uint16_t* pcm = malloc(wav.totalPCMFrameCount * wav.channels * sizeof(uint16_t));
-    drwav_read_pcm_frames_s16(&wav, wav.totalPCMFrameCount, pcm);
+    sound->name = strdup(name ? name : "");
+    sound->path = strdup(path ? path : "");
 
-    alGenBuffers(1, &sound.soundID);
-
-    ALenum format;
-    sound.channels = wav.channels;
-    if (wav.channels == 1) { 
-        format = AL_FORMAT_MONO16; 
-    } else if (wav.channels == 2) { 
-        format = AL_FORMAT_STEREO16;
-    } else {
-        fprintf(stderr, "Unsupported channel count: %d\n", wav.channels);
-        drwav_uninit(&wav);
-        free(pcm);
-        return sound;
+    if (spatial) {
+        FMOD_Sound_Set3DMinMaxDistance(sound->sound, 1.0f, 5.0f);
     }
 
-    alBufferData(sound.soundID, format, pcm, (ALsizei)(wav.totalPCMFrameCount * wav.channels * sizeof(uint16_t)), wav.sampleRate);
-
-    drwav_uninit(&wav);
-    free(pcm);
-
-    if (name) {
-        sound.name = malloc(strlen(name) + 1);
-        strcpy(sound.name, name);
-    } else sound.name = NULL;
-
-    if (path) {
-        sound.path = malloc(strlen(path) + 1);
-        strcpy(sound.path, path);
-    } else sound.path = NULL;
-
+    MSG_INFO(path, 0, "succesfully loaded sound '%s'", name);
     return sound;
 }
 
-#define INITIAL_SOUND_CAPACITY 16
-
-void BE_SoundVectorInit(BE_SoundVector* vec) {
-    vec->data = (BE_Sound*)malloc(sizeof(BE_Sound) * INITIAL_SOUND_CAPACITY);
-    vec->size = 0;
-    vec->capacity = INITIAL_SOUND_CAPACITY;
+void BE_SoundFree(BE_Sound* sound) {
+    if (!sound) return;
+    FMOD_Sound_Release(sound->sound);
+    free(sound->name);
+    free(sound->path);
+    free(sound);
 }
 
-void BE_SoundVectorPush(BE_SoundVector* vec, BE_Sound value) {
-    if (vec->size >= vec->capacity) {
-        vec->capacity *= 2;
-        vec->data = (BE_Sound*)realloc(vec->data, sizeof(BE_Sound) * vec->capacity);
-    }
-    vec->data[vec->size++] = value;
+BE_SoundSource* BE_SoundSourceInit(vec3 position, bool spatial) {
+    BE_SoundSource* src = malloc(sizeof(BE_SoundSource));
+    glm_vec3_copy(position, src->position);
+    src->gain = 1.f;
+    src->pitch = 1.f;
+    src->looping = false;
+    src->spatial = spatial;
+    src->channel = NULL;
+    return src;
 }
 
-void BE_SoundVectorFree(BE_SoundVector* vec) {
-    free(vec->data);
-    vec->data = NULL;
-    vec->size = 0;
-    vec->capacity = 0;
-}
+void BE_SourcePlaySound(BE_AudioEngine* engine, BE_SoundSource* src, BE_Sound* sound) {
+    FMOD_CHANNEL* channel = NULL;
+    FMOD_System_PlaySound(engine->system, sound->sound, NULL, 0, &channel);
 
-void BE_SoundVectorCopy(BE_Sound* sounds, size_t count, BE_SoundVector* outVec) {
-    BE_SoundVectorInit(outVec);
-    for (size_t i = 0; i < count; i++) {
-        BE_SoundVectorPush(outVec, sounds[i]);
-    }
-}
-
-BE_SoundSource BE_SoundSourceInit(BE_Sound* sound, vec3 position, bool spatial) {
-    BE_SoundSource source = {0};
-
-    source.sound = sound;
-    glm_vec3_copy(position, source.position);
-    source.gain = 1.f;
-    source.pitch = 1.f;
-    source.looping = false;
-    source.spatial = spatial;
-
-    alGenSources(1, &source.sourceID);
-    alSourcei(source.sourceID, AL_BUFFER, sound->soundID);
-    
-    alSourcei(source.sourceID, AL_LOOPING, AL_FALSE);
-
-    if(spatial){
-        alSource3f(source.sourceID, AL_POSITION, position[0], position[1], position[2]);
-        alSourcei(source.sourceID, AL_SOURCE_RELATIVE, AL_FALSE);
-        alSourcef(source.sourceID, AL_ROLLOFF_FACTOR, 5.0f);
-        alSourcef(source.sourceID, AL_REFERENCE_DISTANCE, 1.0f);
-        alSourcef(source.sourceID, AL_MAX_DISTANCE, 10.0f);
-    } else {
-        alSourcei(source.sourceID, AL_SOURCE_RELATIVE, AL_TRUE);
+    if (src->spatial && channel) {
+        FMOD_VECTOR pos = {src->position[0], src->position[1], src->position[2]};
+        FMOD_VECTOR vel = {0,0,0};
+        FMOD_Channel_Set3DAttributes(channel, &pos, &vel);
     }
 
-    alSourcef(source.sourceID, AL_GAIN, source.gain);
-    alSourcef(source.sourceID, AL_PITCH, source.pitch);
-
-    if (sound->channels != 1 && source.spatial) MSG_WARNING(sound->path, 1, "sound with %d channels attached to spatial source", sound->channels);
-
-    return source;
-}
-
-void BE_SoundSourcePlay(BE_SoundSource* source) {
-    alSourcePlay(source->sourceID);
-}
-
-void BE_SoundSourceStop(BE_SoundSource* source) {
-    alSourceStop(source->sourceID);
-}
-
-void BE_SoundSourceSetPosition(BE_SoundSource* source, vec3 position) {
-    glm_vec3_copy(position, source->position);
-    if(source->spatial) alSource3f(source->sourceID, AL_POSITION, position[0], position[1], position[2]);
-}
-
-void BE_SoundSourceSetGain(BE_SoundSource* source, float gain) {
-    source->gain = gain;
-    alSourcef(source->sourceID, AL_GAIN, gain);
-}
-
-void BE_SoundSourceSetSound(BE_SoundSource* source, BE_Sound* newSound) {
-    source->sound = newSound;
-    alSourcei(source->sourceID, AL_BUFFER, newSound->soundID);
-}
-
-void BE_SoundSourceVectorDraw(BE_SoundSourceVector* vec, BE_Mesh* mesh, BE_Shader* shader) {
-
-    BE_ShaderActivate(shader);
-    
-    glEnable(GL_DEPTH_TEST);
-    glDisable(GL_CULL_FACE);
-    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-    glEnable(GL_BLEND);
-
-    vec3 scale = { 0.1f, 0.1f, 0.1f };
-    mat4 model;
-
-    for (size_t i = 0; i < vec->size; i++) {
-        BE_SoundSource* source = &vec->data[i];
-        
-        BE_MatrixMakeModel(source->position, (vec3){0,0,0}, scale, model);
-        glUniformMatrix4fv(glGetUniformLocation(shader->ID, "model"), 1, GL_FALSE, (float*)model);
-        BE_VAOBind(&mesh->vao);
-        BE_MeshDraw(mesh, shader);
+    if (channel) {
+        FMOD_Channel_SetVolume(channel, src->gain);
+        FMOD_Channel_SetPitch(channel, src->pitch);
+        FMOD_MODE mode;
+        FMOD_Channel_GetMode(channel, &mode);
+        mode = src->looping ? FMOD_LOOP_NORMAL : FMOD_LOOP_OFF;
+        FMOD_Channel_SetMode(channel, mode);
     }
 
+    src->channel = channel;
 }
 
-#define INITIAL_SOURCE_CAPACITY 32
-
-void BE_SoundSourceVectorInit(BE_SoundSourceVector* vec) {
-    vec->data = (BE_SoundSource*)malloc(sizeof(BE_SoundSource) * INITIAL_SOURCE_CAPACITY);
-    vec->size = 0;
-    vec->capacity = INITIAL_SOURCE_CAPACITY;
+void BE_SourceStop(BE_SoundSource* src){
+    if(src->channel) FMOD_Channel_Stop(src->channel);
 }
 
-void BE_SoundSourceVectorPush(BE_SoundSourceVector* vec, BE_SoundSource value) {
-    if (vec->size >= vec->capacity) {
-        vec->capacity *= 2;
-        vec->data = (BE_SoundSource*)realloc(vec->data, sizeof(BE_SoundSource) * vec->capacity);
-    }
-    vec->data[vec->size++] = value;
-}
-
-void BE_SoundSourceVectorFree(BE_SoundSourceVector* vec) {
-    free(vec->data);
-    vec->data = NULL;
-    vec->size = 0;
-    vec->capacity = 0;
-}
-
-void BE_SoundSourceVectorCopy(BE_SoundSource* sources, size_t count, BE_SoundSourceVector* outVec) {
-    BE_SoundSourceVectorInit(outVec);
-    for (size_t i = 0; i < count; i++) {
-        BE_SoundSourceVectorPush(outVec, sources[i]);
+void BE_SourceSetPosition(BE_SoundSource* src, float x, float y, float z){
+    src->position[0] = x;
+    src->position[1] = y;
+    src->position[2] = z;
+    if(src->spatial && src->channel){
+        FMOD_VECTOR pos = {x,y,z};
+        FMOD_VECTOR vel = {0,0,0};
+        FMOD_Channel_Set3DAttributes(src->channel, &pos, &vel);
     }
 }
 
-void BE_SoundSystemUpdateListener(BE_Camera* cam) {
-    vec3 forward;
-    glm_vec3_copy(cam->direction, forward);
-    glm_vec3_normalize(forward);
-
-    vec3 up = {0.f, 1.f, 0.f};
-
-    alListener3f(AL_POSITION, cam->position[0], cam->position[1], cam->position[2]);
-    
-    vec3 velocity = {0.f, 0.f, 0.f};
-    alListener3f(AL_VELOCITY, velocity[0], velocity[1], velocity[2]);
-
-    float orientation[6] = {
-        forward[0], forward[1], forward[2],
-        up[0], up[1], up[2]
-    };
-
-    alListenerfv(AL_ORIENTATION, orientation);
+void BE_SourceSetGain(BE_SoundSource* src, float gain) { 
+    src->gain = gain; 
+    if(src->channel) FMOD_Channel_SetVolume(src->channel, gain); 
 }
 
-void BE_SoundSystemInit(BE_SoundSystem* system) {
+void BE_SourceSetPitch(BE_SoundSource* src, float pitch) {
+    src->pitch = pitch;
+    if(src->channel) FMOD_Channel_SetPitch(src->channel, pitch);
+}
 
-    system->device = alcOpenDevice(NULL);
-    if (!system->device) {
-        fprintf(stderr,"Failed to open device\n");
-        exit(1); 
+void BE_SourceSetLooping(BE_SoundSource* src, bool looping) {
+    src->looping = looping;
+    if(src->channel){
+        FMOD_MODE mode;
+        FMOD_Channel_GetMode(src->channel, &mode);
+        mode = looping ? FMOD_LOOP_NORMAL : FMOD_LOOP_OFF;
+        FMOD_Channel_SetMode(src->channel, mode);
     }
+}
 
-    system->context = alcCreateContext(system->device, NULL);
-    if (!alcMakeContextCurrent(system->context)) {
-        fprintf(stderr,"Failed to make context current\n");
-        exit(1);
-    }
+void BE_SourceSetListener(BE_AudioEngine* engine, vec3 position, vec3 direction, vec3 velocity) {
 
-    alListener3f(AL_POSITION, 0, 0, 0);
-    alListener3f(AL_VELOCITY, 0, 0, 0);
-    float ori[6] = {0, 0, -1, 0, 1, 0};
-    alListenerfv(AL_ORIENTATION, ori);
+    mat4 rot;
+    vec3 forward, up;
 
-    alDistanceModel(AL_INVERSE_DISTANCE_CLAMPED);
+    glm_mat4_identity(rot);
+    glm_rotate(rot, direction[0], (vec3){0,1,0});
+    glm_rotate(rot, direction[1], (vec3){1,0,0});
+    glm_rotate(rot, direction[2], (vec3){0,0,1});
+
+    forward[0] = -rot[2][0];
+    forward[1] = -rot[2][1];
+    forward[2] = -rot[2][2];
+
+    up[0] = -rot[1][0];
+    up[1] = -rot[1][1];
+    up[2] = -rot[1][2];
+
+
+    FMOD_VECTOR posv = {position[0], position[1], position[2]};
+    FMOD_VECTOR forwardv = {forward[0], forward[1], forward[2]};
+    FMOD_VECTOR upv = {up[0], up[1], up[2]};
+    FMOD_VECTOR velv = {velocity[0], velocity[1], velocity[2]};
+    FMOD_System_Set3DListenerAttributes(engine->system, 0, &posv, &velv, &forwardv, &upv);
 }
 
 // ==============================
@@ -2522,9 +2436,7 @@ BE_Scene BE_SceneInit() {
     BE_LightVectorInit(&scene.lights);
     BE_ModelVectorInit(&scene.models);
     BE_SpriteVectorInit(&scene.sprites);
-    BE_SoundSystemInit(&scene.soundsys);
-    BE_SoundVectorInit(&scene.sounds);
-    BE_SoundSourceVectorInit(&scene.sources);
+    BE_AudioEngineInit(&scene.audio);
     return scene;
 }
 
