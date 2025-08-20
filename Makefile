@@ -6,7 +6,7 @@ CXXFLAGS := -g -lm
 
 # === Paths ===
 INCLUDES := -Iinclude -I. -Iengine
-LDFLAGS := -Llib -lglfw3dll -lopenal32
+LDFLAGS := -Llib -lglfw3dll -lopenal32 -lfmod
 
 # === Files ===
 SRCS := src/example.c #$(wildcard src/*.c) 

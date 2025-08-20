@@ -981,8 +981,10 @@ void BE_CameraVectorDraw(BE_CameraVector* vec, BE_Mesh* mesh, BE_Shader* shader,
     BE_ShaderActivate(shader);
     glUniform3fv(glGetUniformLocation(shader->ID, "color"), 1, (float[]){1.0f, 1.0f, 1.0f});
     
+    glEnable(GL_DEPTH_TEST);
     glDisable(GL_CULL_FACE);
     glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+    glEnable(GL_BLEND);
 
     mat4 model;
     vec3 ori;
@@ -1458,6 +1460,11 @@ void BE_ModelVectorCopy(BE_Model* models, size_t count, BE_ModelVector* outVec) 
 void BE_ModelVectorDraw(BE_ModelVector* vec, BE_Shader* shader) {
     
     BE_ShaderActivate(shader);
+    
+    glEnable(GL_DEPTH_TEST);
+    glEnable(GL_CULL_FACE);
+    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+    glEnable(GL_BLEND);
 
     mat4 modelMatrix;
 
@@ -1838,6 +1845,11 @@ void BE_LightVectorUpload(BE_LightVector* vec, BE_Shader* shader) {
 void BE_LightVectorDraw(BE_LightVector* vec, BE_Mesh* mesh, BE_Shader* shader) {
 
     BE_ShaderActivate(shader);
+    
+    glEnable(GL_DEPTH_TEST);
+    glEnable(GL_CULL_FACE);
+    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+    glEnable(GL_BLEND);
 
     vec3 scale = { 0.1f, 0.1f, 0.1f };
     mat4 model;
@@ -2152,8 +2164,13 @@ void BE_SpriteVectorCopy(BE_Sprite* sprites, size_t count, BE_SpriteVector* outV
 }
 
 void BE_SpriteVectorDraw(BE_SpriteVector* vec, BE_Shader* shader) {
+    
     BE_ShaderActivate(shader);
+    
+    glEnable(GL_DEPTH_TEST);
+    glEnable(GL_CULL_FACE);
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+    glEnable(GL_BLEND);
 
     mat4 model;
 
@@ -2241,11 +2258,11 @@ void BE_SpriteVectorDraw(BE_SpriteVector* vec, BE_Shader* shader) {
 
 // void BE_ParticlesDraw(BE_GPUParticles* ps, mat4 view, mat4 proj, int additive) {
 //     BE_ShaderActivate(&ps->renderShader);
-//
-//     glUniformMatrix4fv(glGetUniformLocation(ps->renderShader.ID,"u_view"), 1, GL_FALSE, (const float*)view);
-//     glUniformMatrix4fv(glGetUniformLocation(ps->renderShader.ID,"u_proj"), 1, GL_FALSE, (const float*)proj);
-//     BE_TextureSetUniformUnit(&ps.renderShader, "u_sprite", ps.sprite.unit);
-//     glUniform1i(glGetUniformLocation(ps.renderShader.ID,"u_additive"), additive);
+// 
+//     glEnable(GL_DEPTH_TEST);
+//     glEnable(GL_CULL_FACE);
+//     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+//     glEnable(GL_BLEND);
 //
 //     BE_VAOBind(ps->vao);
 //     BE_TextureBind(&ps->sprite);
@@ -2268,7 +2285,191 @@ void BE_SpriteVectorDraw(BE_SpriteVector* vec, BE_Shader* shader) {
 // Audio
 // ==============================
 
-void BE_SoundUpdateListener(BE_Camera* cam) {
+BE_Sound BE_LoadWav(const char* path, const char* name) {
+    BE_Sound sound = {0};
+
+    drwav wav;
+    if (!drwav_init_file(&wav, path, NULL)) {
+        fprintf(stderr, "Failed to load WAV: %s\n", path);
+        return sound;
+    }
+
+    uint16_t* pcm = malloc(wav.totalPCMFrameCount * wav.channels * sizeof(uint16_t));
+    drwav_read_pcm_frames_s16(&wav, wav.totalPCMFrameCount, pcm);
+
+    alGenBuffers(1, &sound.soundID);
+
+    ALenum format;
+    sound.channels = wav.channels;
+    if (wav.channels == 1) { 
+        format = AL_FORMAT_MONO16; 
+    } else if (wav.channels == 2) { 
+        format = AL_FORMAT_STEREO16;
+    } else {
+        fprintf(stderr, "Unsupported channel count: %d\n", wav.channels);
+        drwav_uninit(&wav);
+        free(pcm);
+        return sound;
+    }
+
+    alBufferData(sound.soundID, format, pcm, (ALsizei)(wav.totalPCMFrameCount * wav.channels * sizeof(uint16_t)), wav.sampleRate);
+
+    drwav_uninit(&wav);
+    free(pcm);
+
+    if (name) {
+        sound.name = malloc(strlen(name) + 1);
+        strcpy(sound.name, name);
+    } else sound.name = NULL;
+
+    if (path) {
+        sound.path = malloc(strlen(path) + 1);
+        strcpy(sound.path, path);
+    } else sound.path = NULL;
+
+    return sound;
+}
+
+#define INITIAL_SOUND_CAPACITY 16
+
+void BE_SoundVectorInit(BE_SoundVector* vec) {
+    vec->data = (BE_Sound*)malloc(sizeof(BE_Sound) * INITIAL_SOUND_CAPACITY);
+    vec->size = 0;
+    vec->capacity = INITIAL_SOUND_CAPACITY;
+}
+
+void BE_SoundVectorPush(BE_SoundVector* vec, BE_Sound value) {
+    if (vec->size >= vec->capacity) {
+        vec->capacity *= 2;
+        vec->data = (BE_Sound*)realloc(vec->data, sizeof(BE_Sound) * vec->capacity);
+    }
+    vec->data[vec->size++] = value;
+}
+
+void BE_SoundVectorFree(BE_SoundVector* vec) {
+    free(vec->data);
+    vec->data = NULL;
+    vec->size = 0;
+    vec->capacity = 0;
+}
+
+void BE_SoundVectorCopy(BE_Sound* sounds, size_t count, BE_SoundVector* outVec) {
+    BE_SoundVectorInit(outVec);
+    for (size_t i = 0; i < count; i++) {
+        BE_SoundVectorPush(outVec, sounds[i]);
+    }
+}
+
+BE_SoundSource BE_SoundSourceInit(BE_Sound* sound, vec3 position, bool spatial) {
+    BE_SoundSource source = {0};
+
+    source.sound = sound;
+    glm_vec3_copy(position, source.position);
+    source.gain = 1.f;
+    source.pitch = 1.f;
+    source.looping = false;
+    source.spatial = spatial;
+
+    alGenSources(1, &source.sourceID);
+    alSourcei(source.sourceID, AL_BUFFER, sound->soundID);
+    
+    alSourcei(source.sourceID, AL_LOOPING, AL_FALSE);
+
+    if(spatial){
+        alSource3f(source.sourceID, AL_POSITION, position[0], position[1], position[2]);
+        alSourcei(source.sourceID, AL_SOURCE_RELATIVE, AL_FALSE);
+        alSourcef(source.sourceID, AL_ROLLOFF_FACTOR, 5.0f);
+        alSourcef(source.sourceID, AL_REFERENCE_DISTANCE, 1.0f);
+        alSourcef(source.sourceID, AL_MAX_DISTANCE, 10.0f);
+    } else {
+        alSourcei(source.sourceID, AL_SOURCE_RELATIVE, AL_TRUE);
+    }
+
+    alSourcef(source.sourceID, AL_GAIN, source.gain);
+    alSourcef(source.sourceID, AL_PITCH, source.pitch);
+
+    if (sound->channels != 1 && source.spatial) MSG_WARNING(sound->path, 1, "sound with %d channels attached to spatial source", sound->channels);
+
+    return source;
+}
+
+void BE_SoundSourcePlay(BE_SoundSource* source) {
+    alSourcePlay(source->sourceID);
+}
+
+void BE_SoundSourceStop(BE_SoundSource* source) {
+    alSourceStop(source->sourceID);
+}
+
+void BE_SoundSourceSetPosition(BE_SoundSource* source, vec3 position) {
+    glm_vec3_copy(position, source->position);
+    if(source->spatial) alSource3f(source->sourceID, AL_POSITION, position[0], position[1], position[2]);
+}
+
+void BE_SoundSourceSetGain(BE_SoundSource* source, float gain) {
+    source->gain = gain;
+    alSourcef(source->sourceID, AL_GAIN, gain);
+}
+
+void BE_SoundSourceSetSound(BE_SoundSource* source, BE_Sound* newSound) {
+    source->sound = newSound;
+    alSourcei(source->sourceID, AL_BUFFER, newSound->soundID);
+}
+
+void BE_SoundSourceVectorDraw(BE_SoundSourceVector* vec, BE_Mesh* mesh, BE_Shader* shader) {
+
+    BE_ShaderActivate(shader);
+    
+    glEnable(GL_DEPTH_TEST);
+    glDisable(GL_CULL_FACE);
+    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+    glEnable(GL_BLEND);
+
+    vec3 scale = { 0.1f, 0.1f, 0.1f };
+    mat4 model;
+
+    for (size_t i = 0; i < vec->size; i++) {
+        BE_SoundSource* source = &vec->data[i];
+        
+        BE_MatrixMakeModel(source->position, (vec3){0,0,0}, scale, model);
+        glUniformMatrix4fv(glGetUniformLocation(shader->ID, "model"), 1, GL_FALSE, (float*)model);
+        BE_VAOBind(&mesh->vao);
+        BE_MeshDraw(mesh, shader);
+    }
+
+}
+
+#define INITIAL_SOURCE_CAPACITY 32
+
+void BE_SoundSourceVectorInit(BE_SoundSourceVector* vec) {
+    vec->data = (BE_SoundSource*)malloc(sizeof(BE_SoundSource) * INITIAL_SOURCE_CAPACITY);
+    vec->size = 0;
+    vec->capacity = INITIAL_SOURCE_CAPACITY;
+}
+
+void BE_SoundSourceVectorPush(BE_SoundSourceVector* vec, BE_SoundSource value) {
+    if (vec->size >= vec->capacity) {
+        vec->capacity *= 2;
+        vec->data = (BE_SoundSource*)realloc(vec->data, sizeof(BE_SoundSource) * vec->capacity);
+    }
+    vec->data[vec->size++] = value;
+}
+
+void BE_SoundSourceVectorFree(BE_SoundSourceVector* vec) {
+    free(vec->data);
+    vec->data = NULL;
+    vec->size = 0;
+    vec->capacity = 0;
+}
+
+void BE_SoundSourceVectorCopy(BE_SoundSource* sources, size_t count, BE_SoundSourceVector* outVec) {
+    BE_SoundSourceVectorInit(outVec);
+    for (size_t i = 0; i < count; i++) {
+        BE_SoundSourceVectorPush(outVec, sources[i]);
+    }
+}
+
+void BE_SoundSystemUpdateListener(BE_Camera* cam) {
     vec3 forward;
     glm_vec3_copy(cam->direction, forward);
     glm_vec3_normalize(forward);
@@ -2288,105 +2489,16 @@ void BE_SoundUpdateListener(BE_Camera* cam) {
     alListenerfv(AL_ORIENTATION, orientation);
 }
 
-BE_Sound BE_LoadWav(const char* path, const char* name) {
-    BE_Sound buf = {0};
-    drwav wav;
-    if (!drwav_init_file(&wav, path, NULL)) {
-        fprintf(stderr, "Failed to load WAV: %s\n", path);
-        return buf;
-    }
+void BE_SoundSystemInit(BE_SoundSystem* system) {
 
-    // Allocate memory and read PCM samples
-    uint16_t* pcm = malloc(wav.totalPCMFrameCount * wav.channels * sizeof(uint16_t));
-    drwav_read_pcm_frames_s16(&wav, wav.totalPCMFrameCount, pcm);
-
-    // Create OpenAL buffer
-    alGenBuffers(1, &buf.bufferID);
-
-    // Determine format
-    ALenum format;
-    if (wav.channels == 1) format = AL_FORMAT_MONO16;
-    else if (wav.channels == 2) format = AL_FORMAT_STEREO16;
-    else {
-        fprintf(stderr, "Unsupported channel count: %d\n", wav.channels);
-        drwav_uninit(&wav);
-        free(pcm);
-        return buf;
-    }
-
-    alBufferData(buf.bufferID, format, pcm, (ALsizei)(wav.totalPCMFrameCount * wav.channels * sizeof(uint16_t)), wav.sampleRate);
-
-    drwav_uninit(&wav);
-    free(pcm);
-
-    // Set name
-    if (name) {
-        buf.name = malloc(strlen(name)+1);
-        strcpy(buf.name,name);
-    } else buf.name = NULL;
-
-    return buf;
-}
-
-BE_SoundSource BE_SoundSourceInit(BE_Sound* buffer, vec3 position, bool spatial) {
-    BE_SoundSource e = {0};
-
-    e.buffer = buffer;
-    glm_vec3_copy(position, e.position);
-    e.gain = 1.f;
-    e.pitch = 1.f;
-    e.looping = false;
-    e.spatial = spatial;
-
-    alGenSources(1, &e.sourceID);
-    alSourcei(e.sourceID, AL_BUFFER, buffer->bufferID);
-    
-    alSourcei(e.sourceID, AL_LOOPING, AL_FALSE);
-
-    if(spatial){
-        alSource3f(e.sourceID, AL_POSITION, position[0], position[1], position[2]);
-        alSourcei(e.sourceID, AL_SOURCE_RELATIVE, AL_FALSE);
-        alSourcef(e.sourceID, AL_ROLLOFF_FACTOR, 5.f);
-        alSourcef(e.sourceID, AL_REFERENCE_DISTANCE, 5.f);
-        alSourcef(e.sourceID, AL_MAX_DISTANCE, 50.f);
-    } else {
-        alSourcei(e.sourceID, AL_SOURCE_RELATIVE, AL_TRUE);
-    }
-
-    alSourcef(e.sourceID, AL_GAIN, e.gain);
-    alSourcef(e.sourceID, AL_PITCH, e.pitch);
-
-    return e;
-}
-
-void BE_SoundSourcePlay(BE_SoundSource* e) {
-    alSourcePlay(e->sourceID);
-}
-
-void BE_SoundSourceStop(BE_SoundSource* e) {
-    alSourceStop(e->sourceID);
-}
-
-void BE_SoundSourceSetPosition(BE_SoundSource* e, vec3 position) {
-    glm_vec3_copy(position, e->position);
-    if(e->spatial) alSource3f(e->sourceID,AL_POSITION, position[0], position[1], position[2]);
-}
-
-void BE_SoundSourceSetGain(BE_SoundSource* e, float gain) {
-    e->gain = gain;
-    alSourcef(e->sourceID,AL_GAIN,gain);
-}
-
-BE_SoundSystem BE_SoundSystemInit() {
-    BE_SoundSystem sys = {0};
-    sys.device = alcOpenDevice(NULL);
-    if (!sys.device) {
+    system->device = alcOpenDevice(NULL);
+    if (!system->device) {
         fprintf(stderr,"Failed to open device\n");
         exit(1); 
     }
 
-    sys.context = alcCreateContext(sys.device, NULL);
-    if (!alcMakeContextCurrent(sys.context)) {
+    system->context = alcCreateContext(system->device, NULL);
+    if (!alcMakeContextCurrent(system->context)) {
         fprintf(stderr,"Failed to make context current\n");
         exit(1);
     }
@@ -2397,8 +2509,6 @@ BE_SoundSystem BE_SoundSystemInit() {
     alListenerfv(AL_ORIENTATION, ori);
 
     alDistanceModel(AL_INVERSE_DISTANCE_CLAMPED);
-
-    return sys;
 }
 
 // ==============================
@@ -2412,33 +2522,10 @@ BE_Scene BE_SceneInit() {
     BE_LightVectorInit(&scene.lights);
     BE_ModelVectorInit(&scene.models);
     BE_SpriteVectorInit(&scene.sprites);
+    BE_SoundSystemInit(&scene.soundsys);
+    BE_SoundVectorInit(&scene.sounds);
+    BE_SoundSourceVectorInit(&scene.sources);
     return scene;
-}
-
-void BE_SceneDraw(BE_Scene* scene, BE_Shader* shader, BE_Shader* shadow, BE_Camera* camera, int width, int height) {
-
-    BE_CameraVectorUpdateMatrix(&scene->cameras, width, height);
-    BE_LightVectorUpdateMatrix(&scene->lights);
-    BE_LightVectorUpdateMultiMaps(&scene->lights, &scene->models, shadow, true);
-    
-    glViewport(0, 0, width, height);
-    glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-    glEnable(GL_CULL_FACE);
-    glCullFace(GL_FRONT);
-    glFrontFace(GL_CCW);
-    glEnable(GL_DEPTH_TEST);
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-
-    BE_LightVectorUpload(&scene->lights, shader);
-    BE_CameraMatrixUploadPersp(camera, shader, "camMatrix");
-
-    glUniform1i(glGetUniformLocation(shader->ID, "sampleRadius"), 0);
-    BE_ModelVectorDraw(&scene->models, shader);
- 
 }
 
 #define INITIAL_SCENE_CAPACITY 2
@@ -2464,9 +2551,9 @@ void BE_SceneVectorFree(BE_SceneVector* vec) {
     vec->capacity = 0;
 }
 
-void BE_SceneVectorCopy(BE_Scene* models, size_t count, BE_SceneVector* outVec) {
+void BE_SceneVectorCopy(BE_Scene* scenes, size_t count, BE_SceneVector* outVec) {
     BE_SceneVectorInit(outVec);
     for (size_t i = 0; i < count; i++) {
-        BE_SceneVectorPush(outVec, models[i]);
+        BE_SceneVectorPush(outVec, scenes[i]);
     }
 }

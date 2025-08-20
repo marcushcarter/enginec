@@ -5,7 +5,7 @@
       "name": "Debug OpenGL Program",
       "type": "cppdbg",
       "request": "launch",
-      "program": "${workspaceFolder}/opengl.exe",
+      "program": "${workspaceFolder}/engine.exe",
       "args": [],
       "stopAtEntry": false,
       "cwd": "${workspaceFolder}",

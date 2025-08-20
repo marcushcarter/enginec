@@ -58,13 +58,13 @@ int main() {
     BE_Shader shader_outline = BE_ShaderInit("shaders/vert/framebuffer.vert", "shaders/frag/outline.frag", NULL, NULL);
     
     BE_Shader shader_sprite = BE_ShaderInit("shaders/vert/sprite.vert", "shaders/frag/sprite.frag", NULL, NULL);
-    // BE_Shader shader_particles = BE_ShaderInit("shaders/vert/particles.vert", "shaders/frag/particles.frag", NULL, "shaders/comp/particles.comp");
 
     // MESHES
 
     BE_Mesh mesh_cube = BE_LoadOBJToMesh("res/models/cube.obj");
     BE_Mesh mesh_scene1 = BE_LoadOBJToMesh("res/models/scene.obj");
     BE_Mesh mesh_camera = BE_LoadOBJToMesh("res/models/camera.obj");
+    BE_Mesh mesh_sphere = BE_LoadOBJToMesh("res/models/sphere.obj");
     
     BE_VAO vao_quad = BE_VAOInitQuad();
     BE_VAO vao_billboard = BE_VAOInitBillboardQuad();
@@ -89,16 +89,18 @@ int main() {
     BE_LightVectorPush(&activeScene->lights, BE_LightInit(LIGHT_POINT, (vec3){0,0,0}, (vec3){0,0,0}, (vec4){1.0f, 1.0f, 1.0f, 1.0f}, 0.5f, 1.0f, 0.04f, 0, 0));
     BE_ModelVectorPush(&activeScene->models, BE_ModelInit(&mesh_scene1, BE_TransformInit((vec3){0.0f, 0.0f, 0.0f}, (vec3){0.0f, 0.0f, 0.0f}, (vec3){1.0f, 1.0f, 1.0f})));
     BE_SpriteVectorPush(&activeScene->sprites, BE_SpriteInit((vec3){windowWidth/2, windowHeight/2, 0.0f}, (vec2){100.0f, 100.0f}, 0.0f, (vec3){1.0f, 1.0f, 1.0f}, &texture1));
-
+    BE_SoundVectorPush(&activeScene->sounds, BE_LoadWav("res/sounds/breakout.wav", "breakout"));
+    BE_SoundSourceVectorPush(&activeScene->sources, BE_SoundSourceInit(&activeScene->sounds.data[0], (vec3){0.0f, 2.0f, 0.0f}, true));
+    
     BE_Camera* selectedCamera = &activeScene->cameras.data[0];
 
-    BE_SoundSystem audio = BE_SoundSystemInit();
-    BE_Sound breakout = BE_LoadWav("res/sounds/breakout.wav", "breakout");
-    vec3 pos = {10.f,0.f,0.f};
-    BE_SoundSource emitter = BE_SoundSourceInit(&breakout, pos, true);
-    BE_SoundSourcePlay(&emitter);
+    BE_SoundSourcePlay(&activeScene->sources.data[0]);
 
     alDistanceModel(AL_INVERSE_DISTANCE_CLAMPED);
+    glCullFace(GL_FRONT);
+    glFrontFace(GL_CCW);
+    glDepthFunc(GL_LESS);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
     fprintf(stdout, "Time to load scene -> %.2fs\n", glfwGetTime());
 
@@ -129,7 +131,7 @@ int main() {
         glm_vec2_copy((vec3){windowWidth/2, windowHeight/2, 0.0f}, activeScene->sprites.data[0].position);
         
         BE_CameraInputs(selectedCamera, window, &joystick, timer.dt);
-        BE_SoundUpdateListener(selectedCamera);
+        BE_SoundSystemUpdateListener(selectedCamera);
 
         // RENDERS
 
@@ -142,24 +144,17 @@ int main() {
         glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        glEnable(GL_CULL_FACE);
-        glCullFace(GL_FRONT);
-        glFrontFace(GL_CCW);
-        glEnable(GL_DEPTH_TEST);
-        glEnable(GL_BLEND);
-        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-
         BE_LightVectorUpload(&activeScene->lights, &shader_default);
         BE_CameraMatrixUploadPersp(selectedCamera, &shader_default, "camMatrix");
+        glUniform1i(glGetUniformLocation(shader_default.ID, "sampleRadius"), 0);
         BE_CameraMatrixUploadPersp(selectedCamera, &shader_color, "camMatrix");
         BE_CameraMatrixUploadOrtho(selectedCamera, &shader_sprite, "camMatrix");
-        glUniform1i(glGetUniformLocation(shader_default.ID, "sampleRadius"), 0);
 
         BE_ModelVectorDraw(&activeScene->models, &shader_default);
         BE_LightVectorDraw(&activeScene->lights, &mesh_cube, &shader_color);
         BE_CameraVectorDraw(&activeScene->cameras, &mesh_camera, &shader_color, selectedCamera);
-        BE_SpriteVectorDraw(&activeScene->sprites, &shader_sprite);
+        if (glfwGetKey(window, GLFW_KEY_4)) BE_SpriteVectorDraw(&activeScene->sprites, &shader_sprite);
+        BE_SoundSourceVectorDraw(&activeScene->sources, &mesh_sphere, &shader_color);
 
         // ping = !ping;
         // glDisable(GL_DEPTH_TEST);
