@@ -89,15 +89,10 @@ int main() {
     BE_LightVectorPush(&activeScene->lights, BE_LightInit(LIGHT_POINT, (vec3){0,0,0}, (vec3){0,0,0}, (vec4){1.0f, 1.0f, 1.0f, 1.0f}, 0.5f, 1.0f, 0.04f, 0, 0));
     BE_ModelVectorPush(&activeScene->models, BE_ModelInit(&mesh_scene1, BE_TransformInit((vec3){0.0f, 0.0f, 0.0f}, (vec3){0.0f, 0.0f, 0.0f}, (vec3){1.0f, 1.0f, 1.0f})));
     BE_SpriteVectorPush(&activeScene->sprites, BE_SpriteInit((vec3){windowWidth/2, windowHeight/2, 0.0f}, (vec2){100.0f, 100.0f}, 0.0f, (vec3){1.0f, 1.0f, 1.0f}, &texture1));
-    
-    BE_Sound* sound1 = BE_SoundLoad(&activeScene->audio, "res/sounds/breakout.wav", "poopy butt nuggets", true);
-    BE_SoundSource* laserSource = BE_SoundSourceInit((vec3){0,0,0}, true);
-    laserSource->gain = 1.0f;
-    laserSource->pitch = 1.0f;
-    laserSource->looping = false;  // play once
+    BE_SoundVectorPush(&activeScene->sounds, BE_SoundLoad(&activeScene->audio, "res/sounds/breakout.wav", "poopy butt nuggets", true, 1.0f, 10.0f));
+    BE_SourceVectorPush(&activeScene->sources, BE_SourceInit((vec3){0,1,0}, true));
 
-    BE_SourcePlaySound(&activeScene->audio, laserSource, sound1);
-
+    BE_SourcePlaySound(&activeScene->audio, &activeScene->sources.data[0], &activeScene->sounds.data[0]);
 
     BE_Camera* selectedCamera = &activeScene->cameras.data[0];
 
@@ -159,6 +154,7 @@ int main() {
         BE_LightVectorDraw(&activeScene->lights, &mesh_cube, &shader_color);
         BE_CameraVectorDraw(&activeScene->cameras, &mesh_camera, &shader_color, selectedCamera);
         if (glfwGetKey(window, GLFW_KEY_4)) BE_SpriteVectorDraw(&activeScene->sprites, &shader_sprite);
+        BE_SourceVectorDraw(&activeScene->sources, &mesh_sphere, &shader_color);
 
         // ping = !ping;
         // glDisable(GL_DEPTH_TEST);
