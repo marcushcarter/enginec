@@ -58,7 +58,12 @@
         "system_error": "c",
         "math.h": "c",
         "ft2build.h": "c",
-        "stb_truetype.h": "c"
+        "stb_truetype.h": "c",
+        "compare": "c",
+        "tuple": "c",
+        "type_traits": "c",
+        "utility": "c",
+        "variant": "c"
     },
     "C_Cpp.errorSquiggles": "disabled"
 }

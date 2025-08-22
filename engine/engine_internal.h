@@ -31,6 +31,22 @@
 #include <engine/stb_image/stb_truetype.h>
 #include <engine/fmod/fmod.h>
 #include <time.h>
+#include <string.h>
+
+#include "engine_default.h"
+
+#define FIND_PTR(vecPtr, type, targetName) ({ \
+    void* result = NULL; \
+    for (size_t i = 0; i < (vecPtr)->size; i++) { \
+        if (strcmp((vecPtr)->data[i].name, targetName) == 0) { \
+            result = &(vecPtr)->data[i]; \
+            break; \
+        } \
+    } \
+    result; \
+})
+
+// #define FIND_MEMBER_PTR(vecPtr, type, targetName, memberPath) ({})
 
 void BE_MatrixMakeModel(vec3 translation, vec3 rotation, vec3 scale, mat4 dest);
 void BE_MatrixMakeBillboard(vec3 position, mat4 view, vec3 scale, mat4 dest);
@@ -185,14 +201,27 @@ void BE_EBOUnbind();
 void BE_EBODelete(BE_EBO* ebo);
 
 typedef struct {
+    char* name;
     GLuint ID;
 } BE_Shader;
 
+typedef struct {
+    BE_Shader* data;
+    size_t size;
+    size_t capacity;
+} BE_ShaderVector;
+
 char* BE_GetFileContents(const char* filename);
 void BE_ShaderGetCompileErrors(unsigned int shader, const char* type);
-BE_Shader BE_ShaderInit(const char* vertexFile, const char* fragmentFile, const char* geometryFile, const char* computeFile);
+BE_Shader BE_ShaderInit(const char* name, const char* vertexFile, const char* fragmentFile, const char* geometryFile, const char* computeFile);
+BE_Shader BE_ShaderInitString(const char* name, const char* vertexSource, const char* fragmentSource, const char* geometrySource, const char* computeSource);
 void BE_ShaderActivate(BE_Shader* shader);
 void BE_ShaderDelete(BE_Shader* shader);
+
+void BE_ShaderVectorInit(BE_ShaderVector* vec);
+void BE_ShaderVectorPush(BE_ShaderVector* vec, BE_Shader value);
+void BE_ShaderVectorFree(BE_ShaderVector* vec);
+void BE_ShaderVectorCopy(BE_Shader* shaders, size_t count, BE_ShaderVector* outVec);
 
 typedef struct {
     GLuint fbo;
@@ -212,6 +241,7 @@ void BE_FBOUnbind();
 void BE_FBODelete(BE_FBO* fb);
 
 typedef struct {
+    char* name;
     GLuint ID;
     char* type;
     GLuint unit;
@@ -223,7 +253,7 @@ typedef struct {
     size_t capacity;
 } BE_TextureVector;
 
-BE_Texture BE_TextureInit(const char* imageFile, const char* texType, GLenum slot);
+BE_Texture BE_TextureInit(const char* name, const char* imageFile, const char* texType, GLenum slot);
 void BE_TextureSetUniformUnit(BE_Shader* shader, const char* uniform, GLuint unit);
 void BE_TextureBind(BE_Texture* texture);
 void BE_TextureUnbind();
@@ -235,6 +265,7 @@ void BE_TextureVectorFree(BE_TextureVector* vec);
 void BE_TextureVectorCopy(BE_Texture* textures, size_t count, BE_TextureVector* outVec);
 
 typedef struct {
+    char* name;
     int width, height;
     float zoom, fov;
     float nearPlane, farPlane;
@@ -249,8 +280,9 @@ typedef struct {
     size_t capacity;
 } BE_CameraVector;
 
-BE_Camera BE_CameraInit(int width, int height, float fov, float nearPlane, float farPlane, vec3 position, vec3 direction);
-void BE_CameraInputs(BE_Camera* camera, GLFWwindow* window, BE_Joystick* js, float dt);
+BE_Camera BE_CameraInit(const char* name, int width, int height, float fov, float nearPlane, float farPlane, vec3 position, vec3 direction);
+void BE_CameraInputs(BE_Camera* camera, GLFWwindow* window, float dt);
+void BE_CameraInputsJoystick(BE_Camera* camera, BE_Joystick* joystick, float dt);
 void BE_CameraMatrixUploadPersp(BE_Camera* camera, BE_Shader* shader, const char* uniform);
 void BE_CameraMatrixUploadOrtho(BE_Camera* camera, BE_Shader* shader, const char* uniform);
 void BE_CameraMatrixUploadCustom(BE_Shader* shader, const char* uniform, vec3 position, mat4 matrix);
@@ -263,22 +295,35 @@ void BE_CameraVectorCopy(BE_Camera* lights, size_t count, BE_CameraVector* outVe
 void BE_CameraVectorUpdateMatrix(BE_CameraVector* vec, int width, int height);
 
 typedef struct {
+    char* name;
     BE_VertexVector vertices;
     BE_GLuintVector indices;
     BE_TextureVector textures;
     BE_VAO vao;
 } BE_Mesh;
 
-BE_Mesh BE_MeshInitFromVertex(BE_VertexVector vertices, BE_GLuintVector indices, BE_TextureVector textures);
-BE_Mesh BE_MeshInitFromData(const char** texbuffer, int texcount, BE_Vertex* vertices, int vertcount, GLuint* indices, int indcount);
+typedef struct {
+    BE_Mesh* data;
+    size_t size;
+    size_t capacity;
+} BE_MeshVector;
+
+BE_Mesh BE_MeshInitFromVertex(const char* name, BE_VertexVector vertices, BE_GLuintVector indices, BE_TextureVector textures);
+BE_Mesh BE_MeshInitFromData(const char* name, const char** texbuffer, int texcount, BE_Vertex* vertices, int vertcount, GLuint* indices, int indcount);
 void BE_MeshDraw(BE_Mesh* mesh, BE_Shader* shader);
 void BE_MeshDrawBillboard(BE_Mesh* mesh, BE_Shader* shader, BE_Texture* texture);
 
 int BE_FindOrAddVertex(BE_Vertex* vertices, int* verticesCount, BE_Vertex v);
 void BE_ReplacePathSuffix(const char* path, const char* newsuffix, char* dest, int destsize);
 int BE_CountFaceVertices(const char* line);
-BE_Mesh BE_LoadOBJToMesh(const char* obj_path);
+BE_Mesh BE_LoadOBJToMesh(const char* name, const char* obj_path);
+BE_Mesh BE_LoadOBJFromString(const char* name, const char* obj_contents);
 const char** BE_LoadMTLTextures(const char* mtl_path, int* outCount);
+
+void BE_MeshVectorInit(BE_MeshVector* vec);
+void BE_MeshVectorPush(BE_MeshVector* vec, BE_Mesh value);
+void BE_MeshVectorFree(BE_MeshVector* vec);
+void BE_MeshVectorCopy(BE_Mesh* meshes, size_t count, BE_MeshVector* outVec);
 
 void BE_CameraVectorDraw(BE_CameraVector* vec, BE_Mesh* mesh, BE_Shader* shader, BE_Camera* selected);
 
@@ -289,6 +334,7 @@ typedef struct {
 } BE_Transform;
 
 typedef struct {
+    char* name;
     BE_Mesh* mesh;
     BE_Transform transform;
 } BE_Model;
@@ -301,7 +347,7 @@ typedef struct {
 
 BE_Transform BE_TransformInit(vec3 position, vec3 rotation, vec3 scale);
 
-BE_Model BE_ModelInit(BE_Mesh* mesh, BE_Transform transform);
+BE_Model BE_ModelInit(const char* name, BE_Mesh* mesh, BE_Transform transform);
 
 void BE_ModelVectorInit(BE_ModelVector* vec);
 void BE_ModelVectorPush(BE_ModelVector* vec, BE_Model value);
@@ -327,6 +373,7 @@ typedef enum {
 
 typedef struct {
     int type;
+    char* name;
 
     vec3 position;
     vec3 direction;
@@ -362,7 +409,7 @@ void BE_ShadowMapFBODelete(BE_ShadowMapFBO* smfbo);
 
 typedef void (*ShadowRenderFunc)(BE_Shader* shader);
 
-BE_Light BE_LightInit(int type, vec3 position, vec3 direction, vec4 color, float specular, float a, float b, float innerCone, float outerCone);
+BE_Light BE_LightInit(const char* name, int type, vec3 position, vec3 direction, vec4 color, float specular, float a, float b, float innerCone, float outerCone);
 
 void BE_LightVectorInit(BE_LightVector* vec);
 void BE_LightVectorPush(BE_LightVector* vec, BE_Light value);
@@ -427,6 +474,7 @@ void BE_LightVectorDraw(BE_LightVector* vec, BE_Mesh* mesh, BE_Shader* shader);
 // void BE_TextVectorCopy(BE_Text* texts, size_t count, BE_TextVector* outVec);
 
 typedef struct {
+    char* name;
     vec3 position;
     vec2 scale;
     float rotation;
@@ -442,7 +490,7 @@ typedef struct {
     BE_VAO vao;
 } BE_SpriteVector;
 
-BE_Sprite BE_SpriteInit(vec3 position, vec2 scale, float rotation, vec3 color, BE_Texture* texture);
+BE_Sprite BE_SpriteInit(const char* name, BE_Texture* texture, vec3 position, vec2 scale, vec3 color, float rotation);
 
 void BE_SpriteVectorInit(BE_SpriteVector* vec);
 void BE_SpriteVectorPush(BE_SpriteVector* vec, BE_Sprite value);
@@ -502,6 +550,7 @@ void BE_SoundVectorFree(BE_SoundVector* vec);
 void BE_SoundVectorCopy(BE_Sound* sounds, size_t count, BE_SoundVector* outVec);
 
 typedef struct {
+    char* name;
     vec3 position;
     float gain;
     float pitch;
@@ -516,7 +565,7 @@ typedef struct {
     size_t capacity;
 } BE_SourceVector;
 
-BE_Source BE_SourceInit(vec3 position, bool spatial);
+BE_Source BE_SourceInit(const char* name, vec3 position, bool spatial);
 
 void BE_SourcePlaySound(BE_AudioEngine* engine, BE_Source* src, BE_Sound* sound);
 void BE_SourceStop(BE_Source* src);
@@ -534,14 +583,29 @@ void BE_SourceVectorCopy(BE_Source* sources, size_t count, BE_SourceVector* outV
 void BE_SourceVectorDraw(BE_SourceVector* vec, BE_Mesh* mesh, BE_Shader* shader);
 
 typedef struct {
+    BE_TextureVector textures;
+    BE_MeshVector meshes;
+    BE_SoundVector sounds;
+    BE_ShaderVector shaders;
+
+    BE_Shader default3DShader;
+    BE_Shader defaultDepthShader;
+    BE_Shader defaultColorShader;
+    BE_Shader defaultSpriteShader;
+
+    BE_Mesh defaultCubeMesh;
+    BE_Mesh defaultCameraMesh;
+} BE_Resources;
+
+typedef struct {
+    char* name;
+
     BE_ModelVector models;
     BE_LightVector lights;
     BE_CameraVector cameras;
     BE_SpriteVector sprites;
 
-    BE_AudioEngine audio;
     BE_SourceVector sources;
-    BE_SoundVector sounds;
 } BE_Scene;
 
 typedef struct {
@@ -550,11 +614,63 @@ typedef struct {
     size_t capacity;
 } BE_SceneVector;
 
-BE_Scene BE_SceneInit();
+BE_Scene BE_SceneInit(const char* name);
 
 void BE_SceneVectorInit(BE_SceneVector* vec);
 void BE_SceneVectorPush(BE_SceneVector* vec, BE_Scene value);
 void BE_SceneVectorFree(BE_SceneVector* vec);
 void BE_SceneVectorCopy(BE_Scene* scenes, size_t count, BE_SceneVector* outVec);
+
+typedef struct {
+    char* title;
+    GLFWwindow* window;
+    int width, height;
+
+    BE_SceneVector scenes;
+    BE_Resources resources;
+    BE_Scene* activeScene;
+    BE_Camera* activeCamera;
+    BE_AudioEngine audio;
+
+    BE_FBO FBOs[2];
+    int ping;
+
+    BE_FrameStats timer;
+    BE_Joystick joystick;
+
+} BE_Engine;
+
+void framebuffer_size_callback(GLFWwindow* window, int width, int height);
+BE_Engine BE_EngineStart(int width, int height, const char* name);
+void BE_EngineClose(BE_Engine* engine);
+
+// OTHER FUNCTIONS
+
+void BE_SceneNew(BE_Engine* engine, const char* name);
+
+void BE_LoadTexture(BE_Engine* engine, const char* name, const char* imageFile, const char* texType, GLenum slot);
+void BE_LoadMesh(BE_Engine* engine, const char* name, const char* objPath);
+void BE_LoadSound(BE_Engine* engine, const char* name, const char* path, bool spatial, float min, float max);
+void BE_LoadShader(BE_Engine* engine, const char* name, const char* vertexFile, const char* fragmentFile, const char* geometryFile, const char* computeFile);
+
+void BE_SceneAddModel(BE_Engine* engine, const char* name, const char* meshName, vec3 position, vec3 rotation, vec3 scale);
+void BE_SceneAddLight(BE_Engine* engine, const char* name, int type, vec3 position, vec3 direction, vec4 color, float specular, float a, float b, float innerCone, float outerCone);
+void BE_SceneAddCamera(BE_Engine* engine, const char* name, vec3 position, vec3 direction, int width, int height, float fov, float nearPlane, float farPlane);
+void BE_SceneAddSprite(BE_Engine* engine, const char* name, const char* textureName, vec3 position, vec2 scale, vec3 color, float rotation);
+void BE_SceneAddSource(BE_Engine* engine, const char* name, vec3 position, bool spatial);
+
+void BE_BeginFrame(BE_Engine* engine);
+void BE_MakeShadows(BE_Engine* engine, bool active);
+void BE_BeginRender(BE_Engine* engine);
+void BE_DrawModels(BE_Engine* engine, const char* shaderName);
+void BE_DrawLights(BE_Engine* engine, const char* shaderName);
+void BE_DrawCameras(BE_Engine* engine, const char* shaderName);
+void BE_DrawSprites(BE_Engine* engine, const char* shaderName);
+void BE_DrawSources(BE_Engine* engine, const char* shaderName);
+void BE_DrawScene(BE_Engine* engine, bool editor);
+void BE_EndFrame(BE_Engine* engine);
+
+void BE_ScenePlaySound(BE_Engine* engine, const char* sourceName, const char* soundName);
+
 
 #endif
