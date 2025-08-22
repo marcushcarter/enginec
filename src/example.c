@@ -19,22 +19,17 @@ int main() {
     BE_SceneAddModel(&engine, "model1", "scene", (vec3){0.0f, 0.0f, 0.0f}, (vec3){0.0f, 0.0f, 0.0f}, (vec3){1.0f, 1.0f, 1.0f});
     BE_SceneAddLight(&engine, "sun", LIGHT_DIRECT, (vec3){0,0,0}, (vec3){0.5f, -0.4f, 0.5f}, (vec4){1.0f, 1.0f, 1.0f, 1.0f}, 0.5f, 0, 0, 0, 0);
     BE_SceneAddLight(&engine, "rainbow light", LIGHT_POINT, (vec3){0,0,0}, (vec3){0,0,0}, (vec4){1.0f, 1.0f, 1.0f, 1.0f}, 0.5f, 1.0f, 0.04f, 0, 0);
-    BE_SceneAddCamera(&engine, "camera donut", (vec3){-1.93f, 0.73f, -1.75f}, (vec3){0.67f, -0.12f, 0.73f}, 0, 0, 45.0f, 0.1f, 100.0f);
+    BE_SceneAddCamera(&engine, "donut camera", (vec3){-1.93f, 0.73f, -1.75f}, (vec3){0.67f, -0.12f, 0.73f}, 0, 0, 45.0f, 0.1f, 100.0f);
     BE_SceneAddSource(&engine, "speaker1", (vec3){0,1,0}, true);
 
-    // BE_ScenePlaySound(&engine, "speaker1", "music1");
+    BE_ScenePlaySound(&engine, "speaker1", "music1");
 
     fprintf(stdout, "Time to load scene -> %.2fs\n", glfwGetTime());
 
     while(!glfwWindowShouldClose(engine.window)) {
 
         BE_BeginFrame(&engine);
-        
         BE_CameraInputs(engine.activeCamera, engine.window, engine.timer.dt);
-        
-        char buffer[256];
-        snprintf(buffer, sizeof(buffer), "Engine %.1f fps %.2f ms", engine.timer.fps, engine.timer.ms);
-        glfwSetWindowTitle(engine.window, buffer);
 
         glm_vec3_copy((vec3){cosf(glfwGetTime()/25), -0.4f, sinf(glfwGetTime()/25)}, engine.activeScene->lights.data[0].direction);
         glm_vec3_copy((vec3){sin(glfwGetTime()), 0.5f, cos(glfwGetTime())}, engine.activeScene->lights.data[1].position);
