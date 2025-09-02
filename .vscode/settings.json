@@ -63,7 +63,13 @@
         "tuple": "c",
         "type_traits": "c",
         "utility": "c",
-        "variant": "c"
+        "variant": "c",
+        "engine.h": "c",
+        "engine_default.h": "c",
+        "enigne_base.h": "c",
+        "limits": "c",
+        "time.h": "c",
+        "windows.h": "c"
     },
     "C_Cpp.errorSquiggles": "disabled"
 }
