@@ -16,9 +16,9 @@ int main() {
     BE_AddLight("sun", BE_LIGHT_DIRECT);
     BE_AddLight("rainbow light", BE_LIGHT_POINT);
 
-    BE_LoadSound("music1", "res/sounds/breakout.wav", true, 1.0f, 10.0f);
+    BE_LoadSound("music1", "res/sounds/breakout.wav");
     BE_AddEmitter("speaker1", true);
-    BE_SetEmitterPosition("speaker1", BE_vec3(0,1,0));
+    BE_SetEmitterRolloff("speaker1", 0.0f, 100.0f);
     BE_PlayEmitter("speaker1", "music1");
 
     fprintf(stdout, "Time to load scene -> %.2fs\n", glfwGetTime());
@@ -28,11 +28,15 @@ int main() {
         BE_BeginFrame();
         // BE_CameraInputs(g_engine->activeScene->activeCamera, g_engine->window, g_engine->timer.dt);
 
-        BE_Light* rainlight = BE_FindLightPtr(&g_engine->activeScene->lights, "rainbow light"); 
-        BE_Light* sunlight = BE_FindLightPtr(&g_engine->activeScene->lights, "sun");
+        BE_Light* rainlight = BE_FindLight("rainbow light");
         glm_vec4_copy(BE_vec4(sinf(glfwGetTime()*0.5f) * 0.5f + 0.5f, sinf(glfwGetTime()*0.5f + 2.0943951f) * 0.5f + 0.5f, sinf(glfwGetTime()*0.5f + 4.1887902f) * 0.5f + 0.5f, 1.0f), rainlight->color);
         glm_vec3_copy(BE_vec3(sin(glfwGetTime()), 0.5, cos(glfwGetTime())), rainlight->position);
+        
+        BE_Light* sunlight = BE_FindLight("sun");
         glm_vec3_copy(BE_vec3(cosf(glfwGetTime()/25), -0.4f, sinf(glfwGetTime()/25)), sunlight->direction);
+
+        BE_Emitter* emitter = BE_FindEmitter("speaker1");
+        glm_vec3_copy((vec3){0,1,0}, emitter->position);
 
         BE_MakeShadows(true);
         BE_BeginRender();

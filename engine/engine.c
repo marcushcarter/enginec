@@ -45,6 +45,21 @@ void BE_IMPL_Message(int severity, const char* module, const char* file, int lin
     if (severity >= 3) exit(1);
 }
 
+#define BE_CheckEngineActive(file, line, _return) do { \
+    if (!g_engine) { BE_IMPL_Message(2, "Engine", file, line, "No engine is currently bound"); return _return; } \
+} while (0)
+
+#define BE_CheckSceneActive(file, line, _return) do { \
+    if (!g_engine) { BE_IMPL_Message(2, "Engine", file, line, "No engine is currently bound"); return _return; } \
+    if (!g_engine->activeScene) { BE_IMPL_Message(2, "Engine", file, line, "No scene is currently bound"); return _return; } \
+} while (0)
+
+#define BE_CheckCameraActive(file, line, _return) do { \
+    if (!g_engine) { BE_IMPL_Message(2, "Engine", file, line, "No engine is currently bound"); return _return; } \
+    if (!g_engine->activeScene) { BE_IMPL_Message(2, "Engine", file, line, "No scene is currently bound"); return _return; } \
+    if (!g_engine->activeScene->activeCamera) { BE_IMPL_Message(2, "Engine", file, line, "No camera is currently bound"); return _return; } \
+} while (0)
+
 // ==============================
 // MATH
 // ==============================
@@ -2588,6 +2603,10 @@ void BE_EmitterSetLooping(BE_Emitter* src, bool looping) {
     }
 }
 
+void BE_EmitterSetRolloff(BE_Emitter* src, float min, float max) {
+    if (src->channel) FMOD_Channel_Set3DMinMaxDistance(src->channel, min, max);
+}
+
 void BE_EmitterSetReverb(BE_Emitter* src, float decay, float mix) {
     if (!src || !src->channel) return;
 
@@ -2989,101 +3008,6 @@ void BE_IMPL_EndFrame(const char* file, int line) {
 }
 
 // ==============================
-// Shaders
-// ==============================
-
-void BE_IMPL_LoadShader(const char* shaderName, const char* vertexFile, const char* fragmentFile, const char* geometryFile, const char* computeFile, const char* file, int line) {
-    BE_CheckEngineActive(file, line,);
-
-    char buffer[128];
-    if (!shaderName) {
-        snprintf(buffer, sizeof(buffer), "shader%d", g_engine->resources.meshes.size+1);
-        shaderName = buffer;
-        BE_IMPL_Message(1, "Shader", file, line, "No name provided; defaulted to '%s'", shaderName);
-    }
-
-    BE_ShaderVectorPush(&g_engine->resources.shaders, BE_ShaderInit(shaderName, vertexFile, fragmentFile, geometryFile, computeFile));
-}
-
-// ==============================
-// Meshes
-// ==============================
-
-void BE_IMPL_LoadMesh(const char* meshName, const char* objFile, const char* file, int line) {
-    BE_CheckEngineActive(file, line,);
-    if (!objFile) { BE_IMPL_Message(2, "Mesh", file, line, "Failed to find file '%s'", objFile); return; }
-
-    char buffer[128];
-    if (!meshName) {
-        snprintf(buffer, sizeof(buffer), "mesh%d", g_engine->resources.meshes.size+1);
-        meshName = buffer;
-        BE_IMPL_Message(1, "Mesh", file, line, "No name provided; defaulted to '%s'", meshName);
-    }
-
-    BE_MeshVectorPush(&g_engine->resources.meshes, BE_LoadOBJToMesh(meshName, objFile));
-}
-
-// ==============================
-// Textures
-// ==============================
-
-void BE_IMPL_LoadTexture(const char* textureName, const char* imageFile, const char* file, int line) {
-    BE_CheckEngineActive(file, line,);
-    if (!imageFile) { BE_IMPL_Message(2, "Texture", file, line, "Failed to find file '%s'", imageFile); return; }
-
-    char buffer[128];
-    if (!textureName) {
-        snprintf(buffer, sizeof(buffer), "texture%d", g_engine->resources.meshes.size+1);
-        textureName = buffer;
-        BE_IMPL_Message(1, "Texture", file, line, "No name provided; defaulted to '%s'", textureName);
-    }
-
-    BE_TextureVectorPush(&g_engine->resources.textures, BE_TextureInit(textureName, imageFile, "texture", 0));
-}
-
-// ==============================
-// Sounds
-// ==============================
-
-void BE_IMPL_LoadSound(const char* soundName, const char* soundFile, bool spatial, float min, float max, const char* file, int line) {
-    BE_CheckEngineActive(file, line,);
-    if (!soundFile) { BE_IMPL_Message(2, "Emitter", file, line, "Failed to find file '%s'", soundFile); return; }
-    if (min < 0) { BE_IMPL_Message(1, "Sound", file, line, "Expected min value greater than 0"); min = 0; }
-    if (max < 0) { BE_IMPL_Message(1, "Sound", file, line, "Expected max value greater than 0"); max = 0; }
-    
-
-    char buffer[128];
-    if (!soundName) {
-        snprintf(buffer, sizeof(buffer), "emitter%d", g_engine->resources.sounds.size+1);
-        soundName = buffer;
-        BE_IMPL_Message(1, "Sound", file, line, "No name provided; defaulted to '%s'", soundName);
-    }
-
-    BE_SoundVectorPush(&g_engine->resources.sounds, BE_SoundLoad(&g_engine->audio, soundFile, soundName, spatial, min, max));
-}
-
-void BE_IMPL_DeleteSound(const char* soundName, const char* file, int line) {
-    BE_CheckEngineActive(file, line,);
-    BE_Sound* sound = BE_FindSoundPtr(&g_engine->resources.sounds, soundName);
-    if (!sound) { BE_IMPL_Message(2, "Sound", file, line, "Failed to find sound '%s'", soundName); return; }
-    BE_SoundVectorRemove(&g_engine->resources.sounds, sound);
-}
-
-void BE_IMPL_DeleteAllSounds(const char* file, int line) {
-    BE_CheckEngineActive(file, line,);
-    for (int i = 0; i < g_engine->resources.sounds.size; i++) {
-        BE_Sound* sound = &g_engine->resources.sounds.data[i];
-        BE_SoundVectorRemove(&g_engine->resources.sounds, sound);
-    }
-}
-
-bool BE_IMPL_CheckSound(const char* soundName, const char* file, int line) {
-    BE_CheckEngineActive(file, line, false);
-    BE_Sound* sound = BE_FindSoundPtr(&g_engine->resources.sounds, soundName);
-    return sound != NULL;
-}
-
-// ==============================
 // Scenes
 // ==============================
 
@@ -3144,11 +3068,77 @@ void BE_IMPL_DeleteAllScenes(const char* file, int line) {
     BE_IMPL_AddScene(NULL, file, line);
 }
 
+BE_Scene* BE_IMPL_FindScene(const char* sceneName, const char* file, int line) {
+    BE_CheckEngineActive(file, line, NULL);
+    BE_Scene* scene = BE_FindScenePtr(&g_engine->scenes, sceneName);
+    if (!scene) { BE_IMPL_Message(2, "Scene", file, line, "Failed to find scene '%s'", sceneName); return NULL; }
+    return scene;
+}
+
 bool BE_IMPL_CheckScene(const char* sceneName, const char* file, int line) {
     BE_CheckEngineActive(file, line, false);
     BE_Scene* scene = BE_FindScenePtr(&g_engine->scenes, sceneName);
     return scene != NULL;
 }
+
+// ==============================
+// Shaders
+// ==============================
+
+void BE_IMPL_LoadShader(const char* shaderName, const char* vertexFile, const char* fragmentFile, const char* geometryFile, const char* computeFile, const char* file, int line) {
+    BE_CheckEngineActive(file, line,);
+
+    char buffer[128];
+    if (!shaderName) {
+        snprintf(buffer, sizeof(buffer), "shader%d", g_engine->resources.meshes.size+1);
+        shaderName = buffer;
+        BE_IMPL_Message(1, "Shader", file, line, "No name provided; defaulted to '%s'", shaderName);
+    }
+
+    BE_ShaderVectorPush(&g_engine->resources.shaders, BE_ShaderInit(shaderName, vertexFile, fragmentFile, geometryFile, computeFile));
+}
+
+// delete
+// delete all
+
+BE_Shader* BE_IMPL_FindShader(const char* shaderName, const char* file, int line) {
+    BE_CheckEngineActive(file, line, NULL);
+    BE_Shader* shader = BE_FindShaderPtr(&g_engine->resources.shaders, shaderName);
+    if (!shader) { BE_IMPL_Message(2, "Shader", file, line, "Failed to find shader '%s'", shaderName); return NULL; }
+    return shader;
+}
+
+// chack
+
+// ==============================
+// Meshes
+// ==============================
+
+void BE_IMPL_LoadMesh(const char* meshName, const char* objFile, const char* file, int line) {
+    BE_CheckEngineActive(file, line,);
+    if (!objFile) { BE_IMPL_Message(2, "Mesh", file, line, "Failed to find file '%s'", objFile); return; }
+
+    char buffer[128];
+    if (!meshName) {
+        snprintf(buffer, sizeof(buffer), "mesh%d", g_engine->resources.meshes.size+1);
+        meshName = buffer;
+        BE_IMPL_Message(1, "Mesh", file, line, "No name provided; defaulted to '%s'", meshName);
+    }
+
+    BE_MeshVectorPush(&g_engine->resources.meshes, BE_LoadOBJToMesh(meshName, objFile));
+}
+
+// delete
+// delete all
+
+BE_Mesh* BE_IMPL_FindMesh(const char* meshName, const char* file, int line) {
+    BE_CheckEngineActive(file, line, NULL);
+    BE_Mesh* mesh = BE_FindMeshPtr(&g_engine->resources.meshes, meshName);
+    if (!mesh) { BE_IMPL_Message(2, "Mesh", file, line, "Failed to find mesh '%s'", meshName); return NULL; }
+    return mesh;
+}
+
+// chack
 
 // ==============================
 // Models
@@ -3169,6 +3159,18 @@ void BE_IMPL_AddModel(const char* modelName, const char* meshName, const char* f
     
     BE_ModelVectorPush(&g_engine->activeScene->models, BE_ModelInit(modelName, mesh, BE_TransformInit(BE_vec3(0,0,0), BE_vec3(0,0,0), BE_vec3(1,1,1))));
 }
+
+// delete
+// delete all
+
+BE_Model* BE_IMPL_FindModel(const char* modelName, const char* file, int line) {
+    BE_CheckSceneActive(file, line, NULL);
+    BE_Model* model = BE_FindModelPtr(&g_engine->activeScene->models, modelName);
+    if (!model) { BE_IMPL_Message(2, "Model", file, line, "Failed to find model '%s'", modelName); return NULL; }
+    return model;
+}
+
+// check
 
 void BE_IMPL_DrawModels(const char* shaderName, const char* file, int line) {
     BE_CheckCameraActive(file, line,);
@@ -3219,6 +3221,18 @@ void BE_IMPL_AddLight(const char* lightName, BE_LightType type, const char* file
     
     BE_LightVectorPush(&g_engine->activeScene->lights, BE_LightInit(lightName, type, BE_vec3(0,0,0), BE_vec3(0,0,0), BE_vec4(1,1,1,1), 0.0f, 1, 0.04f, 0, 0));
 }
+
+// delete
+// delete all
+
+BE_Light* BE_IMPL_FindLight(const char* lightName, const char* file, int line) {
+    BE_CheckSceneActive(file, line, NULL);
+    BE_Light* light = BE_FindLightPtr(&g_engine->activeScene->lights, lightName);
+    if (!light) { BE_IMPL_Message(2, "Light", file, line, "Failed to find light '%s'", lightName); return NULL; }
+    return light;
+}
+
+// check
 
 void BE_IMPL_DrawLights(const char* shaderName, const char* file, int line) {
     BE_CheckCameraActive(file, line,);
@@ -3288,6 +3302,18 @@ void BE_IMPL_AddCamera(const char* cameraName, const char* file, int line) {
     BE_CameraVectorPush(&g_engine->activeScene->cameras, BE_CameraInit(cameraName, g_engine->width, g_engine->height, 45.0f, 0.1f, 100.0f, BE_vec3(0,0,0), BE_vec3(0,0,0)));
 }
 
+// delete
+// delete all
+
+BE_Camera* BE_IMPL_FindCamera(const char* cameraName, const char* file, int line) {
+    BE_CheckSceneActive(file, line, NULL);
+    BE_Camera* camera = BE_FindCameraPtr(&g_engine->activeScene->cameras, cameraName);
+    if (!camera) { BE_IMPL_Message(2, "Camera", file, line, "Failed to find camera '%s'", cameraName); return NULL; }
+    return camera;
+}
+
+// check
+
 void BE_IMPL_DrawCameras(const char* shaderName, const char* file, int line) {
     BE_CheckCameraActive(file, line,);
 
@@ -3330,6 +3356,36 @@ void BE_IMPL_DrawCameras(const char* shaderName, const char* file, int line) {
 }
 
 // ==============================
+// Textures
+// ==============================
+
+void BE_IMPL_LoadTexture(const char* textureName, const char* imageFile, const char* file, int line) {
+    BE_CheckEngineActive(file, line,);
+    if (!imageFile) { BE_IMPL_Message(2, "Texture", file, line, "Failed to find file '%s'", imageFile); return; }
+
+    char buffer[128];
+    if (!textureName) {
+        snprintf(buffer, sizeof(buffer), "texture%d", g_engine->resources.meshes.size+1);
+        textureName = buffer;
+        BE_IMPL_Message(1, "Texture", file, line, "No name provided; defaulted to '%s'", textureName);
+    }
+
+    BE_TextureVectorPush(&g_engine->resources.textures, BE_TextureInit(textureName, imageFile, "texture", 0));
+}
+
+// delete
+// delete all
+
+BE_Texture* BE_IMPL_FindTexture(const char* textureName, const char* file, int line) {
+    BE_CheckEngineActive(file, line, NULL);
+    BE_Texture* texture = BE_FindTexturePtr(&g_engine->resources.textures, textureName);
+    if (!texture) { BE_IMPL_Message(2, "Texture", file, line, "Failed to find texture '%s'", textureName); return NULL; }
+    return texture;
+}
+
+// chack
+
+// ==============================
 // Sprites
 // ==============================
 
@@ -3348,6 +3404,18 @@ void BE_IMPL_AddSprite(const char* spriteName, const char* textureName, const ch
 
     BE_SpriteVectorPush(&g_engine->activeScene->sprites, BE_SpriteInit(spriteName, texture, BE_vec3(0,0,0), BE_vec2(1,1), BE_vec3(1,1,1), 0));
 }
+
+// delete
+// delete all
+
+BE_Sprite* BE_IMPL_FindSprite(const char* spriteName, const char* file, int line) {
+    BE_CheckSceneActive(file, line, NULL);
+    BE_Sprite* sprite = BE_FindSpritePtr(&g_engine->activeScene->sprites, spriteName);
+    if (!sprite) { BE_IMPL_Message(2, "Sprite", file, line, "Failed to find sprite '%s'", spriteName); return NULL; }
+    return sprite;
+}
+
+// check
 
 void BE_IMPL_DrawSprites(const char* shaderName, const char* file, int line) {
     BE_CheckCameraActive(file, line,);
@@ -3395,6 +3463,52 @@ void BE_IMPL_DrawSprites(const char* shaderName, const char* file, int line) {
 }
 
 // ==============================
+// Sounds
+// ==============================
+
+void BE_IMPL_LoadSound(const char* soundName, const char* soundFile, const char* file, int line) {
+    BE_CheckEngineActive(file, line,);
+    if (!soundFile) { BE_IMPL_Message(2, "Sound", file, line, "Failed to find file '%s'", soundFile); return; }
+    
+    char buffer[128];
+    if (!soundName) {
+        snprintf(buffer, sizeof(buffer), "sound%d", g_engine->resources.sounds.size+1);
+        soundName = buffer;
+        BE_IMPL_Message(1, "Sound", file, line, "No name provided; defaulted to '%s'", soundName);
+    }
+
+    BE_SoundVectorPush(&g_engine->resources.sounds, BE_SoundLoad(&g_engine->audio, soundFile, soundName, true, 1.0f, 5.0f));
+}
+
+void BE_IMPL_DeleteSound(const char* soundName, const char* file, int line) {
+    BE_CheckEngineActive(file, line,);
+    BE_Sound* sound = BE_FindSoundPtr(&g_engine->resources.sounds, soundName);
+    if (!sound) { BE_IMPL_Message(2, "Sound", file, line, "Failed to find sound '%s'", soundName); return; }
+    BE_SoundVectorRemove(&g_engine->resources.sounds, sound);
+}
+
+void BE_IMPL_DeleteAllSounds(const char* file, int line) {
+    BE_CheckEngineActive(file, line,);
+    for (int i = 0; i < g_engine->resources.sounds.size; i++) {
+        BE_Sound* sound = &g_engine->resources.sounds.data[i];
+        BE_SoundVectorRemove(&g_engine->resources.sounds, sound);
+    }
+}
+
+BE_Sound* BE_IMPL_FindSound(const char* soundName, const char* file, int line) {
+    BE_CheckEngineActive(file, line, NULL);
+    BE_Sound* sound = BE_FindSoundPtr(&g_engine->resources.sounds, soundName);
+    if (!sound) { BE_IMPL_Message(2, "Sound", file, line, "Failed to find sound '%s'", soundName); return NULL; }
+    return sound;
+}
+
+bool BE_IMPL_CheckSound(const char* soundName, const char* file, int line) {
+    BE_CheckEngineActive(file, line, false);
+    BE_Sound* sound = BE_FindSoundPtr(&g_engine->resources.sounds, soundName);
+    return sound != NULL;
+}
+
+// ==============================
 // Audio Emitters
 // ==============================
 
@@ -3424,6 +3538,13 @@ void BE_IMPL_RemoveAllEmitters(const char* file, int line) {
         BE_Emitter* emitter = &g_engine->activeScene->emitters.data[i];
         BE_EmitterVectorRemove(&g_engine->activeScene->emitters, emitter);
     }
+}
+
+BE_Emitter* BE_IMPL_FindEmitter(const char* emitterName, const char* file, int line) {
+    BE_CheckSceneActive(file, line, NULL);
+    BE_Emitter* emitter = BE_FindEmitterPtr(&g_engine->activeScene->emitters, emitterName);
+    if (!emitter) { BE_IMPL_Message(2, "Emitter", file, line, "Failed to find emitter '%s'", emitterName); return NULL; }
+    return emitter;
 }
 
 bool BE_IMPL_CheckEmitter(const char* emitterName, const char* file, int line) {
@@ -3495,6 +3616,15 @@ void BE_IMPL_SetEmitterLooping(const char* emitterName, bool looping, const char
     BE_Emitter* emitter = BE_FindEmitterPtr(&g_engine->activeScene->emitters, emitterName);
     if (!emitter) { BE_IMPL_Message(2, "Emitter", file, line, "Failed to find emitter '%s'", emitterName); return; }
     BE_EmitterSetLooping(emitter, looping);
+}
+
+void BE_IMPL_SetEmitterRolloff(const char* emitterName, float min, float max, const char* file, int line) {
+    BE_CheckSceneActive(file, line,);
+    BE_Emitter* emitter = BE_FindEmitterPtr(&g_engine->activeScene->emitters, emitterName);
+    if (!emitter) { BE_IMPL_Message(2, "Emitter", file, line, "Failed to find emitter '%s'", emitterName); return; }
+    if (min < 0) { BE_IMPL_Message(1, "Emitter", file, line, "Expected min value greater than 0"); min = 0; }
+    if (max < 0) { BE_IMPL_Message(1, "Emitter", file, line, "Expected max value greater than 0"); max = 0; }
+    BE_EmitterSetRolloff(emitter, min, max);
 }
 
 void BE_IMPL_SetEmitterSeek(const char* emitterName, float seek, const char* file, int line) {

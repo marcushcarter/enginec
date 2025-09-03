@@ -18,21 +18,6 @@
 #define BE_mat3(m00, m01, m02, m10, m11, m12, m20, m21, m22) ((mat3){{m00, m01, m02}, {m10, m11, m12}, {m20, m21, m22}})
 #define BE_mat4(m00, m01, m02, m03, m10, m11, m12, m13, m20, m21, m22, m23, m30, m31, m32, m33) ((mat4){{m00, m01, m02, m03}, {m10, m11, m12, m13}, {m20, m21, m22, m23}, {m30, m31, m32, m33}})
 
-#define BE_CheckEngineActive(file, line, _return) do { \
-    if (!g_engine) { BE_IMPL_Message(2, "Engine", file, line, "No engine is currently bound"); return _return; } \
-} while (0)
-
-#define BE_CheckSceneActive(file, line, _return) do { \
-    if (!g_engine) { BE_IMPL_Message(2, "Engine", file, line, "No engine is currently bound"); return _return; } \
-    if (!g_engine->activeScene) { BE_IMPL_Message(2, "Engine", file, line, "No scene is currently bound"); return _return; } \
-} while (0)
-
-#define BE_CheckCameraActive(file, line, _return) do { \
-    if (!g_engine) { BE_IMPL_Message(2, "Engine", file, line, "No engine is currently bound"); return _return; } \
-    if (!g_engine->activeScene) { BE_IMPL_Message(2, "Engine", file, line, "No scene is currently bound"); return _return; } \
-    if (!g_engine->activeScene->activeCamera) { BE_IMPL_Message(2, "Engine", file, line, "No camera is currently bound"); return _return; } \
-} while (0)
-
 #define PRINT_MAT4(m) do { \
     printf("mat4:\n"); \
     printf("[ %8.3f %8.3f %8.3f %8.3f ]\n", (m)[0][0], (m)[1][0], (m)[2][0], (m)[3][0]); \
@@ -587,6 +572,7 @@ void BE_EmitterSetPosition(BE_Emitter* src, vec3 position);
 void BE_EmitterSetGain(BE_Emitter* src, float gain);
 void BE_EmitterSetPitch(BE_Emitter* src, float pitch);
 void BE_EmitterSetLooping(BE_Emitter* src, bool looping);
+void BE_EmitterSetRolloff(BE_Emitter* src, float min, float max);
 void BE_EmitterSetReverb(BE_Emitter* src, float decay, float mix);
 void BE_EmitterRemoveReverb(BE_Emitter* src);
 void BE_EmitterSetListener(BE_AudioEngine* engine, vec3 position, vec3 direction, vec3 velocity);
@@ -745,66 +731,6 @@ void BE_IMPL_BeginRender(const char* file, int line);
 void BE_IMPL_EndFrame(const char* file, int line);
 
 // =======================
-// SHADERS
-// =======================
-
-#define BE_LoadShader(shaderName, vertexFile, fragmentFile, geometryFile, computeFile) do { BE_IMPL_LoadShader(shaderName, vertexFile, fragmentFile, geometryFile, computeFile, __FILE__, __LINE__); } while(0)
-void BE_IMPL_LoadShader(const char* shaderName, const char* vertexFile, const char* fragmentFile, const char* geometryFile, const char* computeFile, const char* file, int line);
-
-// =======================
-// MESHES
-// =======================
-
-#define BE_LoadMesh(meshName, objFile) do { BE_IMPL_LoadMesh(meshName, objFile, __FILE__, __LINE__); } while(0)
-void BE_IMPL_LoadMesh(const char* meshName, const char* objFile, const char* file, int line);
-
-// =======================
-// TEXTURES
-// =======================
-
-#define BE_LoadTexture(textureName, imageFile) do { BE_IMPL_LoadTexture(textureName, imageFile, __FILE__, __LINE__); } while(0)
-void BE_IMPL_LoadTexture(const char* textureName, const char* imageFile, const char* file, int line);
-
-// =======================
-// SOUNDS
-// =======================
-
-/**
- * @brief Loads a new sound
- * @param soundName The name of the new sound (const char*). If NULL, the default name will be used.
- * @param soundFile The path to the sound file (const char*). Must not be NULL.
- * @param spatial If the sound can be spatial (bool).
- * @param min The distance when the sound starts losing volume (float). Must be greater than 0.
- * @param max The maximum distance the sound can be heard (float). Must be greater than 0.
- * @see BE_DeleteSound()
- */
-#define BE_LoadSound(soundName, soundFile, spatial, min, max) do { BE_IMPL_LoadSound(soundName, soundFile, spatial, min, max, __FILE__, __LINE__); } while(0)
-void BE_IMPL_LoadSound(const char* soundName, const char* soundFile, bool spatial, float min, float max, const char* file, int line);
-
-/**
- * @brief Deletes a specific sound
- * @param soundName The name of the specific sound (const char*). Must not be NULL.
- * @see BE_LoadSound(), BE_DeleteAllSounds()
- */
-#define BE_DeleteSound(soundName) do { BE_IMPL_DeleteSound(soundName, __FILE__, __LINE__); } while(0)
-void BE_IMPL_DeleteSound(const char* soundName, const char* file, int line);
-
-/**
- * @brief Removes all sounds
- * @see BE_DeleteSound()
- */
-#define BE_DeleteAllSounds() do { BE_IMPL_DeleteAllSounds(__FILE__, __LINE__); } while(0)
-void BE_IMPL_DeleteAllSounds(const char* file, int line);
-
-/**
- * @brief Checks whether a specific sound exists
- * @param soundName The name of the sound to check (const char*). Must not be NULL.
- * @return 'true' if the sound exists. 'false' if the sound does not exist or an error occurs.
- */
-#define BE_CheckSound(soundName) BE_IMPL_CheckSound(soundName, __FILE__, __LINE__)
-bool BE_IMPL_CheckSound(const char* soundName, const char* file, int line);
-
-// =======================
 // SCENES
 // =======================
 
@@ -847,6 +773,14 @@ void BE_IMPL_DeleteScene(const char* sceneName, const char* file, int line);
 void BE_IMPL_DeleteAllScenes(const char* file, int line);
 
 /**
+ * @brief Gets the pointer to a specific scene
+ * @param sceneName The name of the specific scene (const char*). Must not be NULL.
+ * @return The pointer to the specific scene.
+ */
+#define BE_FindScene(sceneName) BE_IMPL_FindMesh(sceneName, __FILE__, __LINE__)
+BE_Scene* BE_IMPL_FindScene(const char* sceneName, const char* file, int line);
+
+/**
  * @brief Checks whether a specific scene exists
  * @param sceneName The name of the scene to check (const char*). Must not be NULL.
  * @return 'true' if the scene exists. 'false' if the scene does not exist or an error occurs.
@@ -855,11 +789,49 @@ void BE_IMPL_DeleteAllScenes(const char* file, int line);
 bool BE_IMPL_CheckScene(const char* sceneName, const char* file, int line);
 
 // =======================
+// SHADERS
+// =======================
+
+#define BE_LoadShader(shaderName, vertexFile, fragmentFile, geometryFile, computeFile) do { BE_IMPL_LoadShader(shaderName, vertexFile, fragmentFile, geometryFile, computeFile, __FILE__, __LINE__); } while(0)
+void BE_IMPL_LoadShader(const char* shaderName, const char* vertexFile, const char* fragmentFile, const char* geometryFile, const char* computeFile, const char* file, int line);
+
+/**
+ * @brief Gets the pointer to a specific shader
+ * @param shaderName The name of the specific shader (const char*). Must not be NULL.
+ * @return The pointer to the specific shader.
+ */
+#define BE_FindShader(shaderName) BE_IMPL_FindMesh(shaderName, __FILE__, __LINE__)
+BE_Shader* BE_IMPL_FindShader(const char* shaderName, const char* file, int line);
+
+// =======================
+// MESHES
+// =======================
+
+#define BE_LoadMesh(meshName, objFile) do { BE_IMPL_LoadMesh(meshName, objFile, __FILE__, __LINE__); } while(0)
+void BE_IMPL_LoadMesh(const char* meshName, const char* objFile, const char* file, int line);
+
+/**
+ * @brief Gets the pointer to a specific mesh
+ * @param meshName The name of the specific mesh (const char*). Must not be NULL.
+ * @return The pointer to the specific mesh.
+ */
+#define BE_FindMesh(meshName) BE_IMPL_FindMesh(meshName, __FILE__, __LINE__)
+BE_Mesh* BE_IMPL_FindMesh(const char* meshName, const char* file, int line);
+
+// =======================
 // MODELS
 // =======================
 
 #define BE_AddModel(modelName, meshName) do { BE_IMPL_AddModel(modelName, meshName, __FILE__, __LINE__); } while(0)
 void BE_IMPL_AddModel(const char* modelName, const char* meshName, const char* file, int line);
+
+/**
+ * @brief Gets the pointer to a specific model
+ * @param modelName The name of the specific model (const char*). Must not be NULL.
+ * @return The pointer to the specific model.
+ */
+#define BE_FindModel(modelName) BE_IMPL_FindModel(modelName, __FILE__, __LINE__)
+BE_Model* BE_IMPL_FindModel(const char* modelName, const char* file, int line);
 
 #define BE_DrawModels(shaderName) do { BE_IMPL_DrawModels(shaderName, __FILE__, __LINE__); } while(0)
 void BE_IMPL_DrawModels(const char* shaderName, const char* file, int line);
@@ -871,6 +843,14 @@ void BE_IMPL_DrawModels(const char* shaderName, const char* file, int line);
 #define BE_AddLight(lightName, type) do { BE_IMPL_AddLight(lightName, type, __FILE__, __LINE__); } while(0)
 void BE_IMPL_AddLight(const char* lightName, BE_LightType type, const char* file, int line);
 
+/**
+ * @brief Gets the pointer to a specific light
+ * @param lightName The name of the specific light (const char*). Must not be NULL.
+ * @return The pointer to the specific light.
+ */
+#define BE_FindLight(lightName) BE_IMPL_FindLight(lightName, __FILE__, __LINE__)
+BE_Light* BE_IMPL_FindLight(const char* lightName, const char* file, int line);
+
 #define BE_DrawLights(shaderName) do { BE_IMPL_DrawLights(shaderName, __FILE__, __LINE__); } while(0)
 void BE_IMPL_DrawLights(const char* shaderName, const char* file, int line);
 
@@ -881,8 +861,31 @@ void BE_IMPL_DrawLights(const char* shaderName, const char* file, int line);
 #define BE_AddCamera(cameraName) do { BE_IMPL_AddCamera(cameraName, __FILE__, __LINE__); } while(0)
 void BE_IMPL_AddCamera(const char* cameraName, const char* file, int line);
 
+/**
+ * @brief Gets the pointer to a specific camera
+ * @param cameraName The name of the specific camera (const char*). Must not be NULL.
+ * @return The pointer to the specific camera.
+ */
+#define BE_FindCamera(cameraName) BE_IMPL_FindCamera(cameraName, __FILE__, __LINE__)
+BE_Camera* BE_IMPL_FindCamera(const char* cameraName, const char* file, int line);
+
 #define BE_DrawCameras(shaderName) do { BE_IMPL_DrawCameras(shaderName, __FILE__, __LINE__); } while(0)
 void BE_IMPL_DrawCameras(const char* shaderName, const char* file, int line);
+
+// =======================
+// TEXTURES
+// =======================
+
+#define BE_LoadTexture(textureName, imageFile) do { BE_IMPL_LoadTexture(textureName, imageFile, __FILE__, __LINE__); } while(0)
+void BE_IMPL_LoadTexture(const char* textureName, const char* imageFile, const char* file, int line);
+
+/**
+ * @brief Gets the pointer to a specific texture
+ * @param textureName The name of the specific texture (const char*). Must not be NULL.
+ * @return The pointer to the specific texture.
+ */
+#define BE_FindTexture(textureName) BE_IMPL_FindTexture(textureName, __FILE__, __LINE__)
+BE_Texture* BE_IMPL_FindTexture(const char* textureName, const char* file, int line);
 
 // =======================
 // SPRITES
@@ -897,11 +900,63 @@ void BE_IMPL_DrawCameras(const char* shaderName, const char* file, int line);
 void BE_IMPL_AddSprite(const char* spriteName, const char* textureName, const char* file, int line);
 
 /**
+ * @brief Gets the pointer to a specific sprite
+ * @param spriteName The name of the specific sprite (const char*). Must not be NULL.
+ * @return The pointer to the specific sprite.
+ */
+#define BE_FindSprite(spriteName) BE_IMPL_FindSprite(spriteName, __FILE__, __LINE__)
+BE_Sprite* BE_IMPL_FindSprite(const char* spriteName, const char* file, int line);
+
+/**
  * @brief Draws all sprites with a specific shader
  * @param shaderName The name of the specific shader (const char*). If NULL, a default shader will be used.
  */
 #define BE_DrawSprites(shaderName) do { BE_IMPL_DrawSprites(shaderName, __FILE__, __LINE__); } while(0)
 void BE_IMPL_DrawSprites(const char* shaderName, const char* file, int line);
+
+// =======================
+// SOUNDS
+// =======================
+
+/**
+ * @brief Loads a new sound
+ * @param soundName The name of the new sound (const char*). If NULL, the default name will be used.
+ * @param soundFile The path to the sound file (const char*). Must not be NULL.
+ * @see BE_DeleteSound()
+ */
+#define BE_LoadSound(soundName, soundFile) do { BE_IMPL_LoadSound(soundName, soundFile, __FILE__, __LINE__); } while(0)
+void BE_IMPL_LoadSound(const char* soundName, const char* soundFile, const char* file, int line);
+
+/**
+ * @brief Deletes a specific sound
+ * @param soundName The name of the specific sound (const char*). Must not be NULL.
+ * @see BE_LoadSound(), BE_DeleteAllSounds()
+ */
+#define BE_DeleteSound(soundName) do { BE_IMPL_DeleteSound(soundName, __FILE__, __LINE__); } while(0)
+void BE_IMPL_DeleteSound(const char* soundName, const char* file, int line);
+
+/**
+ * @brief Removes all sounds
+ * @see BE_DeleteSound()
+ */
+#define BE_DeleteAllSounds() do { BE_IMPL_DeleteAllSounds(__FILE__, __LINE__); } while(0)
+void BE_IMPL_DeleteAllSounds(const char* file, int line);
+
+/**
+ * @brief Gets the pointer to a specific sound
+ * @param soundName The name of the specific sound (const char*). Must not be NULL.
+ * @return The pointer to the specific sound.
+ */
+#define BE_FindSound(soundName) BE_IMPL_FindSound(soundName, __FILE__, __LINE__)
+BE_Sound* BE_IMPL_FindSound(const char* soundName, const char* file, int line);
+
+/**
+ * @brief Checks whether a specific sound exists
+ * @param soundName The name of the sound to check (const char*). Must not be NULL.
+ * @return 'true' if the sound exists. 'false' if the sound does not exist or an error occurs.
+ */
+#define BE_CheckSound(soundName) BE_IMPL_CheckSound(soundName, __FILE__, __LINE__)
+bool BE_IMPL_CheckSound(const char* soundName, const char* file, int line);
 
 // =======================
 // AUDIO EMITTERS
@@ -929,6 +984,14 @@ void BE_IMPL_RemoveEmitter(const char* emitterName, const char* file, int line);
  */
 #define BE_RemoveAllEmitters() do { BE_IMPL_RemoveAllEmitters(__FILE__, __LINE__); } while(0)
 void BE_IMPL_RemoveAllEmitters(const char* file, int line);
+
+/**
+ * @brief Gets the pointer to a specific emitter
+ * @param emitterName The name of the specific emitter (const char*). Must not be NULL.
+ * @return The pointer to the specific emitter.
+ */
+#define BE_FindEmitter(emitterName) BE_IMPL_FindEmitter(emitterName, __FILE__, __LINE__)
+BE_Emitter* BE_IMPL_FindEmitter(const char* emitterName, const char* file, int line);
 
 /**
  * @brief Checks whether a specific audio emitter exists
@@ -979,6 +1042,15 @@ void BE_IMPL_PauseEmitter(const char* emitterName, bool pause, const char* file,
  */
 #define BE_SetEmitterLooping(emitterName, looping) do { BE_IMPL_SetEmitterLooping(emitterName, looping, __FILE__, __LINE__); } while(0)
 void BE_IMPL_SetEmitterLooping(const char* emitterName, bool looping, const char* file, int line);
+
+/**
+ * @brief Toggles looping of a specific audio emitter
+ * @param emitterName The name of the specific emitter (const char*). Must not be NULL.
+ * @param min The distance at with an emitters sound starts getting quieter (float). Must be greater than 0.
+ * @param max The maximum distance the emitter can be heard from (float). Must be greater than 0.
+ */
+#define BE_SetEmitterRolloff(emitterName, min, max) do { BE_IMPL_SetEmitterRolloff(emitterName, min, max, __FILE__, __LINE__); } while(0)
+void BE_IMPL_SetEmitterRolloff(const char* emitterName, float min, float max, const char* file, int line);
 
 /**
  * @brief Sets the position of a specific audio emitter
@@ -1130,3 +1202,4 @@ bool BE_IMPL_GetEmitterPlaying(const char* emitterName, const char* file, int li
  */
 #define BE_GetEmitterPaused(emitterName) BE_IMPL_GetEmitterPaused(emitterName, __FILE__, __LINE__)
 bool BE_IMPL_GetEmitterPaused(const char* emitterName, const char* file, int line);
+
