@@ -2572,7 +2572,8 @@ float BE_EmitterGetSeek(BE_Emitter* src) {
     return posMS;
 }
 
-void BE_EmitterSetPosition(BE_Emitter* src, vec3 position){
+void BE_EmitterSetPosition(BE_Emitter* src, const vec3 position){
+    // glm_vec3_copy((vec3)position, src->position);
     src->position[0] = position[0];
     src->position[1] = position[1];
     src->position[2] = position[2];
@@ -2635,7 +2636,7 @@ void BE_EmitterRemoveReverb(BE_Emitter* src) {
 
 }
 
-void BE_EmitterSetListener(BE_AudioEngine* engine, vec3 position, vec3 direction, vec3 velocity) {
+void BE_EmitterSetListener(BE_AudioEngine* engine, const vec3 position, const vec3 direction, const vec3 velocity) {
 
     mat4 rot;
     vec3 forward, up;
@@ -2657,10 +2658,11 @@ void BE_EmitterSetListener(BE_AudioEngine* engine, vec3 position, vec3 direction
     FMOD_VECTOR forwardv = {forward[0], forward[1], forward[2]};
     FMOD_VECTOR upv = {up[0], up[1], up[2]};
     FMOD_VECTOR velv = {velocity[0], velocity[1], velocity[2]};
+
     FMOD_System_Set3DListenerAttributes(engine->system, 0, &posv, &velv, &forwardv, &upv);
 }
 
-void BE_EmitterSetListenerVersor(BE_AudioEngine* engine, vec3 position, versor orientation, vec3 velocity) {
+void BE_EmitterSetListenerVersor(BE_AudioEngine* engine, const vec3 position, versor orientation, const vec3 velocity) {
     vec3 forward, up;
     glm_quat_rotatev(orientation, (vec3){0, 0, -1}, forward);
     glm_quat_rotatev(orientation, (vec3){0, 1, 0}, up);
@@ -3635,11 +3637,14 @@ void BE_IMPL_SetEmitterSeek(const char* emitterName, float seek, const char* fil
     BE_EmitterSetSeek(emitter, seek);
 }
 
-void BE_IMPL_SetEmitterPosition(const char* emitterName, vec3 position, const char* file, int line) {
+void BE_IMPL_SetEmitterPosition(const char* emitterName, const vec3 position, const char* file, int line) {
     BE_CheckSceneActive(file, line,);
+
     BE_Emitter* emitter = BE_FindEmitterPtr(&g_engine->activeScene->emitters, emitterName);
     if (!emitter) { BE_IMPL_Message(2, "Emitter", file, line, "Failed to find emitter '%s'", emitterName); return; }
-    if (!position) glm_vec3_copy((vec3){0,0,0}, position);
+
+    if (!position) { BE_IMPL_Message(2, "Emitter", file, line, "Expected position value cannot be NULL"); return; }
+
     BE_EmitterSetPosition(emitter, position);
 }
 
@@ -3652,11 +3657,13 @@ void BE_IMPL_SetEmitterPositionToCamera(const char* emitterName, const char* cam
     BE_EmitterSetPosition(emitter, camera->position);
 }
 
-void BE_IMPL_SetListenerPosition(vec3 position, vec3 direction, vec3 velocity, const char* file, int line) {
+void BE_IMPL_SetListenerPosition(const vec3 position, const vec3 direction, const vec3 velocity, const char* file, int line) {
     BE_CheckEngineActive(file, line,);
-    if (!position) glm_vec3_copy((vec3){0,0,0}, position);
-    if (!direction) glm_vec3_copy((vec3){0,0,0}, direction);
-    if (!velocity) glm_vec3_copy((vec3){0,0,0}, velocity);
+    
+    if (!position) { BE_IMPL_Message(2, "Emitter", file, line, "Expected position value cannot be NULL"); return; }
+    if (!direction) { BE_IMPL_Message(2, "Emitter", file, line, "Expected direction value cannot be NULL"); return; }
+    if (!velocity) { BE_IMPL_Message(2, "Emitter", file, line, "Expected velocity value cannot be NULL"); return; }
+    
     BE_EmitterSetListener(&g_engine->audio, position, direction, velocity);
 }
 
@@ -3664,12 +3671,12 @@ void BE_IMPL_SetListenerPositionToCamera(const char* cameraName, const char* fil
     BE_CheckSceneActive(file, line,);
     BE_Camera* camera = BE_FindCameraPtr(&g_engine->activeScene->cameras, cameraName);
     if (!camera) { BE_IMPL_Message(2, "Camera", file, line, "Failed to find camera '%s'", cameraName); return; }
-    BE_EmitterSetListenerVersor(&g_engine->audio, camera->position, camera->orientation, (vec3){0,0,0});
+    BE_EmitterSetListenerVersor(&g_engine->audio, camera->position, camera->orientation, BE_vec3(0,0,0));
 }
 
 void BE_IMPL_SetListenerPositionToActiveCamera(const char* file, int line) {
     BE_CheckCameraActive(file, line,);
-    BE_EmitterSetListenerVersor(&g_engine->audio, g_engine->activeScene->activeCamera->position, g_engine->activeScene->activeCamera->orientation, (vec3){0,0,0});
+    BE_EmitterSetListenerVersor(&g_engine->audio, g_engine->activeScene->activeCamera->position, g_engine->activeScene->activeCamera->orientation, BE_vec3(0,0,0));
 }
 
 void BE_IMPL_SetEmitterVolume(const char* emitterName, float volume, const char* file, int line) {

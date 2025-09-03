@@ -4,6 +4,8 @@
 #include <math.h>
 #include <time.h>
 
+// #define set(emitter) glm_vec3_copy((vec3){0,1,0}, emitter->position)
+
 int main() {
 
     BE_Engine engine = BE_StartEngine(NULL, 1440, 900);
@@ -35,8 +37,10 @@ int main() {
         BE_Light* sunlight = BE_FindLight("sun");
         glm_vec3_copy(BE_vec3(cosf(glfwGetTime()/25), -0.4f, sinf(glfwGetTime()/25)), sunlight->direction);
 
-        BE_Emitter* emitter = BE_FindEmitter("speaker1");
-        glm_vec3_copy((vec3){0,1,0}, emitter->position);
+        vec3 vec;
+        BE_SetEmitterPosition("speaker1", BE_vec3(0,0.2f,0));
+        BE_SetListenerPosition(BE_vec3(0,2,0), BE_vec3(0,0,0), BE_vec3(0,0,0));
+        BE_GetEmitterPosition("speaker1", vec); 
 
         BE_MakeShadows(true);
         BE_BeginRender();

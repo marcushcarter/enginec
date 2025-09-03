@@ -568,15 +568,15 @@ void BE_EmitterPause(BE_Emitter* src, bool pause);
 
 void BE_EmitterSetSeek(BE_Emitter* src, float seek);
 float BE_EmitterGetSeek(BE_Emitter* src);
-void BE_EmitterSetPosition(BE_Emitter* src, vec3 position);
+void BE_EmitterSetPosition(BE_Emitter* src, const vec3 position);
 void BE_EmitterSetGain(BE_Emitter* src, float gain);
 void BE_EmitterSetPitch(BE_Emitter* src, float pitch);
 void BE_EmitterSetLooping(BE_Emitter* src, bool looping);
 void BE_EmitterSetRolloff(BE_Emitter* src, float min, float max);
 void BE_EmitterSetReverb(BE_Emitter* src, float decay, float mix);
 void BE_EmitterRemoveReverb(BE_Emitter* src);
-void BE_EmitterSetListener(BE_AudioEngine* engine, vec3 position, vec3 direction, vec3 velocity);
-void BE_EmitterSetListenerVersor(BE_AudioEngine* engine, vec3 position, versor orientation, vec3 velocity);
+void BE_EmitterSetListener(BE_AudioEngine* engine, const vec3 position,const vec3 direction, const vec3 velocity);
+void BE_EmitterSetListenerVersor(BE_AudioEngine* engine, const vec3 position, versor orientation, const vec3 velocity);
 float BE_EmitterGetVolume(BE_Emitter* src);
 float BE_EmitterGetPitch(BE_Emitter* src);
 void BE_EmitterGetPosition(BE_Emitter* src, vec3 dest);
@@ -1069,7 +1069,7 @@ void BE_IMPL_SetEmitterSeek(const char* emitterName, float seek, const char* fil
  * @see BE_SetEmitterPositionToCamera()
  */
 #define BE_SetEmitterPosition(emitterName, position) do { BE_IMPL_SetEmitterPosition(emitterName, position, __FILE__, __LINE__); } while(0)
-void BE_IMPL_SetEmitterPosition(const char* emitterName, vec3 position, const char* file, int line);
+void BE_IMPL_SetEmitterPosition(const char* emitterName, const vec3 position, const char* file, int line);
 
 /**
  * @brief Sets the position of a specific audio emitter to a specific camera
@@ -1082,14 +1082,14 @@ void BE_IMPL_SetEmitterPositionToCamera(const char* emitterName, const char* cam
 
 /**
  * @brief Sets the position of the audio listener 
- * @param position The new position of the listener (vec3). If NULL, position is set to x=0, y=0, z=0.
- * @param direction The new direction of the listener (vec3, radians). If NULL, direction is set to x=0, y=0, z=0.
- * @param velocity The new velocity of the listener (vec3). If NULL, velocity is set to x=0, y=0, z=0.
+ * @param position The new position of the listener (vec3). Must not be NULL.
+ * @param direction The new direction of the listener (vec3, radians). Must not be NULL.
+ * @param velocity The new velocity of the listener (vec3). Must not be NULL.
  * @note HINT: For vec3s try using BE_vec3().
  * @see BE_SetListenerPositionToCamera(), BE_SetListenerPositionToActiveCamera()
  */
 #define BE_SetListenerPosition(position, direction, velocity) do { BE_IMPL_SetListenerPosition(position, direction, velocity, __FILE__, __LINE__); } while(0)
-void BE_IMPL_SetListenerPosition(vec3 position, vec3 direction, vec3 velocity, const char* file, int line);
+void BE_IMPL_SetListenerPosition(const vec3 position, const vec3 direction, const vec3 velocity, const char* file, int line);
 
 /**
  * @brief Sets the audio listener to a specific camera
