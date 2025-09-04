@@ -7,6 +7,10 @@
 #include <time.h>
 #include <stdarg.h>
 
+
+// #define BE_FILE() __builtin_FILE()
+// #define BE_LINE() __builtin_LINE()
+
 #define BE_Message(severity, module, fmt, ...) BE_IMPL_Message(severity, module, __FILE__, __LINE__, fmt, ##__VA_ARGS__)
 void BE_IMPL_Message(int severity, const char* module, const char* file, int line, const char* fmt, ...) {
     static char last_msg[1024] = "";
@@ -2000,6 +2004,26 @@ BE_Light BE_LightInit(const char* name, int type, vec3 position, vec3 direction,
     return light;
 }
 
+// void BE_LightSetPosition(BE_Light* light, const vec3 position) {
+//     light->position[0] = position[0];
+//     light->position[1] = position[1];
+//     light->position[2] = position[2];
+// }
+
+// void BE_LightGetPosition(BE_Light* light, vec3 dest) {
+//     glm_vec3_copy(light->position, dest);
+// }
+
+// void BE_LightSetDirection(BE_Light* light, const vec3 direction) {
+//     light->direction[0] = direction[0];
+//     light->direction[1] = direction[1];
+//     light->direction[2] = direction[2];
+// }
+
+// void BE_LightSetOrientation(BE_Light* light, versor orientation) {
+//     glm_quat_copy(orientation, light->orientation);
+// }
+
 void BE_LightRotate(BE_Light* light, vec3 axis, float angle) {
     versor qrot;
     glm_quatv(qrot, angle, axis);
@@ -2009,6 +2033,90 @@ void BE_LightRotate(BE_Light* light, vec3 axis, float angle) {
     vec3 forward = {0,0,-1};
     glm_quat_rotatev(light->orientation, forward, light->direction);
 }
+
+// void BE_LightGetDirection(BE_Light* light, vec3 dest) {
+//     glm_vec3_copy(light->direction, dest);
+// }
+
+// void BE_LightGetOrientation(BE_Light* light, versor dest) {
+//     glm_quat_copy(light->orientation, dest);
+// }
+
+// void BE_LightSetColor(BE_Light* light, const vec4 color) {
+//     light->color[0] = color[0];
+//     light->color[1] = color[1];
+//     light->color[2] = color[2];
+//     light->color[3] = color[3];
+// }
+
+// void BE_LightGetColor(BE_Light* light, vec4 dest) {
+//     glm_vec4_copy(light->color, dest);
+// }
+
+// void BE_LightSetSpecular(BE_Light* light, float specular) {
+//     light->specular = specular;
+// }
+
+// float BE_LightGetSpecular(BE_Light* light) {
+//     return light->specular;
+// }
+
+// void BE_LightSetAB(BE_Light* light, float a, float b) {
+//     light->a = a;
+//     light->b = b;
+// }
+
+// void BE_LightGetAB(BE_Light* light, float* a, float* b) {
+//     if (a) *a = light->a;
+//     if (b) *b = light->b;
+// }
+
+// void BE_LightSetCones(BE_Light* light, float innerCone, float outerCone) {
+//     light->innerCone = innerCone;
+//     light->outerCone= outerCone;
+// }
+
+// void BE_LightGetCones(BE_Light* light, float* innerCone, float* outerCone) {
+//     if (innerCone) *innerCone = light->innerCone;
+//     if (outerCone) *outerCone = light->outerCone;
+// }
+
+// void BE_LightSetEnabled(BE_Light* light, bool enabled) {
+//     light->enabled = enabled;
+// }
+
+// bool BE_LightGetEnabled(BE_Light* light) {
+//     return light->enabled;
+// }
+
+// void BE_LightSetIntensity(BE_Light* light, float intensity) {
+//     light->intensity = intensity;
+// }
+
+// float BE_LightGetIntensity(BE_Light* light) {
+//     return light->intensity;
+// }
+
+// void BE_LightSetType(BE_Light* light, BE_LightType type) {
+//     light->type = type;
+// }
+
+// int BE_LightGetType(BE_Light* light) {
+//     return light->type;
+// }
+
+// void BE_LightReset(BE_Light* light) {
+//     glm_vec3_zero(light->position);
+//     glm_vec3_copy(BE_vec3(0,0,0), light->direction);
+//     glm_quat_identity(light->orientation);
+//     glm_vec4_copy(BE_vec4(1,1,1,1), light->color);
+//     light->specular = 1.0f;
+//     light->a = 1.0f;
+//     light->b = 0.0f;
+//     light->innerCone = 0.5f;
+//     light->outerCone = 1.0f;
+//     light->enabled = true;
+// }
 
 #define INITIAL_LIGHT_CAPACITY 4
 
@@ -3680,10 +3788,10 @@ void BE_IMPL_SetListenerPositionToActiveCamera(const char* file, int line) {
 }
 
 void BE_IMPL_SetEmitterVolume(const char* emitterName, float volume, const char* file, int line) {
-    BE_CheckSceneActive(file, line,);
+    BE_CheckSceneActive(file, __builtin_LINE(),);
     BE_Emitter* emitter = BE_FindEmitterPtr(&g_engine->activeScene->emitters, emitterName);
-    if (!emitter) { BE_IMPL_Message(2, "Emitter", file, line, "Failed to find emitter '%s'", emitterName); return; }
-    if (volume < 0) { BE_IMPL_Message(1, "Emitter", file, line, "Expected volume value greater than 0"); volume = 0; }
+    if (!emitter) { BE_IMPL_Message(2, "Emitter", file, __builtin_LINE(), "Failed to find emitter '%s'", emitterName); return; }
+    if (volume < 0) { BE_IMPL_Message(1, "Emitter", file, __builtin_LINE(), "Expected volume value greater than 0"); volume = 0; }
     BE_EmitterSetGain(emitter, volume);
 }
 

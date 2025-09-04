@@ -10,6 +10,14 @@
 #include <time.h>
 #include <string.h>
 
+// #if defined(__GNUC__) || defined(__clang__)
+//     #define BE_FILE() __builtin_FILE()
+//     #define BE_LINE() __builtin_LINE()
+// #else 
+//     #define BE_FILE() __FILE__
+//     #define BE_LINE() __LINE__
+// #endif
+
 #define BE_vec2(x,y) ((vec2){x,y})
 #define BE_vec3(x,y,z) ((vec3){x,y,z})
 #define BE_vec4(x,y,z,w) ((vec4){x,y,z,w})
@@ -449,7 +457,29 @@ void BE_ShadowMapFBODelete(BE_ShadowMapFBO* smfbo);
 typedef void (*ShadowRenderFunc)(BE_Shader* shader);
 
 BE_Light BE_LightInit(const char* name, int type, vec3 position, vec3 direction, vec4 color, float specular, float a, float b, float innerCone, float outerCone);
+
+// void BE_LightSetPosition(BE_Light* light, const vec3 position);
+// void BE_LightGetPosition(BE_Light* light, vec3 dest);
+// void BE_LightSetDirection(BE_Light* light, const vec3 direction);
+// void BE_LightSetOrientation(BE_Light* light, versor orientation);
 void BE_LightRotate(BE_Light* light, vec3 axis, float angle);
+// void BE_LightGetDirection(BE_Light* light, vec3 dest);
+// void BE_LightGetOrientation(BE_Light* light, versor dest);
+// void BE_LightSetColor(BE_Light* light, const vec4 color);
+// void BE_LightGetColor(BE_Light* light, vec4 dest);
+// void BE_LightSetSpecular(BE_Light* light, float specular);
+// float BE_LightGetSpecular(BE_Light* light);
+// void BE_LightSetAB(BE_Light* light, float a, float b);
+// void BE_LightGetAB(BE_Light* light, float* a, float* b);
+// void BE_LightSetCones(BE_Light* light, float innerCone, float outerCone);
+// void BE_LightGetCones(BE_Light* light, float* innerCone, float* outerCone);
+// void BE_LightSetEnabled(BE_Light* light, bool enabled);
+// bool BE_LightGetEnabled(BE_Light* light);
+// void BE_LightSetIntensity(BE_Light* light, float intensity);
+// float BE_LightGetIntensity(BE_Light* light);
+// void BE_LightSetType(BE_Light* light, BE_LightType type);
+// int BE_LightGetType(BE_Light* light);
+// void BE_LightReset(BE_Light* light);
 
 void BE_LightVectorInit(BE_LightVector* vec);
 void BE_LightVectorPush(BE_LightVector* vec, BE_Light value);

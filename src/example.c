@@ -20,6 +20,9 @@ int main() {
 
     BE_LoadSound("music1", "res/sounds/breakout.wav");
     BE_AddEmitter("speaker1", true);
+    // BE_SetEmitterPosition("speaker1", BE_vec3(0,0.2f,0));
+    BE_SetEmitterPosition("speaker1", BE_vec3(0,0.2f,0));
+    BE_SetListenerPosition(BE_vec3(0,2,0), BE_vec3(0,0,0), BE_vec3(0,0,0));
     BE_SetEmitterRolloff("speaker1", 0.0f, 100.0f);
     BE_PlayEmitter("speaker1", "music1");
 
@@ -37,10 +40,11 @@ int main() {
         BE_Light* sunlight = BE_FindLight("sun");
         glm_vec3_copy(BE_vec3(cosf(glfwGetTime()/25), -0.4f, sinf(glfwGetTime()/25)), sunlight->direction);
 
-        vec3 vec;
-        BE_SetEmitterPosition("speaker1", BE_vec3(0,0.2f,0));
-        BE_SetListenerPosition(BE_vec3(0,2,0), BE_vec3(0,0,0), BE_vec3(0,0,0));
-        BE_GetEmitterPosition("speaker1", vec); 
+        // vec3 vec;
+        // BE_GetEmitterPosition("speaker1", vec);
+        // printf("%f %f %f\n", vec[0], vec[1], vec[2]);
+        
+        BE_IMPL_SetEmitterVolume("speake1", -1.6f, "NULL", 0);
 
         BE_MakeShadows(true);
         BE_BeginRender();
