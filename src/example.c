@@ -33,6 +33,8 @@ int main() {
         BE_BeginFrame();
         // BE_CameraInputs(g_engine->activeScene->activeCamera, g_engine->window, g_engine->timer.dt);
 
+        if (g_engine->timer.frameCountFPS == 1) printf("%f FPS %f MS\n", g_engine->timer.fps, g_engine->timer.ms);
+
         BE_Light* rainlight = BE_FindLight("rainbow light");
         glm_vec4_copy(BE_vec4(sinf(glfwGetTime()*0.5f) * 0.5f + 0.5f, sinf(glfwGetTime()*0.5f + 2.0943951f) * 0.5f + 0.5f, sinf(glfwGetTime()*0.5f + 4.1887902f) * 0.5f + 0.5f, 1.0f), rainlight->color);
         glm_vec3_copy(BE_vec3(sin(glfwGetTime()), 0.5, cos(glfwGetTime())), rainlight->position);
@@ -44,7 +46,7 @@ int main() {
         // BE_GetEmitterPosition("speaker1", vec);
         // printf("%f %f %f\n", vec[0], vec[1], vec[2]);
         
-        BE_IMPL_SetEmitterVolume("speake1", -1.6f, "NULL", 0);
+        // BE_IMPL_SetEmitterVolume("speaker1", -1.6f, "NULL", 0);
 
         BE_MakeShadows(true);
         BE_BeginRender();
